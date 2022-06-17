@@ -9,7 +9,7 @@ import { Repository } from '../../../types/common.types';
   selector: 'cosign-link',
   templateUrl: '/static/js/directives/ui/cosign-link/cosign-link.component.html'
 })
-export class CosignLinkComponent {
+export class SigstoreSignatureLinkComponent {
 
   @Input('<') public repository: Repository;
   @Input('<') public manifestDigest: string;
