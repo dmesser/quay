@@ -1,9 +1,9 @@
 <span class="manifest-link">
     <span class="id-label cas" ng-if="::$ctrl.hasSHA256($ctrl.manifestDigest)"
-            data-title="The artifact containing the cosign signature for this tag."
+            data-title="The artifact containing the Sigstore signature for this tag."
             data-container="body"
             ng-click="$ctrl.showCopyBox()"
-            bs-tooltip>cosign</span>
+            bs-tooltip>sigstore</span>
 
     <a ng-href="/repository/{{ ::$ctrl.repository.namespace }}/{{ ::$ctrl.repository.name }}/manifest/{{ ::$ctrl.manifestDigest }}">
       {{ $ctrl.tagName }}
@@ -17,7 +17,7 @@
             <div class="modal-header">
             <button type="button" class="close" ng-click="$ctrl.hideCopyBox()"
                     aria-hidden="true">&times;</button>
-            <h4 class="modal-title"><span ng-if="$ctrl.hasSHA256($ctrl.manifestDigest)">Cosign Signature artifact</span><span ng-if="!$ctrl.hasSHA256($ctrl.manifestDigest)">V1 ID</span></h4>
+            <h4 class="modal-title"><span ng-if="$ctrl.hasSHA256($ctrl.manifestDigest)">Sigstore Signature artifact</span><span ng-if="!$ctrl.hasSHA256($ctrl.manifestDigest)">V1 ID</span></h4>
             </div>
             <div class="modal-body">
                 <label>Signature digest:</label>

@@ -6,8 +6,8 @@ import { Repository } from '../../../types/common.types';
  * A component that links to a manifest view.
  */
 @Component({
-  selector: 'cosign-link',
-  templateUrl: '/static/js/directives/ui/cosign-link/cosign-link.component.html'
+  selector: 'sigstore-link',
+  templateUrl: '/static/js/directives/ui/sigstore-link/sigstore-link.component.html'
 })
 export class SigstoreSignatureLinkComponent {
 

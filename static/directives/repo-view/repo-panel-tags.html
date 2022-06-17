@@ -12,9 +12,9 @@
     </div>
 
     <div class="btn-group btn-group-sm">
-      <button class="btn" ng-class="!showCosignSignatures ? 'btn-default' : 'btn-primary active'"
-          ng-click="toggleCosignSignatureDisplay()">
-        {{ !showCosignSignatures ? 'Show Signatures' : 'Hide Signatures' }}
+      <button class="btn" ng-class="!showSigstoreSignatures ? 'btn-default' : 'btn-primary active'"
+          ng-click="toggleSigstoreSignatureDisplay()">
+        {{ !showSigstoreSignatures ? 'Show Signatures' : 'Hide Signatures' }}
       </button>
     </div>
   </div>
@@ -38,8 +38,8 @@
      <div class="cor-checkable-menu-item" item-filter="commitTagFilter(item)">
       <i class="fa fa-git"></i>Commit SHAs
      </div>
-     <div class="cor-checkable-menu-item" item-filter="cosignTagFilter(item)">
-      <i class="fa fa-pencil-square"></i>Cosign Signatures
+     <div class="cor-checkable-menu-item" item-filter="sigstoreTagFilter(item)">
+      <i class="fa fa-pencil-square"></i>Sigstore Signatures
      </div>
 
      <div class="cor-checkable-menu-item" item-filter="manifestDigestFilter(mt.manifest_digest, item)"
@@ -150,8 +150,8 @@
       <td class="co-flowing-col">
         <span class="tag-span">
           <span bo-text="tag.name"></span>
-          <span class="signing-valid" ng-if="::tag.cosign_signature_tag">
-            <i class="fa shield-icon ci-shield-check-full" data-title="This tag has been signed via cosign." bs-tooltip></i>
+          <span class="signing-valid" ng-if="::tag.sigstore_signature_tag">
+            <i class="fa shield-icon ci-shield-check-full" data-title="This tag has been signed via SigStore." bs-tooltip></i>
           </span>
         </span>
         <span class="manifest-list-icons" bo-if="tag.is_manifest_list">
@@ -325,9 +325,9 @@
         <div class="manifest-label-list" repository="repository"
              manifest-digest="tag.manifest_digest" cache="labelCache"></div>
 
-        <!-- Cosign Signatures -->
-        <div class="cosign-signature-row" ng-if="tag.cosign_signature_tag">
-          <cosign-link repository="repository" image-id="tag.image_id" manifest-digest="tag.cosign_signature_manifest_digest" tag-name="tag.cosign_signature_tag" tag-name="tag.cosign_signature_tag" signed-image-id="tag.image_id" signed-manifest-digest="tag.manifest_digest"></cosign-link>
+        <!-- Sigstore Signatures -->
+        <div class="sigstore-signature-row" ng-if="tag.sigstore_signature_tag">
+          <sigstore-link repository="repository" image-id="tag.image_id" manifest-digest="tag.sigstore_signature_manifest_digest" tag-name="tag.sigstore_signature_tag" tag-name="tag.sigstore_signature_tag" signed-image-id="tag.image_id" signed-manifest-digest="tag.manifest_digest"></sigstore-link>
         </div>
 
         <!-- Delegations -->
