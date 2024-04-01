@@ -24,6 +24,7 @@ export interface Tag {
   manifest_list: ManifestList;
   expiration?: string;
   end_ts?: number;
+  manifest_created?: string;
 }
 
 export interface ManifestList {
@@ -36,6 +37,7 @@ export interface Manifest {
   mediaType: string;
   size: number;
   digest: string;
+  created?: string;
   platform: Platform;
   security: SecurityDetailsResponse;
   layers: Layer[];
@@ -70,6 +72,7 @@ export interface ManifestByDigestResponse {
   manifest_data: string;
   config_media_type?: any;
   layers?: any;
+  created?: string;
 }
 
 export interface SecurityDetailsResponse {

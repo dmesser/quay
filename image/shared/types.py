@@ -409,6 +409,12 @@ class SparseManifestList(ManifestListInterface):
         """
         pass
 
+    def get_created_date(self, content_retriever):
+        """
+        Returns the datetime when this manifest was created, or None if not applicable.
+        """
+        return None
+
     def get_leaf_layer_v1_image_id(self, content_retriever):
         """
         Returns the Docker V1 image ID for the leaf (top) layer, if any, or None if not applicable.

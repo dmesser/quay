@@ -1,32 +1,32 @@
-import {Spinner} from '@patternfly/react-core';
+import {Spinner, Text, Tooltip} from '@patternfly/react-core';
+import {DownloadIcon} from '@patternfly/react-icons';
 import {
   ExpandableRowContent,
   Table,
-  Thead,
-  Tr,
-  Th,
   Tbody,
   Td,
+  Th,
+  Thead,
+  Tr,
 } from '@patternfly/react-table';
 import prettyBytes from 'pretty-bytes';
 import {useState} from 'react';
-import {Tag, Manifest} from 'src/resources/TagResource';
-import {useResetRecoilState} from 'recoil';
 import {Link, useLocation} from 'react-router-dom';
-import {getTagDetailPath} from 'src/routes/NavigationPath';
-import TablePopover from './TablePopover';
-import SecurityDetails from './SecurityDetails';
-import {formatDate} from 'src/libs/utils';
+import {useResetRecoilState} from 'recoil';
 import {SecurityDetailsState} from 'src/atoms/SecurityDetailsState';
-import ColumnNames from './ColumnNames';
-import {DownloadIcon} from '@patternfly/react-icons';
 import {ChildManifestSize} from 'src/components/Table/ImageSize';
-import TagActions from './TagsActions';
-import {RepositoryDetails} from 'src/resources/RepositoryResource';
+import ManifestListSize from 'src/components/Table/ManifestListSize';
 import Conditional from 'src/components/empty/Conditional';
 import {useQuayConfig} from 'src/hooks/UseQuayConfig';
+import {formatDate} from 'src/libs/utils';
+import {RepositoryDetails} from 'src/resources/RepositoryResource';
+import {Manifest, Tag} from 'src/resources/TagResource';
+import {getTagDetailPath} from 'src/routes/NavigationPath';
+import ColumnNames from './ColumnNames';
+import SecurityDetails from './SecurityDetails';
+import TablePopover from './TablePopover';
+import TagActions from './TagsActions';
 import TagExpiration from './TagsTableExpiration';
-import ManifestListSize from 'src/components/Table/ManifestListSize';
 
 function SubRow(props: SubRowProps) {
   return (
@@ -65,13 +65,18 @@ function SubRow(props: SubRowProps) {
           />
         </ExpandableRowContent>
       </Td>
-      <Td dataLabel="size" noPadding={false} colSpan={3}>
+      <Td dataLabel="size" noPadding={false} colSpan={2}>
         <ExpandableRowContent>
           <ChildManifestSize
             org={props.org}
             repo={props.repo}
             digest={props.manifest.digest}
           />
+        </ExpandableRowContent>
+      </Td>
+      <Td dataLabel="created" noPadding={false} colSpan={2}>
+        <ExpandableRowContent>
+          {formatDate(props.manifest.created)}
         </ExpandableRowContent>
       </Td>
       {props.manifest.digest ? (
@@ -160,6 +165,22 @@ function TagsTableRow(props: RowProps) {
         </Td>
         <Td dataLabel={ColumnNames.lastModified}>
           {formatDate(tag.last_modified)}
+        </Td>
+        <Td dataLabel={ColumnNames.created}>
+          {!tag.manifest_list ? (
+            formatDate(tag.manifest_created)
+          ) : (
+            <Tooltip
+              content={
+                <div>
+                  Manifest list creation dates are computed from the most recent
+                  build date of the child manifests.
+                </div>
+              }
+            >
+              <Text>{formatDate(tag.manifest_created)}</Text>
+            </Tooltip>
+          )}
         </Td>
         <Td dataLabel={ColumnNames.expires}>
           <TagExpiration
@@ -255,6 +276,7 @@ export default function TagsTable(props: TableProps) {
             <Th>Security</Th>
             <Th>Size</Th>
             <Th>Last Modified</Th>
+            <Th>Build Date</Th>
             <Th>Expires</Th>
             <Th>Manifest</Th>
             <Th>Pull</Th>

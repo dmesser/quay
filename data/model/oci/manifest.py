@@ -360,6 +360,13 @@ def _create_manifest(
         with db_transaction():
             manifest = create_manifest(repository_id, manifest_interface_instance)
 
+            # Get the created date of the manifest, if any.
+            created_date = manifest_interface_instance.get_created_date(retriever)
+
+            if created_date:
+                manifest.created = created_date
+                manifest.save()
+
             if storage_ids:
                 connect_blobs(manifest, storage_ids, repository_id)
 
