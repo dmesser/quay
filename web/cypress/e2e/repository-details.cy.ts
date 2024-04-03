@@ -30,6 +30,10 @@ describe('Repository Details Page', () => {
         'have.text',
         formatDate('Thu, 27 Jul 2023 17:31:10 -0000'),
       );
+      cy.get(`[data-label="Build Date"]`).should(
+        'have.text',
+        formatDate('Mon, 3 Apr 2023 12:00:10 -0000'),
+      );
       cy.get(`[data-label="Expires"]`).should('have.text', 'Never');
       cy.get(`[data-label="Digest"]`).should(
         'have.text',
@@ -58,6 +62,10 @@ describe('Repository Details Page', () => {
       cy.get(`[data-label="Last Modified"]`).should(
         'have.text',
         formatDate('Thu, 04 Nov 2022 19:15:15 -0000'),
+      );
+      cy.get(`[data-label="Build Date"]`).should(
+        'have.text',
+        formatDate('Mon, 4 Apr 2022 13:00:10 -0000'),
       );
       cy.get(`[data-label="Expires"]`).should('have.text', 'Never');
       cy.get(`[data-label="Digest"]`).should(

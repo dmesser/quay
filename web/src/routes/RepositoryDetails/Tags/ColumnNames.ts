@@ -4,7 +4,7 @@ const ColumnNames = {
   size: 'Size',
   expires: 'Expires',
   lastModified: 'Last Modified',
-  created: 'Build date',
+  created: 'Build Date',
   digest: 'Digest',
   pull: 'Pull',
 };
