@@ -2,8 +2,6 @@
 
 import datetime
 import json as py_json
-import logging
-import re
 import time
 import unittest
 from calendar import timegm
@@ -27,6 +25,7 @@ from app import (
 )
 from buildtrigger.basehandler import BuildTriggerHandler
 from data import database, model
+from data.database import Manifest
 from data.database import Repository as RepositoryTable
 from data.database import RepositoryActionCount
 from data.logs_model import logs_model
@@ -62,6 +61,7 @@ from endpoints.api.logs import (
 )
 from endpoints.api.manifest import (
     ManageRepositoryManifestLabel,
+    RepositoryManifest,
     RepositoryManifestLabels,
 )
 from endpoints.api.organization import (
@@ -827,7 +827,7 @@ class TestCreateNewUser(ApiTestCase):
 
     def test_recaptcha_whitelisted_users(self):
         self.login(READ_ACCESS_USER)
-        with (self.toggleFeature("RECAPTCHA", True)):
+        with self.toggleFeature("RECAPTCHA", True):
             app.config["RECAPTCHA_WHITELISTED_USERS"] = READ_ACCESS_USER
             self.postResponse(User, data=NEW_USER_DETAILS, expected_code=200)
 
@@ -3401,6 +3401,35 @@ class TestListAndDeleteTag(ApiTestCase):
             params=dict(repository=ADMIN_ACCESS_USER + "/simple", page=1, limit=1),
         )
         self.assertTrue("manifest_digest" in json["tags"][0])
+        self.assertNotIn("manifest_created", json["tags"][0])
+
+    def test_listtag_created(self):
+        repo_ref = registry_model.lookup_repository(ADMIN_ACCESS_USER, "simple")
+        latest_tag = registry_model.get_repo_tag(repo_ref, "latest")
+        manifest = registry_model.get_manifest_for_tag(latest_tag)
+
+        created_time = datetime.datetime.now()
+
+        Manifest.update(created=created_time).where(Manifest.id == manifest.id).execute()
+
+        self.login(ADMIN_ACCESS_USER)
+        json = self.getJsonResponse(
+            ListRepositoryTags,
+            params=dict(repository=ADMIN_ACCESS_USER + "/simple", page=1, limit=100),
+        )
+
+        latest_tag_element = [element for element in json["tags"] if element["name"] == "latest"][0]
+
+        self.assertIsNotNone(latest_tag_element)
+        self.assertTrue("manifest_created" in latest_tag_element)
+
+        created_time_response = datetime.datetime.strptime(
+            latest_tag_element["manifest_created"], "%a, %d %b %Y %H:%M:%S %z"
+        )
+
+        self.assertEqual(
+            created_time.replace(microsecond=0, tzinfo=datetime.timezone.utc), created_time_response
+        )
 
     def test_listtagpagination(self):
         self.login(ADMIN_ACCESS_USER)
@@ -4807,6 +4836,47 @@ class TestSuperUserKeyManagement(ApiTestCase):
             self.assertEqual("ServiceKeyApprovalType.SUPERUSER", json["approval"]["approval_type"])
             self.assertEqual(ADMIN_ACCESS_USER, json["approval"]["approver"]["username"])
             self.assertEqual("whazzup!?", json["approval"]["notes"])
+
+
+class TestRepositoryManifest(ApiTestCase):
+    def test_get_manifest_with_created(self):
+        repo_ref = registry_model.lookup_repository(ADMIN_ACCESS_USER, "simple")
+        latest_tag = registry_model.get_repo_tag(repo_ref, "latest")
+        manifest = registry_model.get_manifest_for_tag(latest_tag)
+
+        created_time = datetime.datetime.now()
+
+        Manifest.update(created=created_time).where(Manifest.id == manifest.id).execute()
+
+        self.login(ADMIN_ACCESS_USER)
+        json = self.getJsonResponse(
+            RepositoryManifest,
+            params=dict(repository=ADMIN_ACCESS_USER + "/simple", manifestref=manifest.digest),
+        )
+
+        self.assertEqual(manifest.digest, json["digest"])
+        self.assertIsNotNone(json["created"])
+
+        created_time_response = datetime.datetime.strptime(
+            json["created"], "%a, %d %b %Y %H:%M:%S %z"
+        )
+        self.assertEqual(
+            created_time.replace(microsecond=0, tzinfo=datetime.timezone.utc), created_time_response
+        )
+
+    def test_get_manifest_without_created(self):
+        repo_ref = registry_model.lookup_repository(ADMIN_ACCESS_USER, "simple")
+        prod = registry_model.get_repo_tag(repo_ref, "prod")
+        manifest = registry_model.get_manifest_for_tag(prod)
+
+        self.login(ADMIN_ACCESS_USER)
+        json = self.getJsonResponse(
+            RepositoryManifest,
+            params=dict(repository=ADMIN_ACCESS_USER + "/simple", manifestref=manifest.digest),
+        )
+
+        self.assertEqual(manifest.digest, json["digest"])
+        self.assertNotIn("created", json)
 
 
 class TestRepositoryManifestLabels(ApiTestCase):
