@@ -37,12 +37,12 @@ export default function Details(props: DetailsProps) {
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup data-testid="creation">
-            <DescriptionListTerm>Creation</DescriptionListTerm>
+            <DescriptionListTerm>Build date</DescriptionListTerm>
             <DescriptionListDescription>
-              {props.tag.start_ts ? (
-                formatDate(props.tag.start_ts)
+              {props.tag.manifest_created ? (
+                formatDate(props.tag.manifest_created)
               ) : (
-                <Skeleton width="100%"></Skeleton>
+                <>Unknown</>
               )}
             </DescriptionListDescription>
           </DescriptionListGroup>
@@ -52,11 +52,11 @@ export default function Details(props: DetailsProps) {
               {props.repo ? props.repo : <Skeleton width="100%"></Skeleton>}
             </DescriptionListDescription>
           </DescriptionListGroup>
-          <DescriptionListGroup data-testid="modified">
-            <DescriptionListTerm>Modified</DescriptionListTerm>
+          <DescriptionListGroup data-testid="pushed">
+            <DescriptionListTerm>Push date</DescriptionListTerm>
             <DescriptionListDescription>
-              {props.tag.last_modified ? (
-                formatDate(props.tag.last_modified)
+              {props.tag.pushed ? (
+                formatDate(props.tag.pushed)
               ) : (
                 <Skeleton width="100%"></Skeleton>
               )}

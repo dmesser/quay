@@ -1729,7 +1729,7 @@ class Manifest(BaseModel):
 
     config_media_type = CharField(null=True)
     layers_compressed_size = BigIntegerField(null=True)
-    created = DateTimeField(null=True)
+    created = BigIntegerField(null=True, index=True)
 
     class Meta:
         database = db

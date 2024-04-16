@@ -34,7 +34,8 @@ export default function TagDetails() {
   const [tagDetails, setTagDetails] = useState<Tag>({
     name: '',
     is_manifest_list: false,
-    last_modified: '',
+    pushed: '',
+    manifest_created: '',
     manifest_digest: '',
     reversion: false,
     size: 0,

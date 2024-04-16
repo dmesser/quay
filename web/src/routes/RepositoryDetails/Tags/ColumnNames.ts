@@ -3,7 +3,7 @@ const ColumnNames = {
   security: 'Security',
   size: 'Size',
   expires: 'Expires',
-  lastModified: 'Last Modified',
+  pushed: 'Pushed',
   created: 'Build Date',
   digest: 'Digest',
   pull: 'Pull',

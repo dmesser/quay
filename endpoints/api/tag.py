@@ -1,18 +1,18 @@
 """
 Manage the tags of a repository.
 """
+
 from datetime import datetime
 
 from flask import abort, request
+from pytz import timezone
 
 from app import app, docker_v2_signing_key, model_cache, storage
 from auth.auth_context import get_authenticated_user
-from data.model import repository as repository_model
 from data.registry_model import registry_model
 from endpoints.api import RepositoryParamResource
 from endpoints.api import abort as custom_abort
 from endpoints.api import (
-    deprecated,
     disallow_for_app_repositories,
     disallow_for_non_normal_repositories,
     disallow_for_user_namespace,
@@ -50,14 +50,19 @@ def _tag_dict(tag):
     tag_info["size"] = tag.manifest_layers_size
 
     if tag.manifest.created:
-        tag_info["manifest_created"] = format_date(tag.manifest.created)
+        tag_info["manifest_created"] = format_date(
+            datetime.fromtimestamp(tag.manifest.created, tz=timezone("UTC"))
+        )
 
     if tag.lifetime_start_ts and tag.lifetime_start_ts > 0:
-        last_modified = format_date(datetime.utcfromtimestamp(tag.lifetime_start_ts))
-        tag_info["last_modified"] = last_modified
+        pushed = format_date(datetime.fromtimestamp(tag.lifetime_start_ts, tz=timezone("UTC")))
+        tag_info[
+            "last_modified"
+        ] = pushed  # deprecated: it's actually the start date of the tag, keep for backwards compatibility
+        tag_info["pushed"] = pushed
 
     if tag.lifetime_end_ts is not None:
-        expiration = format_date(datetime.utcfromtimestamp(tag.lifetime_end_ts))
+        expiration = format_date(datetime.fromtimestamp(tag.lifetime_end_ts, tz=timezone("UTC")))
         tag_info["expiration"] = expiration
 
     return tag_info

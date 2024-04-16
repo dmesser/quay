@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from flask import request
+from pytz import timezone
 
 from app import label_validator, storage
 from data.model import InvalidLabelKeyException, InvalidMediaTypeException
@@ -97,7 +98,9 @@ def _manifest_dict(manifest):
     }
 
     if manifest.created:
-        result["created"] = format_date(manifest.created)
+        result["created"] = format_date(
+            datetime.fromtimestamp(manifest.created, tz=timezone("UTC"))
+        )
 
     return result
 

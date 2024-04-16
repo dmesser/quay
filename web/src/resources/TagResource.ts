@@ -1,9 +1,9 @@
 import {AxiosError, AxiosResponse} from 'axios';
 import axios from 'src/libs/axios';
 import {
-  assertHttpCode,
   BulkOperationError,
   ResourceError,
+  assertHttpCode,
   throwIfError,
 } from './ErrorHandling';
 
@@ -16,7 +16,7 @@ export interface TagsResponse {
 export interface Tag {
   name: string;
   is_manifest_list: boolean;
-  last_modified: string;
+  pushed?: string;
   manifest_digest: string;
   reversion: boolean;
   size: number;

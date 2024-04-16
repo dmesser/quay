@@ -65,18 +65,13 @@ function SubRow(props: SubRowProps) {
           />
         </ExpandableRowContent>
       </Td>
-      <Td dataLabel="size" noPadding={false} colSpan={2}>
+      <Td dataLabel="size" noPadding={false} colSpan={4}>
         <ExpandableRowContent>
           <ChildManifestSize
             org={props.org}
             repo={props.repo}
             digest={props.manifest.digest}
           />
-        </ExpandableRowContent>
-      </Td>
-      <Td dataLabel="created" noPadding={false} colSpan={2}>
-        <ExpandableRowContent>
-          {formatDate(props.manifest.created)}
         </ExpandableRowContent>
       </Td>
       {props.manifest.digest ? (
@@ -163,9 +158,7 @@ function TagsTableRow(props: RowProps) {
             prettyBytes(tag.size)
           )}
         </Td>
-        <Td dataLabel={ColumnNames.lastModified}>
-          {formatDate(tag.last_modified)}
-        </Td>
+        <Td dataLabel={ColumnNames.pushed}>{formatDate(props.tag.pushed)}</Td>
         <Td dataLabel={ColumnNames.created}>
           {!tag.manifest_list ? (
             formatDate(tag.manifest_created)
@@ -275,7 +268,7 @@ export default function TagsTable(props: TableProps) {
             <Th>Tag</Th>
             <Th>Security</Th>
             <Th>Size</Th>
-            <Th>Last Modified</Th>
+            <Th>Pushed</Th>
             <Th>Build Date</Th>
             <Th>Expires</Th>
             <Th>Manifest</Th>

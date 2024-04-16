@@ -14,7 +14,7 @@ import sqlalchemy as sa
 
 
 def upgrade(op, tables, tester):
-    op.add_column("manifest", sa.Column("created", sa.DateTime(), nullable=True))
+    op.add_column("manifest", sa.Column("created", sa.BigInteger(), nullable=True))
 
 
 def downgrade(op, tables, tester):
