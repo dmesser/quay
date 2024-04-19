@@ -3408,7 +3408,7 @@ class TestListAndDeleteTag(ApiTestCase):
         latest_tag = registry_model.get_repo_tag(repo_ref, "latest")
         manifest = registry_model.get_manifest_for_tag(latest_tag)
 
-        created_time = datetime.datetime(2024, 4, 3, 22, 0, 18)
+        created_time = datetime.datetime(2024, 4, 3, 22, 0, 18).timestamp()
 
         Manifest.update(created=created_time).where(Manifest.id == manifest.id).execute()
 
@@ -3425,9 +3425,9 @@ class TestListAndDeleteTag(ApiTestCase):
 
         created_time_response = datetime.datetime.strptime(
             latest_tag_element["manifest_created"], "%a, %d %b %Y %H:%M:%S %z"
-        )
+        ).timestamp()
 
-        self.assertEqual(created_time.replace(tzinfo=datetime.timezone.utc), created_time_response)
+        self.assertEqual(created_time, created_time_response)
 
     def test_listtagpagination(self):
         self.login(ADMIN_ACCESS_USER)
@@ -4842,7 +4842,7 @@ class TestRepositoryManifest(ApiTestCase):
         latest_tag = registry_model.get_repo_tag(repo_ref, "latest")
         manifest = registry_model.get_manifest_for_tag(latest_tag)
 
-        created_time = datetime.datetime(2024, 4, 3, 22, 0, 18)
+        created_time = datetime.datetime(2024, 4, 3, 22, 0, 18).timestamp()
 
         Manifest.update(created=created_time).where(Manifest.id == manifest.id).execute()
 
@@ -4857,8 +4857,9 @@ class TestRepositoryManifest(ApiTestCase):
 
         created_time_response = datetime.datetime.strptime(
             json["created"], "%a, %d %b %Y %H:%M:%S %z"
-        )
-        self.assertEqual(created_time.replace(tzinfo=datetime.timezone.utc), created_time_response)
+        ).timestamp()
+
+        self.assertEqual(created_time, created_time_response)
 
     def test_get_manifest_without_created(self):
         repo_ref = registry_model.lookup_repository(ADMIN_ACCESS_USER, "simple")
