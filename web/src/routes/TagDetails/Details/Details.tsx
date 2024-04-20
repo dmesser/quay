@@ -7,15 +7,17 @@ import {
   Divider,
   PageSection,
   PageSectionVariants,
+  Popover,
   Skeleton,
 } from '@patternfly/react-core';
+import {OutlinedQuestionCircleIcon} from '@patternfly/react-icons';
 import {ImageSize} from 'src/components/Table/ImageSize';
 import Labels from 'src/components/labels/Labels';
+import {useFetchManifest} from 'src/hooks/UseManifest';
 import {formatDate} from 'src/libs/utils';
 import {Tag} from 'src/resources/TagResource';
 import SecurityDetails from 'src/routes/RepositoryDetails/Tags/SecurityDetails';
 import CopyTags from './DetailsCopyTags';
-import {useFetchManifest} from 'src/hooks/UseManifest';
 
 export default function Details(props: DetailsProps) {
   const {manifest, isLoading, isError} = useFetchManifest(
@@ -44,7 +46,22 @@ export default function Details(props: DetailsProps) {
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup data-testid="creation">
-            <DescriptionListTerm>Build date</DescriptionListTerm>
+            <DescriptionListTerm>
+              Build date{' '}
+              <Popover
+                triggerAction="hover"
+                aria-label="Build date popover"
+                headerContent={<div>Manifest Build date</div>}
+                bodyContent={
+                  <div>
+                    The date on which this manifest was built (only available
+                    for Docker and OCI images).
+                  </div>
+                }
+              >
+                <OutlinedQuestionCircleIcon />
+              </Popover>
+            </DescriptionListTerm>
             <DescriptionListDescription>
               {!isLoading && !isError ? (
                 formatDate(manifest.created)
@@ -60,7 +77,21 @@ export default function Details(props: DetailsProps) {
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup data-testid="pushed">
-            <DescriptionListTerm>Push date</DescriptionListTerm>
+            <DescriptionListTerm>
+              Push date{' '}
+              <Popover
+                triggerAction="hover"
+                aria-label="Push date popover"
+                headerContent={<div>Tag Push date</div>}
+                bodyContent={
+                  <div>
+                    The date on which this tag was first seen by the registry.
+                  </div>
+                }
+              >
+                <OutlinedQuestionCircleIcon />
+              </Popover>
+            </DescriptionListTerm>
             <DescriptionListDescription>
               {props.tag.pushed ? (
                 formatDate(props.tag.pushed)
