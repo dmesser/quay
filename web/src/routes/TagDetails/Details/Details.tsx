@@ -15,8 +15,15 @@ import {formatDate} from 'src/libs/utils';
 import {Tag} from 'src/resources/TagResource';
 import SecurityDetails from 'src/routes/RepositoryDetails/Tags/SecurityDetails';
 import CopyTags from './DetailsCopyTags';
+import {useFetchManifest} from 'src/hooks/UseManifest';
 
 export default function Details(props: DetailsProps) {
+  const {manifest, isLoading, isError} = useFetchManifest(
+    props.org,
+    props.repo,
+    props.digest,
+  );
+
   return (
     <>
       <PageSection variant={PageSectionVariants.light}>
@@ -39,10 +46,10 @@ export default function Details(props: DetailsProps) {
           <DescriptionListGroup data-testid="creation">
             <DescriptionListTerm>Build date</DescriptionListTerm>
             <DescriptionListDescription>
-              {props.tag.manifest_created ? (
-                formatDate(props.tag.manifest_created)
+              {!isLoading && !isError ? (
+                formatDate(manifest.created)
               ) : (
-                <>Unknown</>
+                <Skeleton width="100%"></Skeleton>
               )}
             </DescriptionListDescription>
           </DescriptionListGroup>
