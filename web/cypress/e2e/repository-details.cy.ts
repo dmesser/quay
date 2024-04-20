@@ -32,7 +32,7 @@ describe('Repository Details Page', () => {
       );
       cy.get(`[data-label="Build Date"]`).should(
         'have.text',
-        formatDate('Mon, 3 Apr 2023 12:00:10 -0000'),
+        formatDate('Mon, 3 Apr 2023 12:00:00 -0000'),
       );
       cy.get(`[data-label="Expires"]`).should('have.text', 'Never');
       cy.get(`[data-label="Digest"]`).should(
@@ -42,7 +42,7 @@ describe('Repository Details Page', () => {
     });
   });
 
-  it.only('renders manifest list tag', () => {
+  it('renders manifest list tag', () => {
     cy.intercept(
       'GET',
       '/api/v1/repository/user1/hello-world/manifest/sha256:f54a58bc1aac5ea1a25d796ae155dc228b3f0e11d046ae276b39c4bf2f13d8c4/security?vulnerabilities=true',
@@ -65,7 +65,7 @@ describe('Repository Details Page', () => {
       );
       cy.get(`[data-label="Build Date"]`).should(
         'have.text',
-        formatDate('Mon, 4 Apr 2022 13:00:10 -0000'),
+        formatDate('Mon, 4 Apr 2022 11:00:00 -0000'),
       );
       cy.get(`[data-label="Expires"]`).should('have.text', 'Never');
       cy.get(`[data-label="Digest"]`).should(
