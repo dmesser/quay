@@ -32,7 +32,7 @@ describe('Repository Details Page', () => {
       );
       cy.get(`[data-label="Build Date"]`).should(
         'have.text',
-        formatDate('Mon, 3 Apr 2023 12:00:00 -0000'),
+        formatDate('Mon, 3 Apr 2023 10:00:00 -0000'),
       );
       cy.get(`[data-label="Expires"]`).should('have.text', 'Never');
       cy.get(`[data-label="Digest"]`).should(
