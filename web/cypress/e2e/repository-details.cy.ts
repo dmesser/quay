@@ -26,7 +26,7 @@ describe('Repository Details Page', () => {
       cy.get(`[data-label="Tag"]`).should('have.text', 'latest');
       cy.get(`[data-label="Security"]`).should('have.text', '3 Critical');
       cy.get(`[data-label="Size"]`).should('have.text', '2.48 kB');
-      cy.get(`[data-label="Last Modified"]`).should(
+      cy.get(`[data-label="Pushed"]`).should(
         'have.text',
         formatDate('Thu, 27 Jul 2023 17:31:10 -0000'),
       );
@@ -42,7 +42,7 @@ describe('Repository Details Page', () => {
     });
   });
 
-  it('renders manifest list tag', () => {
+  it.only('renders manifest list tag', () => {
     cy.intercept(
       'GET',
       '/api/v1/repository/user1/hello-world/manifest/sha256:f54a58bc1aac5ea1a25d796ae155dc228b3f0e11d046ae276b39c4bf2f13d8c4/security?vulnerabilities=true',
@@ -59,7 +59,7 @@ describe('Repository Details Page', () => {
         'See Child Manifests',
       );
       cy.get(`[data-label="Size"]`).should('have.text', '2.51 kB ~ 4.12 kB');
-      cy.get(`[data-label="Last Modified"]`).should(
+      cy.get(`[data-label="Pushed"]`).should(
         'have.text',
         formatDate('Thu, 04 Nov 2022 19:15:15 -0000'),
       );

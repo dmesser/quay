@@ -29,7 +29,7 @@ describe('Repositories List Page', () => {
       cy.get(`[data-label="Name"]`).contains('user1/hello-world');
       cy.get(`[data-label="Visibility"]`).contains('private');
       //cy.get(`[data-label="Size"]`).contains('2.42 kB');
-      cy.get(`[data-label="Last Modified"]`).contains(
+      cy.get(`[data-label="Pushed"]`).contains(
         formatDate('Thu, 27 Jul 2023 17:31:10 -0000'),
       );
     });
@@ -50,7 +50,7 @@ describe('Repositories List Page', () => {
       cy.get(`[data-label="Name"]`).contains('hello-world');
       cy.get(`[data-label="Visibility"]`).contains('private');
       //cy.get(`[data-label="Size"]`).contains('2.42 kB');
-      cy.get(`[data-label="Last Modified"]`).contains(
+      cy.get(`[data-label="Pushed"]`).contains(
         formatDate('Thu, 27 Jul 2023 17:31:10 -0000'),
       );
     });
