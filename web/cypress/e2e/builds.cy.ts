@@ -1477,6 +1477,8 @@ describe('Repository Builds - Create GitHub Build Triggers', () => {
     cy.contains('Next').click();
 
     // Dockerfile path
+    cy.get('input[aria-label="Type to filter"]').click();
+    cy.get('input[aria-label="Type to filter"]').focus(); // seems like a PF5 bug that the focus is lost when the select appears
     cy.get('input[aria-label="Type to filter"]').type('nesteddir1');
     cy.contains('/dir2/subdir2/nesteddir1/Dockerfile');
     cy.contains('/dir2/subrdir1/Dockerfile').should('not.exist');
@@ -1494,6 +1496,8 @@ describe('Repository Builds - Create GitHub Build Triggers', () => {
     cy.contains('Next').click();
 
     // Context path
+    cy.get('input[aria-label="Type to filter"]').click();
+    cy.get('input[aria-label="Type to filter"]').focus(); // seems like a PF5 bug that the focus is lost when the select appears
     cy.get('input[aria-label="Type to filter"]').type('nesteddir1');
     cy.get('#select-typeahead-listbox').each((el) => {
       cy.wrap(el).contains('/dir2/subdir2/nesteddir1');
