@@ -49,7 +49,6 @@ export default function Details(props: DetailsProps) {
             <DescriptionListTerm>
               Build date{' '}
               <Popover
-                triggerAction="hover"
                 aria-label="Build date popover"
                 headerContent={<div>Manifest Build date</div>}
                 bodyContent={
@@ -59,7 +58,7 @@ export default function Details(props: DetailsProps) {
                   </div>
                 }
               >
-                <OutlinedQuestionCircleIcon />
+                <OutlinedQuestionCircleIcon style={{cursor: 'pointer'}} />
               </Popover>
             </DescriptionListTerm>
             <DescriptionListDescription>
@@ -80,7 +79,6 @@ export default function Details(props: DetailsProps) {
             <DescriptionListTerm>
               Push date{' '}
               <Popover
-                triggerAction="hover"
                 aria-label="Push date popover"
                 headerContent={<div>Tag Push date</div>}
                 bodyContent={
@@ -89,7 +87,7 @@ export default function Details(props: DetailsProps) {
                   </div>
                 }
               >
-                <OutlinedQuestionCircleIcon />
+                <OutlinedQuestionCircleIcon style={{cursor: 'pointer'}} />
               </Popover>
             </DescriptionListTerm>
             <DescriptionListDescription>
