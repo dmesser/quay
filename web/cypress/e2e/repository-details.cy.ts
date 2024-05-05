@@ -557,7 +557,7 @@ describe('Repository Details Page', () => {
       });
   });
 
-  it.only('changes expiration through kebab', () => {
+  it('changes expiration through kebab', () => {
     const formattedDate = new Date();
     const currentDateGB = formattedDate.toLocaleDateString('en-GB', {
       year: 'numeric',
@@ -695,7 +695,7 @@ describe('Repository Details Page', () => {
     cy.get('button[aria-label="Next month"]').click();
     cy.get(`[aria-label="${sameDateNextMonthGB}"]`).click();
     cy.get('#expiration-time-picker').click();
-    cy.contains(formattedTime).click();
+    cy.get('#expiration-time-picker').contains(formattedTime).click();
     cy.contains('Change Expiration').click();
     const latestRowUpdated = cy.get('tbody:contains("latest")');
     latestRowUpdated.first().within(() => {
@@ -742,7 +742,7 @@ describe('Repository Details Page', () => {
     cy.get('button[aria-label="Next month"]').click();
     cy.get(`[aria-label="${sameDateNextMonthGB}"]`).click();
     cy.get('#expiration-time-picker').click();
-    cy.contains(formattedTime).click();
+    cy.get('#expiration-time-picker').contains(formattedTime).click();
     cy.contains('Change Expiration').click();
     const latestRowUpdated = cy.get('tbody:contains("latest")');
     latestRowUpdated.first().within(() => {
@@ -781,7 +781,7 @@ describe('Repository Details Page', () => {
     cy.get('button[aria-label="Next month"]').click();
     cy.get(`[aria-label="${sameDateNextMonthGB}"]`).click();
     cy.get('#expiration-time-picker').click();
-    cy.contains(formattedTime).click();
+    cy.get('#expiration-time-picker').contains(formattedTime).click();
     cy.contains('Change Expiration').click();
     const latestRowUpdated = cy.get('tbody:contains("latest")');
     latestRowUpdated.first().within(() => {
