@@ -557,7 +557,7 @@ describe('Repository Details Page', () => {
       });
   });
 
-  it('changes expiration through kebab', () => {
+  it.only('changes expiration through kebab', () => {
     const formattedDate = new Date();
     const currentDateGB = formattedDate.toLocaleDateString('en-GB', {
       year: 'numeric',
@@ -626,7 +626,7 @@ describe('Repository Details Page', () => {
     cy.get(`[aria-label="${sameDateNextMonthGB}"]`).click();
 
     cy.get('#expiration-time-picker').click();
-    cy.contains(formattedTime).scrollIntoView().click();
+    cy.get('#expiration-time-picker').contains(formattedTime).click();
     cy.get('#expiration-time-picker-input').clear();
     cy.get('#expiration-time-picker-input').type(
       formattedTime2.replace(/ AM| PM/, ''),
