@@ -1,36 +1,35 @@
-import {useEffect, useState} from 'react';
-import {Vulnerability, Feature} from 'src/resources/TagResource';
-import React from 'react';
-import {
-  Table,
-  Thead,
-  Tr,
-  Th,
-  Tbody,
-  Td,
-  ExpandableRowContent,
-  ThProps,
-} from '@patternfly/react-table';
-import {SecurityReportMetadataTable} from './SecurityReportMetadataTable';
 import {
   PageSection,
   PageSectionVariants,
-  Spinner,
+  Skeleton,
   Title,
   Toolbar,
   ToolbarContent,
 } from '@patternfly/react-core';
-import {SecurityReportFilter} from './SecurityReportFilter';
-import sha1 from 'js-sha1';
 import {
   ArrowRightIcon,
   ExclamationTriangleIcon,
   ExternalLinkAltIcon,
 } from '@patternfly/react-icons';
+import {
+  ExpandableRowContent,
+  Table,
+  Tbody,
+  Td,
+  Th,
+  ThProps,
+  Thead,
+  Tr,
+} from '@patternfly/react-table';
+import sha1 from 'js-sha1';
+import React, {useEffect, useState} from 'react';
 import {getSeverityColor} from 'src/libs/utils';
+import {Feature, Vulnerability} from 'src/resources/ManifestSecurityResource';
+import {SecurityReportFilter} from './SecurityReportFilter';
+import {SecurityReportMetadataTable} from './SecurityReportMetadataTable';
 
-import './SecurityReportTable.css';
 import {ToolbarPagination} from 'src/components/toolbar/ToolbarPagination';
+import './SecurityReportTable.css';
 import {VulnerabilityListItem} from './Types';
 
 const columnNames = {
@@ -62,7 +61,7 @@ function TableTitle() {
   return <Title headingLevel={'h1'}> Advisories </Title>;
 }
 
-export default function SecurityReportTable({features}: SecurityDetailsProps) {
+export default function SecurityReportTable(props: SecurityDetailsProps) {
   const [vulnList, setVulnList] = useState<VulnerabilityListItem[]>([]);
   const [filteredVulnList, setFilteredVulnList] = useState<
     VulnerabilityListItem[]
@@ -161,9 +160,9 @@ export default function SecurityReportTable({features}: SecurityDetailsProps) {
   const isRepoExpanded = (key: string) => expandedVulnKeys.includes(key);
 
   useEffect(() => {
-    if (features) {
+    if (props.features) {
       const vulnList: VulnerabilityListItem[] = [];
-      features.map((feature: Feature) => {
+      props.features.map((feature: Feature) => {
         feature.Vulnerabilities.map((vulnerability: Vulnerability) => {
           vulnList.push({
             PackageName: feature.Name,
@@ -185,7 +184,21 @@ export default function SecurityReportTable({features}: SecurityDetailsProps) {
       setVulnList([]);
       setFilteredVulnList([]);
     }
-  }, [features]);
+  }, [props.features]);
+
+  if (props.loading) {
+    return (
+      <PageSection variant={PageSectionVariants.light}>
+        <div style={{height: '400px'}}>
+          <Skeleton height="100%" />
+        </div>
+      </PageSection>
+    );
+  }
+
+  if (paginatedVulns.length == 0) {
+    return <></>;
+  }
 
   return (
     <PageSection variant={PageSectionVariants.light}>
@@ -212,98 +225,81 @@ export default function SecurityReportTable({features}: SecurityDetailsProps) {
         variant="compact"
       >
         <TableHead />
-        {paginatedVulns.length !== 0 ? (
-          paginatedVulns.map(
-            (vulnerability: VulnerabilityListItem, rowIndex) => {
-              const uniqueKey = generateUniqueKey(vulnerability);
-              return (
-                <Tbody key={uniqueKey} isExpanded={isRepoExpanded(uniqueKey)}>
-                  <Tr className="security-table-row">
-                    <Td
-                      expand={{
-                        rowIndex,
-                        isExpanded: isRepoExpanded(uniqueKey),
-                        onToggle: () =>
-                          setRepoExpanded(
-                            uniqueKey,
-                            !isRepoExpanded(uniqueKey),
-                          ),
+        {paginatedVulns.map(
+          (vulnerability: VulnerabilityListItem, rowIndex) => {
+            const uniqueKey = generateUniqueKey(vulnerability);
+            return (
+              <Tbody key={uniqueKey} isExpanded={isRepoExpanded(uniqueKey)}>
+                <Tr className="security-table-row">
+                  <Td
+                    expand={{
+                      rowIndex,
+                      isExpanded: isRepoExpanded(uniqueKey),
+                      onToggle: () =>
+                        setRepoExpanded(uniqueKey, !isRepoExpanded(uniqueKey)),
+                    }}
+                  />
+
+                  <Td dataLabel={columnNames.advisory}>
+                    <>
+                      {vulnerability.Advisory}
+                      {vulnerability.Link ? (
+                        <a
+                          href={getVulnerabilityLink(vulnerability)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <ExternalLinkAltIcon style={{marginLeft: '5px'}} />
+                        </a>
+                      ) : null}
+                    </>
+                  </Td>
+                  <Td dataLabel={columnNames.severity}>
+                    <ExclamationTriangleIcon
+                      color={getSeverityColor(vulnerability.Severity)}
+                      style={{
+                        marginRight: '5px',
                       }}
                     />
-
-                    <Td dataLabel={columnNames.advisory}>
+                    <span>{vulnerability.Severity}</span>
+                  </Td>
+                  <Td dataLabel={columnNames.package}>
+                    {vulnerability.PackageName}
+                  </Td>
+                  <Td dataLabel={columnNames.currentVersion}>
+                    {vulnerability.CurrentVersion}
+                  </Td>
+                  <Td dataLabel={columnNames.fixedInVersion}>
+                    {vulnerability.FixedInVersion ? (
                       <>
-                        {vulnerability.Advisory}
-                        {vulnerability.Link ? (
-                          <a
-                            href={getVulnerabilityLink(vulnerability)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            <ExternalLinkAltIcon style={{marginLeft: '5px'}} />
-                          </a>
-                        ) : null}
-                      </>
-                    </Td>
-                    <Td dataLabel={columnNames.severity}>
-                      <ExclamationTriangleIcon
-                        color={getSeverityColor(vulnerability.Severity)}
-                        style={{
-                          marginRight: '5px',
-                        }}
-                      />
-                      <span>{vulnerability.Severity}</span>
-                    </Td>
-                    <Td dataLabel={columnNames.package}>
-                      {vulnerability.PackageName}
-                    </Td>
-                    <Td dataLabel={columnNames.currentVersion}>
-                      {vulnerability.CurrentVersion}
-                    </Td>
-                    <Td dataLabel={columnNames.fixedInVersion}>
-                      {vulnerability.FixedInVersion ? (
-                        <>
-                          <ArrowRightIcon
-                            color={'green'}
-                            style={{marginRight: '5px'}}
-                          />
-                          <span>{vulnerability.FixedInVersion}</span>
-                        </>
-                      ) : (
-                        '(None)'
-                      )}
-                    </Td>
-                  </Tr>
-
-                  <Tr isExpanded={isRepoExpanded(uniqueKey)}>
-                    <Td
-                      dataLabel="Security Metadata"
-                      colSpan={5}
-                      cellPadding="span"
-                    >
-                      <ExpandableRowContent>
-                        <SecurityReportMetadataTable
-                          vulnerability={vulnerability}
+                        <ArrowRightIcon
+                          color={'green'}
+                          style={{marginRight: '5px'}}
                         />
-                      </ExpandableRowContent>
-                    </Td>
-                  </Tr>
-                </Tbody>
-              );
-            },
-          )
-        ) : (
-          <Tbody>
-            <Tr>
-              <Td>
-                {!features ? (
-                  <Spinner size="lg" />
-                ) : (
-                  <div>No Vulnerabilities Found</div>
-                )}
-              </Td>
-            </Tr>
-          </Tbody>
+                        <span>{vulnerability.FixedInVersion}</span>
+                      </>
+                    ) : (
+                      '(None)'
+                    )}
+                  </Td>
+                </Tr>
+
+                <Tr isExpanded={isRepoExpanded(uniqueKey)}>
+                  <Td
+                    dataLabel="Security Metadata"
+                    colSpan={5}
+                    cellPadding="span"
+                  >
+                    <ExpandableRowContent>
+                      <SecurityReportMetadataTable
+                        vulnerability={vulnerability}
+                      />
+                    </ExpandableRowContent>
+                  </Td>
+                </Tr>
+              </Tbody>
+            );
+          },
         )}
       </Table>
       <Toolbar>
@@ -323,4 +319,5 @@ export default function SecurityReportTable({features}: SecurityDetailsProps) {
 
 export interface SecurityDetailsProps {
   features: Feature[];
+  loading: boolean;
 }

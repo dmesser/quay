@@ -2,13 +2,14 @@ import {
   Button,
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
-  EmptyStateHeader,
   EmptyStateFooter,
+  EmptyStateHeader,
+  EmptyStateIcon,
   Icon,
 } from '@patternfly/react-core';
 import {
   BanIcon,
+  CheckIcon,
   ExclamationCircleIcon,
   PauseCircleIcon,
 } from '@patternfly/react-icons';
@@ -61,6 +62,21 @@ export function UnsupportedState() {
       />
       <EmptyStateBody>
         Image does not have content the scanner recognizes.
+      </EmptyStateBody>
+    </EmptyState>
+  );
+}
+
+export function NoVulnerabilitiesState() {
+  return (
+    <EmptyState variant="full">
+      <EmptyStateHeader
+        titleText="No vulnerabilities found."
+        icon={<EmptyStateIcon icon={CheckIcon} />}
+        headingLevel="h1"
+      />
+      <EmptyStateBody>
+        Image does not have any vulnerabilities the scanner could detect.
       </EmptyStateBody>
     </EmptyState>
   );
