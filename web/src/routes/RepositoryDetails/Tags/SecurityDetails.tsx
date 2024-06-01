@@ -8,7 +8,7 @@ import {
 } from '@patternfly/react-icons';
 import {getSeverityColor} from 'src/libs/utils';
 import {VulnerabilitySeverity} from 'src/resources/ManifestSecurityResource';
-import {useManifestSecurity} from 'src/hooks/UseManifestSecurity';
+import {useManifestSecuritySummary} from 'src/hooks/UseManifestSecurity';
 
 enum Variant {
   condensed = 'condensed',
@@ -40,8 +40,8 @@ export default function SecurityDetails(props: SecurityDetailsProps) {
     VulnerabilitySeverity.Unknown,
   ];
 
-  const {securityDetails, isSecurityDetailsLoading, isSecurityDetailsError} =
-    useManifestSecurity(
+  const {securitySummary, isSecuritySummaryLoading, isSecuritySummaryError} =
+    useManifestSecuritySummary(
       props.org,
       props.repo,
       props.digest,
@@ -53,46 +53,29 @@ export default function SecurityDetails(props: SecurityDetailsProps) {
     ['digest', props.digest],
   ]);
 
-  if (isSecurityDetailsLoading) {
+  if (isSecuritySummaryLoading) {
     return <Skeleton width="50%"></Skeleton>;
   }
 
-  if (isSecurityDetailsError) {
+  if (isSecuritySummaryError) {
     return <>Unable to get security details</>;
   }
 
-  if (securityDetails === null || securityDetails === undefined) {
+  if (securitySummary === null || securitySummary === undefined) {
     return <>Security details not available</>;
   }
 
-  if (securityDetails.status === 'queued') {
+  if (securitySummary.status === 'queued') {
     return <div>Queued</div>;
-  } else if (securityDetails.status === 'failed') {
+  } else if (securitySummary.status === 'failed') {
     return <div>Failed</div>;
-  } else if (
-    securityDetails.status === 'unsupported' ||
-    securityDetails.data.Layer.Features.length == 0
-  ) {
+  } else if (securitySummary.status === 'unsupported') {
     return <div>Unsupported</div>;
   }
 
-  const vulns = new Map<VulnerabilitySeverity, number>();
+  const vulnSummary = securitySummary.data;
 
-  for (const feature of securityDetails.data.Layer.Features) {
-    if (feature.Vulnerabilities) {
-      for (const vuln of feature.Vulnerabilities) {
-        if (vuln.Severity in VulnerabilitySeverity) {
-          if (vulns.has(vuln.Severity)) {
-            vulns.set(vuln.Severity, vulns.get(vuln.Severity) + 1);
-          } else {
-            vulns.set(vuln.Severity, 1);
-          }
-        }
-      }
-    }
-  }
-
-  if (vulns.size === 0) {
+  if (vulnSummary.size === 0) {
     return (
       <Link
         to={getTagDetailPath(
@@ -121,7 +104,7 @@ export default function SecurityDetails(props: SecurityDetailsProps) {
     let highestSeverity: VulnerabilitySeverity;
 
     for (const severity of severityOrder) {
-      if (vulns.get(severity) != null && vulns.get(severity) > 0) {
+      if (vulnSummary.get(severity) != null && vulnSummary.get(severity) > 0) {
         highestSeverity = severity;
         break;
       }
@@ -147,14 +130,14 @@ export default function SecurityDetails(props: SecurityDetailsProps) {
           }}
         />
         <span>
-          <b>{vulns.get(highestSeverity)}</b> {highestSeverity.toString()}
+          <b>{vulnSummary.get(highestSeverity)}</b> {highestSeverity.toString()}
         </span>
       </Link>
     );
   }
 
   const counts = severityOrder
-    .filter((severity) => vulns.has(severity))
+    .filter((severity) => vulnSummary.has(severity))
     .map((severity) => {
       return (
         <div
@@ -169,7 +152,7 @@ export default function SecurityDetails(props: SecurityDetailsProps) {
             }}
           />
           <span>
-            <b>{vulns.get(severity)}</b> {severity.toString()}
+            <b>{vulnSummary.get(severity)}</b> {severity.toString()}
           </span>
         </div>
       );
