@@ -1,27 +1,27 @@
-import {useEffect, useState} from 'react';
-import {
-  Vulnerability,
-  Feature,
-  VulnerabilitySeverity,
-  VulnerabilityOrder,
-} from 'src/resources/ManifestSecurityResource';
-import {Table, Thead, Tr, Th, Tbody, Td} from '@patternfly/react-table';
 import {
   PageSection,
   PageSectionVariants,
-  Spinner,
+  Skeleton,
   Title,
   Toolbar,
   ToolbarContent,
 } from '@patternfly/react-core';
-import {PackagesFilter} from './PackagesFilter';
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
 } from '@patternfly/react-icons';
-import {getSeverityColor} from 'src/libs/utils';
-import {VulnerabilityStats} from '../SecurityReport/SecurityReportChart';
+import {Table, Tbody, Td, Th, Thead, Tr} from '@patternfly/react-table';
+import {useEffect, useState} from 'react';
 import {ToolbarPagination} from 'src/components/toolbar/ToolbarPagination';
+import {getSeverityColor} from 'src/libs/utils';
+import {
+  Feature,
+  Vulnerability,
+  VulnerabilityOrder,
+  VulnerabilitySeverity,
+} from 'src/resources/ManifestSecurityResource';
+import {VulnerabilityStats} from '../SecurityReport/SecurityReportChart';
+import {PackagesFilter} from './PackagesFilter';
 import {PackagesListItem} from './Types';
 
 const columnNames = {
@@ -57,8 +57,6 @@ function getVulnerabilitiesCount(
     [VulnerabilitySeverity.Low]: 0,
     [VulnerabilitySeverity.Negligible]: 0,
     [VulnerabilitySeverity.Unknown]: 0,
-    [VulnerabilitySeverity.None]: 0,
-    Pending: 0,
   };
 
   for (let i = 0; i < vulnerabilities.length; i++) {
@@ -133,8 +131,7 @@ function VulnerabilitiesEntry(props: VulnerabilitiesEntryProps) {
   );
 }
 
-export default function PackagesTable({features}: PackagesProps) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function PackagesTable(props: PackagesProps) {
   const [packagesList, setPackagesList] = useState<PackagesListItem[]>([]);
   const [filteredPackagesList, setFilteredPackagesList] = useState<
     PackagesListItem[]
@@ -149,9 +146,9 @@ export default function PackagesTable({features}: PackagesProps) {
   );
 
   useEffect(() => {
-    if (features) {
+    if (props.features) {
       const packagesList: PackagesListItem[] = [];
-      features.map((feature: Feature) => {
+      props.features.map((feature: Feature) => {
         packagesList.push({
           PackageName: feature.Name,
           CurrentVersion: feature.Version,
@@ -180,7 +177,17 @@ export default function PackagesTable({features}: PackagesProps) {
       setPackagesList([]);
       setFilteredPackagesList([]);
     }
-  }, [features]);
+  }, [props.features]);
+
+  if (props.loading) {
+    return (
+      <PageSection variant={PageSectionVariants.light}>
+        <div style={{height: '400px'}}>
+          <Skeleton height="100%" />
+        </div>
+      </PageSection>
+    );
+  }
 
   return (
     <PageSection variant={PageSectionVariants.light}>
@@ -208,46 +215,32 @@ export default function PackagesTable({features}: PackagesProps) {
         variant="compact"
       >
         <TableHead />
-        {paginatedPackagList.length !== 0 ? (
-          paginatedPackagList.map((pkg: PackagesListItem) => {
-            return (
-              <Tbody key={pkg.PackageName + pkg.CurrentVersion}>
-                <Tr>
-                  <Td dataLabel={columnNames.PackageName}>
-                    <span>{pkg.PackageName} </span>
-                  </Td>
-                  <Td dataLabel={columnNames.PackageVersion}>
-                    <span>{pkg.CurrentVersion}</span>
-                  </Td>
-                  <Td dataLabel={columnNames.Vulnerabilities}>
-                    <VulnerabilitiesEntry
-                      counts={pkg.VulnerabilityCounts}
-                      highestSeverity={pkg.HighestVulnerabilitySeverity}
-                    />
-                  </Td>
-                  <Td dataLabel={columnNames.RemainingAfterUpgrade}>
-                    <VulnerabilitiesEntry
-                      counts={pkg.VulnerabilityCountsAfterFix}
-                      highestSeverity={pkg.HighestVulnerabilitySeverityAfterFix}
-                    />
-                  </Td>
-                </Tr>
-              </Tbody>
-            );
-          })
-        ) : (
-          <Tbody>
-            <Tr>
-              <Td>
-                {!features ? (
-                  <Spinner size="lg" />
-                ) : (
-                  <div>No Packages Found</div>
-                )}
-              </Td>
-            </Tr>
-          </Tbody>
-        )}
+        {paginatedPackagList.map((pkg: PackagesListItem) => {
+          return (
+            <Tbody key={pkg.PackageName + pkg.CurrentVersion}>
+              <Tr>
+                <Td dataLabel={columnNames.PackageName}>
+                  <span>{pkg.PackageName} </span>
+                </Td>
+                <Td dataLabel={columnNames.PackageVersion}>
+                  <span>{pkg.CurrentVersion}</span>
+                </Td>
+                <Td dataLabel={columnNames.Vulnerabilities}>
+                  <VulnerabilitiesEntry
+                    counts={pkg.VulnerabilityCounts}
+                    highestSeverity={pkg.HighestVulnerabilitySeverity}
+                  />
+                </Td>
+                <Td dataLabel={columnNames.RemainingAfterUpgrade}>
+                  <VulnerabilitiesEntry
+                    counts={pkg.VulnerabilityCountsAfterFix}
+                    highestSeverity={pkg.HighestVulnerabilitySeverityAfterFix}
+                  />
+                </Td>
+              </Tr>
+            </Tbody>
+          );
+        })}
       </Table>
       <Toolbar>
         <ToolbarPagination
@@ -264,6 +257,7 @@ export default function PackagesTable({features}: PackagesProps) {
 
 export interface PackagesProps {
   features: Feature[];
+  loading: boolean;
 }
 
 export interface VulnerabilitiesEntryProps {

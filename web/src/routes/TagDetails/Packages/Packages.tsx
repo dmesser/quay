@@ -1,20 +1,24 @@
-import {PackagesChart} from './PackagesChart';
-import PackagesTable from './PackagesTable';
 import RequestError from 'src/components/errors/RequestError';
+import {useManifestSecurity} from 'src/hooks/UseManifestSecurity';
+import {addDisplayError} from 'src/resources/ErrorHandling';
 import {
-  QueuedState,
   FailedState,
+  QueuedState,
   UnsupportedState,
 } from 'src/routes/TagDetails/SecurityReport/SecurityReportScanStates';
-import {useManifestSecurity} from 'src/hooks/UseManifestSecurity';
-import {Skeleton} from '@patternfly/react-core';
-import {addDisplayError} from 'src/resources/ErrorHandling';
+import {PackagesChart} from './PackagesChart';
+import PackagesTable from './PackagesTable';
 
 export interface PackageReportProps {
   org: string;
   repo: string;
   digest: string;
+  load?: boolean;
 }
+
+Packages.defaultProps = {
+  load: true,
+};
 
 export function Packages(props: PackageReportProps) {
   const {
@@ -26,16 +30,13 @@ export function Packages(props: PackageReportProps) {
     props.org,
     props.repo,
     props.digest,
-    props.digest !== '',
+    props.load && props.digest !== '',
   );
-
-  if (isSecurityDetailsLoading) {
-    return <Skeleton width="50%"></Skeleton>;
-  }
 
   if (isSecurityDetailsError) {
     return (
       <RequestError
+        title="Unable to package report"
         message={addDisplayError(
           securityDetailsError.toString(),
           securityDetailsError as Error,
@@ -60,9 +61,9 @@ export function Packages(props: PackageReportProps) {
   const features = securityDetails ? securityDetails.data.Layer.Features : null;
   return (
     <>
-      <PackagesChart features={features} />
+      <PackagesChart features={features} loading={isSecurityDetailsLoading} />
       <hr />
-      <PackagesTable features={features} />
+      <PackagesTable features={features} loading={isSecurityDetailsLoading} />
     </>
   );
 }

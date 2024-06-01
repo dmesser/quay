@@ -8,7 +8,6 @@ import {
   Title,
   TitleSizes,
 } from '@patternfly/react-core';
-import {BundleIcon} from '@patternfly/react-icons';
 import {getSeverityColor} from 'src/libs/utils';
 import {VulnerabilityStats} from '../SecurityReport/SecurityReportChart';
 import {
@@ -16,30 +15,33 @@ import {
   VulnerabilitySeverity,
 } from 'src/resources/ManifestSecurityResource';
 
-function PackageMessage(props: PackageMessageProps) {
-  if (props.vulnLevel === 'None') {
-    return <> Packages with no vulnerabilities</>;
-  }
-  return <> Packages with {props.vulnLevel}-level vulnerabilities</>;
-}
-
 function PackagesSummary(props: PackageStatsProps) {
-  let packagesMessage = <Skeleton width="400px" />;
-  let availableMessage = <Skeleton width="300px" />;
+  let packagesMessage = <></>;
+  let availableMessage = <></>;
 
-  // Check if API call has completed and if packages are found
-  if (props.stats[VulnerabilitySeverity.None] > 0 && props.total === 0) {
-    packagesMessage = (
-      <> Quay Security Reporting does not recognize any packages </>
-    );
-    availableMessage = <> No known patches are available </>;
-  } else if (props.total > 0) {
-    packagesMessage = (
-      <> Quay Security Reporting has recognized {props.total} packages </>
-    );
-    availableMessage = (
-      <> Patches are available for {props.patchesAvailable} vulnerabilities </>
-    );
+  if (props.loading) {
+    packagesMessage = <Skeleton width="400px" />;
+    availableMessage = <Skeleton width="300px" />;
+  } else {
+    if (props.total === 0) {
+      packagesMessage = (
+        <> Quay Security Reporting does not recognize any packages </>
+      );
+    } else {
+      packagesMessage = (
+        <> Quay Security Reporting has recognized {props.total} packages </>
+      );
+
+      if (props.patchesAvailable > 0) {
+        availableMessage = (
+          <>
+            {' '}
+            Security Patches are available for {props.patchesAvailable}{' '}
+            vulnerabilities{' '}
+          </>
+        );
+      }
+    }
   }
 
   return (
@@ -55,26 +57,6 @@ function PackagesSummary(props: PackageStatsProps) {
         <Title headingLevel="h3" className="pf-v5-u-mb-lg">
           {availableMessage}
         </Title>
-
-        {Object.keys(props.stats).map((vulnLevel) => {
-          if (props.stats[vulnLevel] > 0) {
-            return;
-            {
-              props.stats.Pending === 0 ? (
-                <div className="pf-v5-u-mb-sm" key={vulnLevel}>
-                  <BundleIcon
-                    color={getSeverityColor(vulnLevel as VulnerabilitySeverity)}
-                    className="pf-v5-u-mr-md"
-                  />
-                  <b>{props.stats[vulnLevel]}</b>
-                  <PackageMessage vulnLevel={vulnLevel} />
-                </div>
-              ) : (
-                <div></div>
-              );
-            }
-          }
-        })}
       </div>
     </div>
   );
@@ -83,7 +65,7 @@ function PackagesSummary(props: PackageStatsProps) {
 function PackagesDonutChart(props: PackageStatsProps) {
   return (
     <div style={{height: '20em', width: '20em'}}>
-      {props.stats.Pending > 0 ? (
+      {props.loading ? (
         <Skeleton shape="circle" width="100%" />
       ) : (
         <ChartDonut
@@ -95,14 +77,12 @@ function PackagesDonutChart(props: PackageStatsProps) {
             {x: VulnerabilitySeverity.High, y: props.stats.High},
             {x: VulnerabilitySeverity.Medium, y: props.stats.Medium},
             {x: VulnerabilitySeverity.Unknown, y: props.stats.Unknown},
-            {x: VulnerabilitySeverity.None, y: props.stats.None},
           ]}
           colorScale={[
             getSeverityColor(VulnerabilitySeverity.Critical),
             getSeverityColor(VulnerabilitySeverity.High),
             getSeverityColor(VulnerabilitySeverity.Medium),
             getSeverityColor(VulnerabilitySeverity.Unknown),
-            getSeverityColor(VulnerabilitySeverity.None),
           ]}
           labels={({datum}) => `${datum.x}: ${datum.y}`}
           title={`${props.total}`}
@@ -128,7 +108,7 @@ export function PackagesChart(props: PackageChartProps) {
   let totalPackages = 0;
   let totalPackagesPerSeverity = 0;
 
-  if (props.features) {
+  if (!props.loading && props.features) {
     if (props.features.length > 0) {
       props.features.map((feature) => {
         totalPackages += 1;
@@ -161,13 +141,7 @@ export function PackagesChart(props: PackageChartProps) {
           totalPackagesPerSeverity += 1;
         }
       });
-    } else {
-      // No packages found
-      stats[VulnerabilitySeverity.None] += 1;
     }
-  } else {
-    // Waiting on API call to finish
-    stats.Pending = 1;
   }
 
   return (
@@ -178,6 +152,7 @@ export function PackagesChart(props: PackageChartProps) {
             stats={stats}
             total={totalPackagesPerSeverity}
             patchesAvailable={patchesAvailable}
+            loading={props.loading}
           />
         </SplitItem>
         <SplitItem>
@@ -185,6 +160,7 @@ export function PackagesChart(props: PackageChartProps) {
             stats={stats}
             total={totalPackages}
             patchesAvailable={patchesAvailable}
+            loading={props.loading}
           />
         </SplitItem>
       </Split>
@@ -196,12 +172,10 @@ interface PackageStatsProps {
   stats: VulnerabilityStats;
   total: number;
   patchesAvailable: number;
+  loading: boolean;
 }
 
 interface PackageChartProps {
   features: Feature[];
-}
-
-interface PackageMessageProps {
-  vulnLevel: string;
+  loading: boolean;
 }
