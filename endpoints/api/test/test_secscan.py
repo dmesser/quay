@@ -1,13 +1,16 @@
 import base64
-from test.fixtures import *
 
 import pytest
 from mock import patch
 
 from data.registry_model import registry_model
-from endpoints.api.secscan import RepositoryManifestSecurity
+from endpoints.api.secscan import (
+    RepositoryManifestSecurity,
+    RepositoryManifestSecuritySummary,
+)
 from endpoints.api.test.shared import conduct_api_call
 from endpoints.test.shared import gen_basic_auth
+from test.fixtures import *
 
 
 @pytest.mark.parametrize(
@@ -22,6 +25,41 @@ from endpoints.test.shared import gen_basic_auth
     ],
 )
 def test_get_security_info_with_pull_secret(
+    endpoint, anonymous_allowed, auth_headers, expected_code, client
+):
+    with patch("features.ANONYMOUS_ACCESS", anonymous_allowed):
+        repository_ref = registry_model.lookup_repository("devtable", "simple")
+        tag = registry_model.get_repo_tag(repository_ref, "latest")
+        manifest = registry_model.get_manifest_for_tag(tag)
+
+        params = {
+            "repository": "devtable/simple",
+            "manifestref": manifest.digest,
+        }
+
+        headers = {}
+        if auth_headers is not None:
+            headers["Authorization"] = auth_headers
+
+        conduct_api_call(
+            client, endpoint, "GET", params, None, headers=headers, expected_code=expected_code
+        )
+
+
+@pytest.mark.parametrize(
+    "endpoint, anonymous_allowed, auth_headers, expected_code",
+    [
+        pytest.param(
+            RepositoryManifestSecuritySummary, True, gen_basic_auth("devtable", "password"), 200
+        ),
+        pytest.param(
+            RepositoryManifestSecuritySummary, False, gen_basic_auth("devtable", "password"), 200
+        ),
+        pytest.param(RepositoryManifestSecuritySummary, True, None, 401),
+        pytest.param(RepositoryManifestSecuritySummary, False, None, 401),
+    ],
+)
+def test_get_security_summary_with_pull_secret(
     endpoint, anonymous_allowed, auth_headers, expected_code, client
 ):
     with patch("features.ANONYMOUS_ACCESS", anonymous_allowed):

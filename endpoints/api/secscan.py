@@ -74,10 +74,40 @@ def _security_info(manifest_or_legacy_image, include_vulnerabilities=True):
     assert result.status in MAPPED_STATUSES
     return {
         "status": MAPPED_STATUSES[result.status].value,
-        "data": result.security_information.to_dict()
-        if result.security_information is not None
-        else None,
+        "data": (
+            result.security_information.to_dict()
+            if result.security_information is not None
+            else None
+        ),
     }
+
+
+def _security_summary(manifest_or_legacy_image):
+    """
+    Returns a dict mapping severities to the amount of corresponding vulnerabilities found
+    for the given manifest or image with.
+    """
+    result = _security_info(manifest_or_legacy_image, include_vulnerabilities=True)
+
+    if result["status"] != SecurityScanStatus.SCANNED.value or result["data"] is None:
+        return {"status": result["status"], "data": None}
+
+    summary = {}
+    features = result["data"]["Layer"]["Features"]
+
+    for feature in features:
+        if "Vulnerabilities" not in feature:
+            continue
+
+        for vulnerability in feature["Vulnerabilities"]:
+            severity = vulnerability["Severity"]
+            if severity not in summary:
+                summary[severity] = 0
+            summary[severity] += 1
+
+    status = result["status"] if len(features) > 0 else SecurityScanStatus.UNSUPPORTED.value
+
+    return {"status": status, "data": summary}
 
 
 @resource(MANIFEST_DIGEST_ROUTE + "/security")
@@ -108,3 +138,29 @@ class RepositoryManifestSecurity(RepositoryParamResource):
             raise NotFound()
 
         return _security_info(manifest, parsed_args.vulnerabilities)
+
+
+@resource(MANIFEST_DIGEST_ROUTE + "/securitysummary")
+@show_if(features.SECURITY_SCANNER)
+@path_param("repository", "The full path of the repository. e.g. namespace/name")
+@path_param("manifestref", "The digest of the manifest")
+class RepositoryManifestSecuritySummary(RepositoryParamResource):
+    """
+    Operations for managing the vulnerabilities in a repository manifest.
+    """
+
+    @process_basic_auth_no_pass
+    @anon_allowed
+    @require_repo_read(allow_for_superuser=True)
+    @nickname("getRepoManifestSecuritySummary")
+    @disallow_for_app_repositories
+    def get(self, namespace, repository, manifestref):
+        repo_ref = registry_model.lookup_repository(namespace, repository)
+        if repo_ref is None:
+            raise NotFound()
+
+        manifest = registry_model.lookup_manifest_by_digest(repo_ref, manifestref, allow_dead=True)
+        if manifest is None:
+            raise NotFound()
+
+        return _security_summary(manifest)
