@@ -15,7 +15,7 @@ export default function RequestError(props: RequestErrorProps) {
     <PageSection variant={PageSectionVariants.light}>
       <EmptyState variant="full">
         <EmptyStateHeader
-          titleText="Unable to complete request"
+          titleText={props.title ? props.title : 'Unable to complete request'}
           icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
           headingLevel="h1"
         />
@@ -31,5 +31,6 @@ export default function RequestError(props: RequestErrorProps) {
 }
 
 interface RequestErrorProps {
+  title?: string;
   message: string;
 }
