@@ -42,6 +42,7 @@ export default function TagTabs(props: TagTabsProps) {
           repo={props.repo}
           tag={props.tag}
           digest={props.digest}
+          load={activeTabKey === TabIndex.Details}
         />
       </Tab>
       <Tab
@@ -52,13 +53,19 @@ export default function TagTabs(props: TagTabsProps) {
           org={props.org}
           repo={props.repo}
           digest={props.digest}
+          load={activeTabKey === TabIndex.SecurityReport}
         />
       </Tab>
       <Tab
         eventKey={TabIndex.Packages}
         title={<TabTitleText>Packages</TabTitleText>}
       >
-        <Packages org={props.org} repo={props.repo} digest={props.digest} />
+        <Packages
+          org={props.org}
+          repo={props.repo}
+          digest={props.digest}
+          load={activeTabKey == TabIndex.Packages}
+        />
       </Tab>
     </Tabs>
   );

@@ -16,6 +16,18 @@ import {Tag} from 'src/resources/TagResource';
 import SecurityDetails from 'src/routes/RepositoryDetails/Tags/SecurityDetails';
 import CopyTags from './DetailsCopyTags';
 
+export interface DetailsProps {
+  tag: Tag;
+  org: string;
+  repo: string;
+  digest: string;
+  load?: boolean;
+}
+
+Details.defaultProps = {
+  load: true,
+};
+
 export default function Details(props: DetailsProps) {
   return (
     <>
@@ -102,6 +114,7 @@ export default function Details(props: DetailsProps) {
                 repo={props.repo}
                 digest={props.digest}
                 tag={props.tag.name}
+                load={props.load}
               />
             </DescriptionListDescription>
           </DescriptionListGroup>
@@ -133,10 +146,3 @@ export default function Details(props: DetailsProps) {
     </>
   );
 }
-
-type DetailsProps = {
-  tag: Tag;
-  org: string;
-  repo: string;
-  digest: string;
-};
