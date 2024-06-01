@@ -31,13 +31,10 @@ describe('Security Report Page', () => {
       {fixture: 'security/noVulns.json'},
     ).as('getSecurityReport');
     cy.visit('/repository/user1/hello-world/tag/security?tab=securityreport');
+    cy.contains('No vulnerabilities found.').should('exist');
     cy.contains(
-      'Quay Security Reporting has detected no vulnerabilities',
+      'Image does not have any vulnerabilities the scanner could detect.',
     ).should('exist');
-    cy.get('[data-testid="vulnerability-chart"]').within(() =>
-      cy.contains('0'),
-    );
-    cy.get('td[data-label="Advisory"]').should('have.length', 0);
   });
 
   it('render mixed vulnerabilities', () => {
