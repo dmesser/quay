@@ -69,16 +69,43 @@ export interface SecurityDetailsResponse {
   data: Data;
 }
 
+export interface SecuritySummaryResponse {
+  status: string;
+  data: Map<VulnerabilitySeverity, number>;
+}
+
 export async function fetchSecurityDetails(
+  org: string,
+  repo: string,
+  digest: string,
+  fetchVulnerabilities = true,
+  signal: AbortSignal,
+) {
+  const response: AxiosResponse<SecurityDetailsResponse> = await axios.get(
+    `/api/v1/repository/${org}/${repo}/manifest/${digest}/security` +
+      (fetchVulnerabilities ? '?vulnerabilities=true' : ''),
+    {signal},
+  );
+  assertHttpCode(response.status, 200);
+  return response.data as SecurityDetailsResponse;
+}
+
+export async function fetchSecuritySummary(
   org: string,
   repo: string,
   digest: string,
   signal: AbortSignal,
 ) {
-  const response: AxiosResponse<SecurityDetailsResponse> = await axios.get(
-    `/api/v1/repository/${org}/${repo}/manifest/${digest}/security?vulnerabilities=true`,
+  const response: AxiosResponse<SecuritySummaryResponse> = await axios.get(
+    `/api/v1/repository/${org}/${repo}/manifest/${digest}/securitysummary`,
     {signal},
   );
   assertHttpCode(response.status, 200);
-  return response.data as SecurityDetailsResponse;
+
+  const severityMap = new Map<VulnerabilitySeverity, number>();
+  for (const key in response.data.data) {
+    severityMap.set(key as VulnerabilitySeverity, response.data.data[key]);
+  }
+
+  return {status: response.data.status, data: severityMap};
 }
