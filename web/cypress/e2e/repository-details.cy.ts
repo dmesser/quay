@@ -7,6 +7,7 @@ describe('Repository Details Page', () => {
   beforeEach(() => {
     cy.exec('npm run quay:seed');
     cy.intercept('GET', '/config', {fixture: 'config.json'}).as('getConfig');
+    cy.intercept('GET', '/api/v1/user/', {fixture: 'user.json'}).as('getUser');
     cy.request('GET', `${Cypress.env('REACT_QUAY_APP_API_URL')}/csrf_token`)
       .then((response) => response.body.csrf_token)
       .then((token) => {
@@ -17,8 +18,8 @@ describe('Repository Details Page', () => {
   it('renders tag', () => {
     cy.intercept(
       'GET',
-      '/api/v1/repository/user1/hello-world/manifest/sha256:f54a58bc1aac5ea1a25d796ae155dc228b3f0e11d046ae276b39c4bf2f13d8c4/security?vulnerabilities=true',
-      {fixture: 'security/mixedVulns.json'},
+      '/api/v1/repository/user1/hello-world/manifest/sha256:f54a58bc1aac5ea1a25d796ae155dc228b3f0e11d046ae276b39c4bf2f13d8c4/securitysummary',
+      {fixture: 'security/mixedVulnsSummary.json'},
     ).as('getSecurityReport');
     cy.visit('/repository/user1/hello-world');
     const latestRow = cy.get('tbody:contains("latest")');
@@ -41,8 +42,8 @@ describe('Repository Details Page', () => {
   it('renders manifest list tag', () => {
     cy.intercept(
       'GET',
-      '/api/v1/repository/user1/hello-world/manifest/sha256:f54a58bc1aac5ea1a25d796ae155dc228b3f0e11d046ae276b39c4bf2f13d8c4/security?vulnerabilities=true',
-      {fixture: 'security/mixedVulns.json'},
+      '/api/v1/repository/user1/hello-world/manifest/sha256:f54a58bc1aac5ea1a25d796ae155dc228b3f0e11d046ae276b39c4bf2f13d8c4/securitysummary',
+      {fixture: 'security/mixedVulnsSummary.json'},
     ).as('getSecurityReport');
     cy.visit('/repository/user1/hello-world');
 
@@ -298,6 +299,11 @@ describe('Repository Details Page', () => {
   it('clicking tag security data goes to security report page', () => {
     cy.intercept(
       'GET',
+      '/api/v1/repository/user1/hello-world/manifest/sha256:f54a58bc1aac5ea1a25d796ae155dc228b3f0e11d046ae276b39c4bf2f13d8c4/securitysummary',
+      {fixture: 'security/mixedVulnsSummary.json'},
+    ).as('getSecuritySummary');
+    cy.intercept(
+      'GET',
       '/api/v1/repository/user1/hello-world/manifest/sha256:f54a58bc1aac5ea1a25d796ae155dc228b3f0e11d046ae276b39c4bf2f13d8c4/security?vulnerabilities=true',
       {fixture: 'security/mixedVulns.json'},
     ).as('getSecurityReport');
@@ -314,6 +320,11 @@ describe('Repository Details Page', () => {
   });
 
   it('clicking platform security data goes to security report page', () => {
+    cy.intercept(
+      'GET',
+      '/api/v1/repository/user1/hello-world/manifest/sha256:f54a58bc1aac5ea1a25d796ae155dc228b3f0e11d046ae276b39c4bf2f13d8c4/securitysummary',
+      {fixture: 'security/mixedVulnsSummary.json'},
+    ).as('getSecurityReport');
     cy.intercept(
       'GET',
       '/api/v1/repository/user1/hello-world/manifest/sha256:f54a58bc1aac5ea1a25d796ae155dc228b3f0e11d046ae276b39c4bf2f13d8c4/security?vulnerabilities=true',

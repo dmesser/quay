@@ -1,0 +1,10 @@
+{
+    "status": "scanned",
+    "data": {
+        "Critical": 3,
+        "High": 12,
+        "Medium": 2,
+        "Low": 2,
+        "Unknown": 2
+    }
+}

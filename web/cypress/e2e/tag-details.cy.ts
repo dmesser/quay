@@ -10,9 +10,15 @@ describe('Tag Details Page', () => {
   beforeEach(() => {
     cy.intercept(
       'GET',
+      '/api/v1/repository/user1/hello-world/manifest/sha256:f54a58bc1aac5ea1a25d796ae155dc228b3f0e11d046ae276b39c4bf2f13d8c4/securitysummary',
+      {fixture: 'security/mixedVulnsSummary.json'},
+    ).as('getSecuritySummary');
+    cy.intercept(
+      'GET',
       '/api/v1/repository/user1/hello-world/manifest/sha256:f54a58bc1aac5ea1a25d796ae155dc228b3f0e11d046ae276b39c4bf2f13d8c4/security?vulnerabilities=true',
       {fixture: 'security/mixedVulns.json'},
     ).as('getSecurityReport');
+    cy.intercept('GET', '/api/v1/user/', {fixture: 'user.json'}).as('getUser');
     cy.request('GET', `${Cypress.env('REACT_QUAY_APP_API_URL')}/csrf_token`)
       .then((response) => response.body.csrf_token)
       .then((token) => {
