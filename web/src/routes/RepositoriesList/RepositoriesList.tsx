@@ -7,7 +7,15 @@ import {
   PanelFooter,
   DropdownItem,
 } from '@patternfly/react-core';
-import {Table, Thead, Tr, Th, Tbody, Td} from '@patternfly/react-table';
+import {
+  Table,
+  Thead,
+  Tr,
+  Th,
+  Tbody,
+  Td,
+  ThProps,
+} from '@patternfly/react-table';
 import {useRecoilState} from 'recoil';
 import {IRepository} from 'src/resources/RepositoryResource';
 import {Link, useLocation} from 'react-router-dom';
@@ -61,6 +69,10 @@ export default function RepositoriesList(props: RepositoriesListProps) {
   const [isKebabOpen, setKebabOpen] = useState(false);
   const [makePublicModalOpen, setmakePublicModal] = useState(false);
   const [makePrivateModalOpen, setmakePrivateModal] = useState(false);
+  const [activeSortIndex, setActiveSortIndex] = useState<number | null>(null);
+  const [activeSortDirection, setActiveSortDirection] = useState<
+    'asc' | 'desc' | null
+  >(null);
   const [err, setErr] = useState<string[]>();
   const location = useLocation();
 
@@ -105,7 +117,56 @@ export default function RepositoriesList(props: RepositoriesListProps) {
     ? repositoryList.filter(searchFilter)
     : repositoryList;
 
-  const paginatedRepositoryList = filteredRepos?.slice(
+  // Sorting Repositories after search
+  const sortedRepos = filteredRepos;
+
+  const getSortableRepoRowValues = (
+    repo: RepoListTableItem,
+  ): (string | number | boolean)[] => {
+    const {name, is_public, last_modified, size} = repo;
+    return [name, is_public, size, last_modified];
+  };
+
+  if (activeSortIndex !== null) {
+    sortedRepos.sort((r1, r2) => {
+      const r1Value = getSortableRepoRowValues(r1)[activeSortIndex];
+      const r2Value = getSortableRepoRowValues(r2)[activeSortIndex];
+
+      if (typeof r1Value === 'string') {
+        if (activeSortDirection === 'asc') {
+          return (r1Value as string).localeCompare(r2Value as string);
+        }
+        return (r2Value as string).localeCompare(r1Value as string);
+      } else if (typeof r1Value === 'number') {
+        if (activeSortDirection === 'asc') {
+          return (r1Value as number) - (r2Value as number);
+        }
+        return (r2Value as number) - (r1Value as number);
+      } else if (typeof r1Value === 'boolean') {
+        const r1Visibility = r1Value ? 'public' : 'private';
+        const r2Visibility = r2Value ? 'public' : 'private';
+        if (activeSortDirection === 'asc') {
+          return r1Visibility.localeCompare(r2Visibility);
+        }
+        return r2Visibility.localeCompare(r1Visibility);
+      }
+    });
+  }
+
+  const getSortParams = (columnIndex: number): ThProps['sort'] => ({
+    sortBy: {
+      index: activeSortIndex,
+      direction: activeSortDirection,
+      defaultDirection: 'asc',
+    },
+    onSort: (_event, index, direction) => {
+      setActiveSortIndex(index);
+      setActiveSortDirection(direction);
+    },
+    columnIndex,
+  });
+
+  const paginatedRepositoryList = sortedRepos?.slice(
     page * perPage - perPage,
     page * perPage - perPage + perPage,
   );
@@ -327,15 +388,21 @@ export default function RepositoriesList(props: RepositoriesListProps) {
           <Thead>
             <Tr>
               <Th />
-              <Th>{RepositoryListColumnNames.name}</Th>
-              <Th>{RepositoryListColumnNames.visibility}</Th>
+              <Th sort={getSortParams(0)}>{RepositoryListColumnNames.name}</Th>
+              <Th sort={getSortParams(1)}>
+                {RepositoryListColumnNames.visibility}
+              </Th>
               {quayConfig?.features.QUOTA_MANAGEMENT &&
               quayConfig?.features.EDIT_QUOTA ? (
-                <Th>{RepositoryListColumnNames.size}</Th>
+                <Th sort={getSortParams(2)}>
+                  {RepositoryListColumnNames.size}
+                </Th>
               ) : (
                 <></>
               )}
-              <Th>{RepositoryListColumnNames.lastModified}</Th>
+              <Th sort={getSortParams(3)}>
+                {RepositoryListColumnNames.lastModified}
+              </Th>
             </Tr>
           </Thead>
           <Tbody data-testid="repository-list-table">
