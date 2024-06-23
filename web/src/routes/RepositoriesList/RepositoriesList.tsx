@@ -69,10 +69,10 @@ export default function RepositoriesList(props: RepositoriesListProps) {
   const [isKebabOpen, setKebabOpen] = useState(false);
   const [makePublicModalOpen, setmakePublicModal] = useState(false);
   const [makePrivateModalOpen, setmakePrivateModal] = useState(false);
-  const [activeSortIndex, setActiveSortIndex] = useState<number | null>(null);
+  const [activeSortIndex, setActiveSortIndex] = useState<number>(3);
   const [activeSortDirection, setActiveSortDirection] = useState<
-    'asc' | 'desc' | null
-  >(null);
+    'asc' | 'desc'
+  >('desc');
   const [err, setErr] = useState<string[]>();
   const location = useLocation();
 
@@ -91,10 +91,6 @@ export default function RepositoriesList(props: RepositoriesListProps) {
     perPage,
     totalResults,
   } = useRepositories(currentOrg);
-
-  repos?.sort((r1, r2) => {
-    return r1.last_modified > r2.last_modified ? -1 : 1;
-  });
 
   const repositoryList: RepoListTableItem[] = repos?.map((repo) => {
     return {
@@ -132,16 +128,24 @@ export default function RepositoriesList(props: RepositoriesListProps) {
       const r1Value = getSortableRepoRowValues(r1)[activeSortIndex];
       const r2Value = getSortableRepoRowValues(r2)[activeSortIndex];
 
+      if (r1Value === null && r2Value === null) {
+        return 0;
+      } else if (r1Value === null) {
+        return activeSortDirection === 'asc' ? -1 : 1;
+      } else if (r2Value === null) {
+        return activeSortDirection === 'asc' ? 1 : -1;
+      }
+
       if (typeof r1Value === 'string') {
         if (activeSortDirection === 'asc') {
-          return (r1Value as string).localeCompare(r2Value as string);
+          return String(r1Value).localeCompare(String(r2Value));
         }
-        return (r2Value as string).localeCompare(r1Value as string);
+        return String(r2Value).localeCompare(String(r1Value));
       } else if (typeof r1Value === 'number') {
         if (activeSortDirection === 'asc') {
-          return (r1Value as number) - (r2Value as number);
+          return Number(r1Value) - Number(r2Value);
         }
-        return (r2Value as number) - (r1Value as number);
+        return Number(r2Value) - Number(r1Value);
       } else if (typeof r1Value === 'boolean') {
         const r1Visibility = r1Value ? 'public' : 'private';
         const r2Visibility = r2Value ? 'public' : 'private';
@@ -149,6 +153,8 @@ export default function RepositoriesList(props: RepositoriesListProps) {
           return r1Visibility.localeCompare(r2Visibility);
         }
         return r2Visibility.localeCompare(r1Visibility);
+      } else if (typeof r1Value === 'undefined') {
+        return -1;
       }
     });
   }
