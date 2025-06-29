@@ -18,6 +18,7 @@ from endpoints.api import (
     RepositoryParamResource,
     abort,
     api,
+    define_json_response,
     disallow_for_app_repositories,
     disallow_for_non_normal_repositories,
     disallow_for_user_namespace,
@@ -137,6 +138,106 @@ class RepositoryManifest(RepositoryParamResource):
     Resource for retrieving a specific repository manifest.
     """
 
+    schemas = {
+        "LayerInfo": {
+            "type": "object",
+            "description": "Describes a layer in a manifest",
+            "required": [
+                "index",
+                "compressed_size",
+                "is_remote",
+                "blob_digest",
+                "created_datetime",
+            ],
+            "properties": {
+                "index": {
+                    "type": "integer",
+                    "description": "The index of the layer in the manifest",
+                },
+                "compressed_size": {
+                    "type": "integer",
+                    "description": "The compressed size of the layer in bytes",
+                },
+                "is_remote": {
+                    "type": "boolean",
+                    "description": "Whether the layer is stored remotely",
+                },
+                "urls": {
+                    "type": "array",
+                    "description": "URLs where the layer can be downloaded",
+                    "items": {"type": "string"},
+                },
+                "command": {
+                    "oneOf": [
+                        {"type": "string"},
+                        {"type": "array", "items": {"type": "string"}},
+                    ],
+                    "description": "The command used to create this layer",
+                },
+                "comment": {
+                    "type": "string",
+                    "description": "Comment associated with the layer",
+                },
+                "author": {
+                    "type": "string",
+                    "description": "The author of the layer",
+                },
+                "blob_digest": {
+                    "type": "string",
+                    "description": "The digest of the layer blob",
+                },
+                "created_datetime": {
+                    "type": "string",
+                    "description": "ISO 8601 timestamp when the layer was created",
+                },
+            },
+        },
+        "ManifestResponse": {
+            "type": "object",
+            "description": "Describes a repository manifest",
+            "required": [
+                "digest",
+                "is_manifest_list",
+                "manifest_data",
+                "config_media_type",
+                "layers_compressed_size",
+            ],
+            "properties": {
+                "digest": {
+                    "type": "string",
+                    "description": "The digest of the manifest",
+                },
+                "is_manifest_list": {
+                    "type": "boolean",
+                    "description": "Whether this is a manifest list (multi-arch image)",
+                },
+                "manifest_data": {
+                    "type": "string",
+                    "description": "The raw manifest data as a JSON string",
+                },
+                "config_media_type": {
+                    "type": "string",
+                    "description": "The media type of the manifest configuration",
+                },
+                "layers_compressed_size": {
+                    "type": "integer",
+                    "description": "The total compressed size of all layers in bytes",
+                },
+                "layers": {
+                    "type": "array",
+                    "description": "List of layers in the manifest",
+                    "items": {
+                        "$ref": "#/definitions/LayerInfo",
+                    },
+                },
+                "modelcard": {
+                    "type": "string",
+                    "description": "Model card markdown content if available",
+                },
+            },
+        },
+    }
+
     @require_repo_read(allow_for_superuser=True)
     @nickname("getRepoManifest")
     @disallow_for_app_repositories
@@ -147,6 +248,7 @@ class RepositoryManifest(RepositoryParamResource):
         type=truthy_bool,
         default=False,
     )
+    @define_json_response("ManifestResponse")
     def get(self, namespace_name, repository_name, manifestref, parsed_args):
         repo_ref = registry_model.lookup_repository(namespace_name, repository_name)
         if repo_ref is None:
@@ -207,6 +309,63 @@ class RepositoryManifestLabels(RepositoryParamResource):
                 },
             },
         },
+        "LabelInfo": {
+            "type": "object",
+            "description": "Describes a label on a manifest",
+            "required": ["id", "key", "value", "source_type", "media_type"],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "The unique identifier for the label",
+                },
+                "key": {
+                    "type": "string",
+                    "description": "The key of the label",
+                },
+                "value": {
+                    "type": "string",
+                    "description": "The value of the label",
+                },
+                "source_type": {
+                    "type": "string",
+                    "description": "The source type of the label (e.g., 'api', 'manifest')",
+                },
+                "media_type": {
+                    "type": "string",
+                    "description": "The media type of the label value",
+                },
+            },
+        },
+        "LabelListResponse": {
+            "type": "object",
+            "description": "Response containing a list of labels",
+            "required": ["labels"],
+            "properties": {
+                "labels": {
+                    "type": "array",
+                    "description": "List of labels",
+                    "items": {
+                        "$ref": "#/definitions/LabelInfo",
+                    },
+                },
+            },
+        },
+        "AddLabelResponse": {
+            "type": "object",
+            "description": "Response containing the created label",
+            "required": ["label"],
+            "properties": {
+                "label": {
+                    "$ref": "#/definitions/LabelInfo",
+                    "description": "The created label",
+                },
+            },
+        },
+        "DeleteLabelResponse": {
+            "type": "string",
+            "description": "Empty response indicating successful label deletion",
+            "example": "",
+        },
     }
 
     @require_repo_read(allow_for_superuser=True)
@@ -219,6 +378,7 @@ class RepositoryManifestLabels(RepositoryParamResource):
         type=str,
         default=None,
     )
+    @define_json_response("LabelListResponse")
     def get(self, namespace_name, repository_name, manifestref, parsed_args):
         repo_ref = registry_model.lookup_repository(namespace_name, repository_name)
         if repo_ref is None:
@@ -240,6 +400,7 @@ class RepositoryManifestLabels(RepositoryParamResource):
     @disallow_for_non_normal_repositories
     @disallow_for_user_namespace
     @validate_json_request("AddLabel")
+    @define_json_response("AddLabelResponse")
     def post(self, namespace_name, repository_name, manifestref):
         """
         Adds a new label into the tag manifest.
@@ -315,6 +476,7 @@ class ManageRepositoryManifestLabel(RepositoryParamResource):
     @require_repo_read(allow_for_superuser=True)
     @nickname("getManifestLabel")
     @disallow_for_app_repositories
+    @define_json_response("LabelInfo")
     def get(self, namespace_name, repository_name, manifestref, labelid):
         """
         Retrieves the label with the specific ID under the manifest.
@@ -338,6 +500,7 @@ class ManageRepositoryManifestLabel(RepositoryParamResource):
     @disallow_for_app_repositories
     @disallow_for_non_normal_repositories
     @disallow_for_user_namespace
+    @define_json_response("DeleteLabelResponse")
     def delete(self, namespace_name, repository_name, manifestref, labelid):
         """
         Deletes an existing label from a manifest.

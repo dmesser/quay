@@ -30,6 +30,7 @@ from endpoints.api import (
     NotFound,
     Unauthorized,
     allow_if_global_readonly_superuser,
+    define_json_response,
     format_date,
     internal_only,
     log_action,
@@ -63,6 +64,678 @@ from util.validation import validate_service_key_name
 
 logger = logging.getLogger(__name__)
 
+# Response schemas for superuser endpoints
+SUPERUSER_RESPONSE_SCHEMAS = {
+    "Avatar": {
+        "type": "object",
+        "description": "Avatar information for an entity",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The name used for the avatar",
+            },
+            "hash": {
+                "type": "string",
+                "description": "The gravatar hash",
+            },
+            "color": {
+                "type": "string",
+                "description": "The color for the avatar",
+            },
+            "kind": {
+                "type": "string",
+                "description": "The kind of entity",
+                "enum": ["user", "org", "team", "robot", "app"],
+            },
+        },
+        "required": ["name", "hash", "color", "kind"],
+    },
+    "AggregatedLog": {
+        "type": "object",
+        "description": "An aggregated log entry",
+        "properties": {
+            "kind": {
+                "type": "string",
+                "description": "The kind of log entry",
+            },
+            "count": {
+                "type": "integer",
+                "description": "Number of log entries",
+            },
+            "datetime": {
+                "type": "string",
+                "description": "Date and time of the log entry",
+                "format": "date-time",
+            },
+        },
+        "required": ["kind", "count", "datetime"],
+    },
+    "AggregatedLogsResponse": {
+        "type": "object",
+        "description": "Response containing aggregated logs",
+        "properties": {
+            "aggregated": {
+                "type": "array",
+                "description": "List of aggregated log entries",
+                "items": {
+                    "$ref": "#/definitions/AggregatedLog",
+                },
+            },
+        },
+        "required": ["aggregated"],
+    },
+    "LogEntry": {
+        "type": "object",
+        "description": "A log entry",
+        "properties": {
+            "kind": {
+                "type": "string",
+                "description": "The kind of log entry",
+            },
+            "metadata": {
+                "type": "object",
+                "description": "Log metadata",
+            },
+            "ip": {
+                "type": "string",
+                "description": "IP address",
+            },
+            "datetime": {
+                "type": "string",
+                "description": "Date and time",
+                "format": "date-time",
+            },
+            "performer": {
+                "type": "object",
+                "description": "User who performed the action",
+                "properties": {
+                    "kind": {
+                        "type": "string",
+                        "description": "User kind",
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Username",
+                    },
+                    "is_robot": {
+                        "type": "boolean",
+                        "description": "Whether the user is a robot",
+                    },
+                    "avatar": {
+                        "$ref": "#/definitions/Avatar",
+                    },
+                },
+            },
+            "namespace": {
+                "type": "object",
+                "description": "Namespace information",
+                "properties": {
+                    "kind": {
+                        "type": "string",
+                        "description": "Namespace kind",
+                        "enum": ["user", "org"],
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Namespace name",
+                    },
+                    "avatar": {
+                        "$ref": "#/definitions/Avatar",
+                    },
+                },
+            },
+        },
+        "required": ["kind", "metadata", "ip", "datetime"],
+    },
+    "LogsResponse": {
+        "type": "object",
+        "description": "Response containing logs with pagination",
+        "properties": {
+            "start_time": {
+                "type": "string",
+                "description": "Start time for the log query",
+                "format": "date-time",
+            },
+            "end_time": {
+                "type": "string",
+                "description": "End time for the log query",
+                "format": "date-time",
+            },
+            "logs": {
+                "type": "array",
+                "description": "List of log entries",
+                "items": {
+                    "$ref": "#/definitions/LogEntry",
+                },
+            },
+        },
+        "required": ["start_time", "end_time", "logs"],
+    },
+    "ChangeLogResponse": {
+        "type": "object",
+        "description": "Response containing the change log",
+        "properties": {
+            "log": {
+                "type": "string",
+                "description": "The change log content",
+            },
+        },
+        "required": ["log"],
+    },
+    "User": {
+        "type": "object",
+        "description": "A user in the system",
+        "properties": {
+            "kind": {
+                "type": "string",
+                "description": "Always 'user'",
+                "enum": ["user"],
+            },
+            "name": {
+                "type": "string",
+                "description": "The username",
+            },
+            "username": {
+                "type": "string",
+                "description": "The username",
+            },
+            "email": {
+                "type": "string",
+                "description": "The email address",
+            },
+            "verified": {
+                "type": "boolean",
+                "description": "Whether the email is verified",
+            },
+            "avatar": {
+                "$ref": "#/definitions/Avatar",
+            },
+            "super_user": {
+                "type": "boolean",
+                "description": "Whether the user is a superuser",
+            },
+            "enabled": {
+                "type": "boolean",
+                "description": "Whether the user is enabled",
+            },
+            "encrypted_password": {
+                "type": "string",
+                "description": "Encrypted password (only in certain responses)",
+            },
+            "quotas": {
+                "type": "array",
+                "description": "User quotas",
+                "items": {
+                    "type": "object",
+                },
+            },
+            "quota_report": {
+                "type": "object",
+                "description": "Quota report information",
+            },
+        },
+        "required": [
+            "kind",
+            "name",
+            "username",
+            "email",
+            "verified",
+            "avatar",
+            "super_user",
+            "enabled",
+        ],
+    },
+    "UsersResponse": {
+        "type": "object",
+        "description": "Response containing users with pagination",
+        "properties": {
+            "users": {
+                "type": "array",
+                "description": "List of users",
+                "items": {
+                    "$ref": "#/definitions/User",
+                },
+            },
+        },
+        "required": ["users"],
+    },
+    "CreateUserResponse": {
+        "type": "object",
+        "description": "Response for user creation",
+        "properties": {
+            "username": {
+                "type": "string",
+                "description": "The created username",
+            },
+            "email": {
+                "type": "string",
+                "description": "The email address",
+            },
+            "password": {
+                "type": "string",
+                "description": "The generated password",
+            },
+            "encrypted_password": {
+                "type": "string",
+                "description": "The encrypted password",
+            },
+        },
+        "required": ["username", "email", "password", "encrypted_password"],
+    },
+    "Organization": {
+        "type": "object",
+        "description": "An organization in the system",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The organization name",
+            },
+            "email": {
+                "type": "string",
+                "description": "The email address",
+            },
+            "avatar": {
+                "$ref": "#/definitions/Avatar",
+            },
+            "quotas": {
+                "type": "array",
+                "description": "Organization quotas",
+                "items": {
+                    "type": "object",
+                },
+            },
+            "quota_report": {
+                "type": "object",
+                "description": "Quota report information",
+            },
+        },
+        "required": ["name", "email", "avatar"],
+    },
+    "OrganizationsResponse": {
+        "type": "object",
+        "description": "Response containing organizations with pagination",
+        "properties": {
+            "organizations": {
+                "type": "array",
+                "description": "List of organizations",
+                "items": {
+                    "$ref": "#/definitions/Organization",
+                },
+            },
+        },
+        "required": ["organizations"],
+    },
+    "RegistrySizeResponse": {
+        "type": "object",
+        "description": "Response containing registry size information",
+        "properties": {
+            "size_bytes": {
+                "type": "integer",
+                "description": "Size in bytes",
+            },
+            "last_ran": {
+                "type": "integer",
+                "description": "Last calculation timestamp",
+            },
+            "queued": {
+                "type": "boolean",
+                "description": "Whether calculation is queued",
+            },
+            "running": {
+                "type": "boolean",
+                "description": "Whether calculation is running",
+            },
+        },
+        "required": ["size_bytes", "last_ran", "queued", "running"],
+    },
+    "Quota": {
+        "type": "object",
+        "description": "A quota definition",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "Quota ID",
+            },
+            "limit_bytes": {
+                "type": "integer",
+                "description": "Limit in bytes",
+            },
+            "limits": {
+                "type": "object",
+                "description": "Quota limits",
+            },
+        },
+        "required": ["id", "limit_bytes", "limits"],
+    },
+    "QuotasResponse": {
+        "type": "array",
+        "description": "List of quotas",
+        "items": {
+            "$ref": "#/definitions/Quota",
+        },
+    },
+    "ServiceKeyApproval": {
+        "type": "object",
+        "description": "Service key approval information",
+        "properties": {
+            "approver": {
+                "$ref": "#/definitions/User",
+            },
+            "approval_type": {
+                "type": "string",
+                "description": "Type of approval",
+            },
+            "approved_date": {
+                "type": "string",
+                "description": "Approval date",
+                "format": "date-time",
+            },
+            "notes": {
+                "type": "string",
+                "description": "Approval notes",
+            },
+        },
+        "required": ["approval_type", "approved_date", "notes"],
+    },
+    "ServiceKey": {
+        "type": "object",
+        "description": "A service key",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Key name",
+            },
+            "kid": {
+                "type": "string",
+                "description": "Key ID",
+            },
+            "service": {
+                "type": "string",
+                "description": "Service name",
+            },
+            "jwk": {
+                "type": "object",
+                "description": "JSON Web Key",
+            },
+            "metadata": {
+                "type": "object",
+                "description": "Key metadata",
+            },
+            "created_date": {
+                "type": "string",
+                "description": "Creation date",
+                "format": "date-time",
+            },
+            "expiration_date": {
+                "type": "string",
+                "description": "Expiration date",
+                "format": "date-time",
+            },
+            "rotation_duration": {
+                "type": "string",
+                "description": "Rotation duration",
+            },
+            "approval": {
+                "$ref": "#/definitions/ServiceKeyApproval",
+            },
+        },
+        "required": [
+            "name",
+            "kid",
+            "service",
+            "jwk",
+            "metadata",
+            "created_date",
+            "expiration_date",
+            "rotation_duration",
+        ],
+    },
+    "ServiceKeysResponse": {
+        "type": "object",
+        "description": "Response containing service keys",
+        "properties": {
+            "keys": {
+                "type": "array",
+                "description": "List of service keys",
+                "items": {
+                    "$ref": "#/definitions/ServiceKey",
+                },
+            },
+        },
+        "required": ["keys"],
+    },
+    "CreateServiceKeyResponse": {
+        "type": "object",
+        "description": "Response for service key creation",
+        "properties": {
+            "kid": {
+                "type": "string",
+                "description": "Key ID",
+            },
+            "name": {
+                "type": "string",
+                "description": "Key name",
+            },
+            "service": {
+                "type": "string",
+                "description": "Service name",
+            },
+            "public_key": {
+                "type": "string",
+                "description": "Public key in PEM format",
+            },
+            "private_key": {
+                "type": "string",
+                "description": "Private key in PEM format",
+            },
+        },
+        "required": ["kid", "name", "service", "public_key", "private_key"],
+    },
+    "BuildTrigger": {
+        "type": "object",
+        "description": "A build trigger",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "Trigger ID",
+            },
+            "service": {
+                "type": "string",
+                "description": "Service name",
+            },
+            "is_active": {
+                "type": "boolean",
+                "description": "Whether trigger is active",
+            },
+            "build_source": {
+                "type": "string",
+                "description": "Build source",
+            },
+            "repository_url": {
+                "type": "string",
+                "description": "Repository URL",
+            },
+            "config": {
+                "type": "object",
+                "description": "Trigger configuration",
+            },
+            "can_invoke": {
+                "type": "boolean",
+                "description": "Whether can invoke",
+            },
+            "pull_robot": {
+                "$ref": "#/definitions/User",
+            },
+        },
+        "required": ["id", "service", "is_active", "config", "can_invoke"],
+    },
+    "RepositoryBuild": {
+        "type": "object",
+        "description": "A repository build",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "Build ID",
+            },
+            "phase": {
+                "type": "string",
+                "description": "Build phase",
+            },
+            "started": {
+                "type": "string",
+                "description": "Start time",
+                "format": "date-time",
+            },
+            "display_name": {
+                "type": "string",
+                "description": "Display name",
+            },
+            "status": {
+                "type": "object",
+                "description": "Build status",
+            },
+            "subdirectory": {
+                "type": "string",
+                "description": "Build subdirectory",
+            },
+            "dockerfile_path": {
+                "type": "string",
+                "description": "Dockerfile path",
+            },
+            "context": {
+                "type": "string",
+                "description": "Build context",
+            },
+            "tags": {
+                "type": "array",
+                "description": "Docker tags",
+                "items": {
+                    "type": "string",
+                },
+            },
+            "manual_user": {
+                "type": "string",
+                "description": "Manual user",
+            },
+            "is_writer": {
+                "type": "boolean",
+                "description": "Whether user can write",
+            },
+            "trigger": {
+                "$ref": "#/definitions/BuildTrigger",
+            },
+            "trigger_metadata": {
+                "type": "object",
+                "description": "Trigger metadata",
+            },
+            "resource_key": {
+                "type": "string",
+                "description": "Resource key",
+            },
+            "pull_robot": {
+                "$ref": "#/definitions/User",
+            },
+            "repository": {
+                "type": "object",
+                "description": "Repository information",
+                "properties": {
+                    "namespace": {
+                        "type": "string",
+                        "description": "Repository namespace",
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Repository name",
+                    },
+                },
+                "required": ["namespace", "name"],
+            },
+            "error": {
+                "type": "string",
+                "description": "Error message",
+            },
+            "archive_url": {
+                "type": "string",
+                "description": "Archive URL",
+            },
+        },
+        "required": [
+            "id",
+            "phase",
+            "started",
+            "display_name",
+            "status",
+            "subdirectory",
+            "dockerfile_path",
+            "context",
+            "tags",
+            "is_writer",
+            "trigger",
+            "resource_key",
+            "repository",
+        ],
+    },
+    "BuildLogsResponse": {
+        "type": "object",
+        "description": "Response containing build logs",
+        "properties": {
+            "logs": {
+                "type": "string",
+                "description": "Build logs content",
+            },
+            "log_url": {
+                "type": "string",
+                "description": "URL to build logs",
+            },
+        },
+    },
+    "ConfigResponse": {
+        "type": "object",
+        "description": "Response containing configuration dump",
+        "properties": {
+            "config": {
+                "type": "object",
+                "description": "Configuration object",
+            },
+            "warning": {
+                "type": "object",
+                "description": "Warning information",
+            },
+            "env": {
+                "type": "object",
+                "description": "Environment variables",
+            },
+            "schema": {
+                "type": "object",
+                "description": "Configuration schema",
+            },
+        },
+        "required": ["config", "warning", "env", "schema"],
+    },
+    "TakeOwnershipResponse": {
+        "type": "object",
+        "description": "Response for taking ownership",
+        "properties": {
+            "namespace": {
+                "type": "string",
+                "description": "Namespace name",
+            },
+        },
+        "required": ["namespace"],
+    },
+    "SendRecoveryEmailResponse": {
+        "type": "object",
+        "description": "Response for sending recovery email",
+        "properties": {
+            "email": {
+                "type": "string",
+                "description": "Email address",
+            },
+        },
+        "required": ["email"],
+    },
+}
+
 
 def get_immediate_subdirectories(directory):
     return [name for name in os.listdir(directory) if os.path.isdir(os.path.join(directory, name))]
@@ -81,12 +754,15 @@ class SuperUserAggregateLogs(ApiResource):
     Resource for fetching aggregated logs for the current user.
     """
 
+    schemas = SUPERUSER_RESPONSE_SCHEMAS
+
     @require_fresh_login
     @verify_not_prod
     @nickname("listAllAggregateLogs")
     @parse_args()
     @query_param("starttime", "Earliest time from which to get logs. (%m/%d/%Y %Z)", type=str)
     @query_param("endtime", "Latest time to which to get logs. (%m/%d/%Y %Z)", type=str)
+    @define_json_response("AggregatedLogsResponse")
     def get(self, parsed_args):
         """
         Returns the aggregated logs for the current system.
@@ -111,6 +787,8 @@ class SuperUserLogs(ApiResource):
     Resource for fetching all logs in the system.
     """
 
+    schemas = SUPERUSER_RESPONSE_SCHEMAS
+
     @require_fresh_login
     @verify_not_prod
     @nickname("listAllLogs")
@@ -120,6 +798,7 @@ class SuperUserLogs(ApiResource):
     @query_param("page", "The page number for the logs", type=int, default=1)
     @page_support()
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("LogsResponse")
     def get(self, parsed_args, page_token):
         """
         List the usage logs for the current system.
@@ -180,10 +859,13 @@ class ChangeLog(ApiResource):
     Resource for returning the change log for enterprise customers.
     """
 
+    schemas = SUPERUSER_RESPONSE_SCHEMAS
+
     @require_fresh_login
     @verify_not_prod
     @nickname("getChangeLog")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("ChangeLogResponse")
     def get(self):
         """
         Returns the change log for this installation.
@@ -203,6 +885,8 @@ class SuperUserOrganizationList(ApiResource):
     Resource for listing organizations in the system.
     """
 
+    schemas = SUPERUSER_RESPONSE_SCHEMAS
+
     @require_fresh_login
     @verify_not_prod
     @nickname("listAllOrganizations")
@@ -215,6 +899,7 @@ class SuperUserOrganizationList(ApiResource):
     )
     @require_scope(scopes.SUPERUSER)
     @page_support()
+    @define_json_response("OrganizationsResponse")
     def get(self, parsed_args, page_token):
         """
         Returns a list of all organizations in the system.
@@ -245,10 +930,13 @@ class SuperUserRegistrySize(ApiResource):
     Resource for the current registry size.
     """
 
+    schemas = SUPERUSER_RESPONSE_SCHEMAS
+
     @require_fresh_login
     @verify_not_prod
     @nickname("getRegistrySize")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("RegistrySizeResponse")
     def get(self):
         """
         Returns size of the registry
@@ -321,12 +1009,14 @@ class SuperUserUserQuotaList(ApiResource):
                 },
             ],
         },
+        **SUPERUSER_RESPONSE_SCHEMAS,
     }
 
     @require_fresh_login
     @verify_not_prod
     @nickname(["listUserQuotaSuperUser", "listOrganizationQuotaSuperUser"])
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("QuotasResponse")
     def get(self, namespace):
         if SuperUserPermission().can() or allow_if_global_readonly_superuser():
 
@@ -418,6 +1108,7 @@ class SuperUserUserQuota(ApiResource):
                 },
             ],
         },
+        **SUPERUSER_RESPONSE_SCHEMAS,
     }
 
     @require_fresh_login
@@ -425,6 +1116,7 @@ class SuperUserUserQuota(ApiResource):
     @nickname(["changeUserQuotaSuperUser", "changeOrganizationQuotaSuperUser"])
     @require_scope(scopes.SUPERUSER)
     @validate_json_request("UpdateNamespaceQuota")
+    @define_json_response("Quota")
     def put(self, namespace, quota_id):
         if SuperUserPermission().can():
             quota_data = request.get_json()
@@ -489,7 +1181,8 @@ class SuperUserList(ApiResource):
                     "description": "The email address of the user being created",
                 },
             },
-        }
+        },
+        **SUPERUSER_RESPONSE_SCHEMAS,
     }
 
     @require_fresh_login
@@ -507,6 +1200,7 @@ class SuperUserList(ApiResource):
     )
     @require_scope(scopes.SUPERUSER)
     @page_support()
+    @define_json_response("UsersResponse")
     def get(self, parsed_args, page_token):
         """
         Returns a list of all users in the system.
@@ -533,6 +1227,7 @@ class SuperUserList(ApiResource):
     @nickname("createInstallUser")
     @validate_json_request("CreateInstallUser")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("CreateUserResponse")
     def post(self):
         """
         Creates a new user.
@@ -590,10 +1285,13 @@ class SuperUserSendRecoveryEmail(ApiResource):
     Resource for sending a recovery user on behalf of a user.
     """
 
+    schemas = SUPERUSER_RESPONSE_SCHEMAS
+
     @require_fresh_login
     @verify_not_prod
     @nickname("sendInstallUserRecoveryEmail")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("SendRecoveryEmailResponse")
     def post(self, username):
         # Ensure that we are using database auth.
         if app.config["AUTHENTICATION_TYPE"] != "Database":
@@ -639,12 +1337,14 @@ class SuperUserManagement(ApiResource):
                 "enabled": {"type": "boolean", "description": "Whether the user is enabled"},
             },
         },
+        **SUPERUSER_RESPONSE_SCHEMAS,
     }
 
     @require_fresh_login
     @verify_not_prod
     @nickname("getInstallUser")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("User")
     def get(self, username):
         """
         Returns information about the specified user.
@@ -686,6 +1386,7 @@ class SuperUserManagement(ApiResource):
     @nickname("changeInstallUser")
     @validate_json_request("UpdateUser")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("User")
     def put(self, username):
         """
         Updates information about the specified user.
@@ -786,10 +1487,13 @@ class SuperUserTakeOwnership(ApiResource):
     Resource for a superuser to take ownership of a namespace.
     """
 
+    schemas = SUPERUSER_RESPONSE_SCHEMAS
+
     @require_fresh_login
     @verify_not_prod
     @nickname("takeOwnership")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("TakeOwnershipResponse")
     def post(self, namespace):
         """
         Takes ownership of the specified organization or user.
@@ -839,6 +1543,7 @@ class SuperUserOrganizationManagement(ApiResource):
                 }
             },
         },
+        **SUPERUSER_RESPONSE_SCHEMAS,
     }
 
     @require_fresh_login
@@ -860,6 +1565,7 @@ class SuperUserOrganizationManagement(ApiResource):
     @nickname("changeOrganization")
     @validate_json_request("UpdateOrg")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("Organization")
     def put(self, name):
         """
         Updates information about the specified user.
@@ -941,11 +1647,13 @@ class SuperUserServiceKeyManagement(ApiResource):
                 },
             },
         },
+        **SUPERUSER_RESPONSE_SCHEMAS,
     }
 
     @verify_not_prod
     @nickname("listServiceKeys")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("ServiceKeysResponse")
     def get(self):
         if SuperUserPermission().can() or allow_if_global_readonly_superuser():
             keys = pre_oci_model.list_all_service_keys()
@@ -963,6 +1671,7 @@ class SuperUserServiceKeyManagement(ApiResource):
     @nickname("createServiceKey")
     @require_scope(scopes.SUPERUSER)
     @validate_json_request("CreateServiceKey")
+    @define_json_response("CreateServiceKeyResponse")
     def post(self):
         if SuperUserPermission().can():
             body = request.get_json()
@@ -1066,11 +1775,13 @@ class SuperUserServiceKey(ApiResource):
                 },
             },
         },
+        **SUPERUSER_RESPONSE_SCHEMAS,
     }
 
     @verify_not_prod
     @nickname("getServiceKey")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("ServiceKey")
     def get(self, kid):
         if SuperUserPermission().can() or allow_if_global_readonly_superuser():
             try:
@@ -1086,6 +1797,7 @@ class SuperUserServiceKey(ApiResource):
     @nickname("updateServiceKey")
     @require_scope(scopes.SUPERUSER)
     @validate_json_request("PutServiceKey")
+    @define_json_response("ServiceKey")
     def put(self, kid):
         if SuperUserPermission().can():
             body = request.get_json()
@@ -1223,10 +1935,13 @@ class SuperUserRepositoryBuildLogs(ApiResource):
     Resource for loading repository build logs for the superuser.
     """
 
+    schemas = SUPERUSER_RESPONSE_SCHEMAS
+
     @require_fresh_login
     @verify_not_prod
     @nickname("getRepoBuildLogsSuperUser")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("BuildLogsResponse")
     def get(self, build_uuid):
         """
         Return the build logs for the build specified by the build uuid.
@@ -1250,10 +1965,13 @@ class SuperUserRepositoryBuildStatus(ApiResource):
     Resource for dealing with repository build status.
     """
 
+    schemas = SUPERUSER_RESPONSE_SCHEMAS
+
     @require_fresh_login
     @verify_not_prod
     @nickname("getRepoBuildStatusSuperUser")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("RepositoryBuild")
     def get(self, build_uuid):
         """
         Return the status for the builds specified by the build uuids.
@@ -1277,10 +1995,13 @@ class SuperUserRepositoryBuildResource(ApiResource):
     Resource for dealing with repository builds as a super user.
     """
 
+    schemas = SUPERUSER_RESPONSE_SCHEMAS
+
     @require_fresh_login
     @verify_not_prod
     @nickname("getRepoBuildSuperUser")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("RepositoryBuild")
     def get(self, build_uuid):
         """
         Returns information about a build.
@@ -1303,8 +2024,11 @@ class SuperUserDumpConfig(ApiResource):
     # this API returns a complete set of options. ! NOTE ! changing options listed
     # but not documented is not supported
 
+    schemas = SUPERUSER_RESPONSE_SCHEMAS
+
     @require_fresh_login
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("ConfigResponse")
     def get(self):
         cfg = {}
         warn = {}

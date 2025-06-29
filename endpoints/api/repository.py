@@ -29,6 +29,7 @@ from endpoints.api import (
     ApiResource,
     RepositoryParamResource,
     allow_if_superuser,
+    define_json_response,
     format_date,
     log_action,
     nickname,
@@ -123,11 +124,92 @@ class RepositoryList(ApiResource):
                 },
             },
         },
+        "CreateRepoResponse": {
+            "type": "object",
+            "description": "Response after creating a repository",
+            "properties": {
+                "namespace": {"type": "string", "description": "Repository namespace"},
+                "name": {"type": "string", "description": "Repository name"},
+                "kind": {"type": "string", "description": "Repository kind"},
+            },
+            "required": ["namespace", "name", "kind"],
+        },
+        "RepositoryStats": {
+            "type": "object",
+            "description": "Repository statistics for a specific date",
+            "properties": {
+                "date": {"type": "string", "description": "Date in ISO format", "format": "date"},
+                "count": {"type": "integer", "description": "Number of actions on this date"},
+            },
+            "required": ["date", "count"],
+        },
+        "RepositoryView": {
+            "type": "object",
+            "description": "Repository information",
+            "properties": {
+                "namespace": {"type": "string", "description": "Repository namespace"},
+                "name": {"type": "string", "description": "Repository name"},
+                "description": {"type": "string", "description": "Repository description"},
+                "visibility": {
+                    "type": "string",
+                    "description": "Repository visibility",
+                    "enum": ["public", "private"],
+                },
+                "kind": {"type": "string", "description": "Repository kind"},
+                "state": {"type": "string", "description": "Repository state"},
+                "can_write": {"type": "boolean", "description": "Whether user can write to repo"},
+                "can_admin": {"type": "boolean", "description": "Whether user can admin repo"},
+                "stats": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/RepositoryStats"},
+                    "description": "Repository statistics (if requested)",
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": "Repository tags (if requested)",
+                },
+                "quota_report": {
+                    "type": ["object", "null"],
+                    "description": "Quota information (if enabled)",
+                },
+            },
+            "required": [
+                "namespace",
+                "name",
+                "description",
+                "visibility",
+                "kind",
+                "state",
+                "can_write",
+                "can_admin",
+            ],
+        },
+        "RepositoryListResponse": {
+            "type": "object",
+            "description": "List of repositories",
+            "properties": {
+                "repositories": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/RepositoryView"},
+                },
+            },
+            "required": ["repositories"],
+        },
+        "SuccessResponse": {
+            "type": "object",
+            "description": "Success response for operations",
+            "properties": {
+                "success": {"type": "boolean", "description": "Whether the operation succeeded"},
+            },
+            "required": ["success"],
+        },
     }
 
     @require_scope(scopes.CREATE_REPO)
     @nickname("createRepo")
     @validate_json_request("NewRepo")
+    @define_json_response("CreateRepoResponse")
     def post(self):
         """
         Create a new repository.
@@ -223,6 +305,7 @@ class RepositoryList(ApiResource):
     )
     @query_param("repo_kind", "The kind of repositories to return", type=str, default="image")
     @page_support()
+    @define_json_response("RepositoryListResponse")
     def get(self, page_token, parsed_args):
         """
         Fetch the list of repositories visible to the current user under a variety of situations.
@@ -298,6 +381,7 @@ class Repository(RepositoryParamResource):
     )
     @require_repo_read(allow_for_superuser=True)
     @nickname("getRepo")
+    @define_json_response("RepositoryView")
     def get(self, namespace, repository, parsed_args):
         """
         Fetch the specified repository.
@@ -344,6 +428,7 @@ class Repository(RepositoryParamResource):
     @require_repo_write(allow_for_superuser=True)
     @nickname("updateRepo")
     @validate_json_request("RepoUpdate")
+    @define_json_response("SuccessResponse")
     def put(self, namespace, repository):
         """
         Update the description in the specified repository.
@@ -411,6 +496,7 @@ class RepositoryVisibility(RepositoryParamResource):
     @require_repo_admin(allow_for_superuser=True)
     @nickname("changeRepoVisibility")
     @validate_json_request("ChangeVisibility")
+    @define_json_response("SuccessResponse")
     def post(self, namespace, repository):
         """
         Change the visibility of a repository.
@@ -458,6 +544,7 @@ class RepositoryTrust(RepositoryParamResource):
     @require_repo_admin(allow_for_superuser=True)
     @nickname("changeRepoTrust")
     @validate_json_request("ChangeRepoTrust")
+    @define_json_response("SuccessResponse")
     def post(self, namespace, repository):
         """
         Change the visibility of a repository.
@@ -508,6 +595,7 @@ class RepositoryStateResource(RepositoryParamResource):
     @require_repo_admin(allow_for_superuser=True)
     @nickname("changeRepoState")
     @validate_json_request("ChangeRepoState")
+    @define_json_response("SuccessResponse")
     def put(self, namespace, repository):
         """
         Change the state of a repository.

@@ -16,6 +16,7 @@ from endpoints.api import (
     RepositoryParamResource,
     allow_if_global_readonly_superuser,
     allow_if_superuser,
+    define_json_response,
     log_action,
     nickname,
     path_param,
@@ -64,10 +65,48 @@ class OrgAutoPrunePolicies(ApiResource):
                 },
             },
         },
+        "AutoPrunePolicyView": {
+            "type": "object",
+            "description": "A view of an auto-prune policy.",
+            "properties": {
+                "uuid": {"type": "string", "description": "Unique identifier for the policy"},
+                "method": {"type": "string", "description": "Prune method"},
+                "value": {
+                    "type": ["integer", "string"],
+                    "description": "Prune value (number or time delta)",
+                },
+                "tag_pattern": {"type": ["string", "null"], "description": "Tag pattern to match"},
+                "tag_pattern_matches": {
+                    "type": "boolean",
+                    "description": "Whether to match the tag pattern",
+                },
+            },
+            "required": ["uuid", "method", "value", "tag_pattern", "tag_pattern_matches"],
+        },
+        "AutoPrunePolicyList": {
+            "type": "object",
+            "description": "List of auto-prune policies.",
+            "properties": {
+                "policies": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/AutoPrunePolicyView"},
+                },
+            },
+            "required": ["policies"],
+        },
+        "AutoPrunePolicyUUID": {
+            "type": "object",
+            "description": "UUID of an auto-prune policy.",
+            "properties": {
+                "uuid": {"type": "string", "description": "Unique identifier for the policy"},
+            },
+            "required": ["uuid"],
+        },
     }
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("listOrganizationAutoPrunePolicies")
+    @define_json_response("AutoPrunePolicyList")
     def get(self, orgname):
         """
         Lists the auto-prune policies for the organization
@@ -87,6 +126,7 @@ class OrgAutoPrunePolicies(ApiResource):
     @require_scope(scopes.ORG_ADMIN)
     @validate_json_request("AutoPrunePolicyConfig")
     @nickname("createOrganizationAutoPrunePolicy")
+    @define_json_response("AutoPrunePolicyUUID")
     def post(self, orgname):
         """
         Creates an auto-prune policy for the organization
@@ -148,34 +188,11 @@ class OrgAutoPrunePolicy(ApiResource):
     Resource for fetching, updating, and deleting specific organization auto-prune policies
     """
 
-    schemas = {
-        "AutoPrunePolicyConfig": {
-            "type": "object",
-            "description": "The policy configuration that is to be applied to the organization",
-            "required": ["method", "value"],
-            "properties": {
-                "method": {
-                    "type": "string",
-                    "description": "The method to use for pruning tags (number_of_tags, creation_date)",
-                },
-                "value": {
-                    "type": ["integer", "string"],
-                    "description": "The value to use for the pruning method (number of tags e.g. 10, time delta e.g. 7d (7 days))",
-                },
-                "tagPattern": {
-                    "type": "string",
-                    "description": "Tags only matching this pattern will be pruned",
-                },
-                "tagPatternMatches": {
-                    "type": "boolean",
-                    "description": "Determine whether pruned tags should or should not match the tagPattern",
-                },
-            },
-        },
-    }
+    schemas = OrgAutoPrunePolicies.schemas
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("getOrganizationAutoPrunePolicy")
+    @define_json_response("AutoPrunePolicyView")
     def get(self, orgname, policy_uuid):
         """
         Fetches the auto-prune policy for the organization
@@ -197,6 +214,7 @@ class OrgAutoPrunePolicy(ApiResource):
     @require_scope(scopes.ORG_ADMIN)
     @validate_json_request("AutoPrunePolicyConfig")
     @nickname("updateOrganizationAutoPrunePolicy")
+    @define_json_response("AutoPrunePolicyUUID")
     def put(self, orgname, policy_uuid):
         """
         Updates the auto-prune policy for the organization
@@ -252,6 +270,7 @@ class OrgAutoPrunePolicy(ApiResource):
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("deleteOrganizationAutoPrunePolicy")
+    @define_json_response("AutoPrunePolicyUUID")
     def delete(self, orgname, policy_uuid):
         """
         Deletes the auto-prune policy for the organization
@@ -286,34 +305,11 @@ class RepositoryAutoPrunePolicies(RepositoryParamResource):
     Resource for listing and creating repository auto-prune policies
     """
 
-    schemas = {
-        "AutoPrunePolicyConfig": {
-            "type": "object",
-            "description": "The policy configuration that is to be applied to the repository",
-            "required": ["method", "value"],
-            "properties": {
-                "method": {
-                    "type": "string",
-                    "description": "The method to use for pruning tags (number_of_tags, creation_date)",
-                },
-                "value": {
-                    "type": ["integer", "string"],
-                    "description": "The value to use for the pruning method (number of tags e.g. 10, time delta e.g. 7d (7 days))",
-                },
-                "tagPattern": {
-                    "type": "string",
-                    "description": "Tags only matching this pattern will be pruned",
-                },
-                "tagPatternMatches": {
-                    "type": "boolean",
-                    "description": "Determine whether pruned tags should or should not match the tagPattern",
-                },
-            },
-        },
-    }
+    schemas = OrgAutoPrunePolicies.schemas
 
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("listRepositoryAutoPrunePolicies")
+    @define_json_response("AutoPrunePolicyList")
     def get(self, namespace, repository):
         """
         Lists the auto-prune policies for the repository
@@ -338,6 +334,7 @@ class RepositoryAutoPrunePolicies(RepositoryParamResource):
     @require_repo_admin(allow_for_superuser=True)
     @validate_json_request("AutoPrunePolicyConfig")
     @nickname("createRepositoryAutoPrunePolicy")
+    @define_json_response("AutoPrunePolicyUUID")
     def post(self, namespace, repository):
         """
         Creates an auto-prune policy for the repository
@@ -406,34 +403,11 @@ class RepositoryAutoPrunePolicy(RepositoryParamResource):
     Resource for fetching, updating, and deleting repository specific auto-prune policies
     """
 
-    schemas = {
-        "AutoPrunePolicyConfig": {
-            "type": "object",
-            "description": "The policy configuration that is to be applied to the repository",
-            "required": ["method", "value"],
-            "properties": {
-                "method": {
-                    "type": "string",
-                    "description": "The method to use for pruning tags (number_of_tags, creation_date)",
-                },
-                "value": {
-                    "type": ["integer", "string"],
-                    "description": "The value to use for the pruning method (number of tags e.g. 10, time delta e.g. 7d (7 days))",
-                },
-                "tagPattern": {
-                    "type": "string",
-                    "description": "Tags only matching this pattern will be pruned",
-                },
-                "tagPatternMatches": {
-                    "type": "boolean",
-                    "description": "Determine whether pruned tags should or should not match the tagPattern",
-                },
-            },
-        },
-    }
+    schemas = OrgAutoPrunePolicies.schemas
 
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("getRepositoryAutoPrunePolicy")
+    @define_json_response("AutoPrunePolicyView")
     def get(self, namespace, repository, policy_uuid):
         """
         Fetches the auto-prune policy for the repository
@@ -455,6 +429,7 @@ class RepositoryAutoPrunePolicy(RepositoryParamResource):
     @require_repo_admin(allow_for_superuser=True)
     @validate_json_request("AutoPrunePolicyConfig")
     @nickname("updateRepositoryAutoPrunePolicy")
+    @define_json_response("AutoPrunePolicyUUID")
     def put(self, namespace, repository, policy_uuid):
         """
         Updates the auto-prune policy for the repository
@@ -514,6 +489,7 @@ class RepositoryAutoPrunePolicy(RepositoryParamResource):
 
     @require_repo_admin(allow_for_superuser=True)
     @nickname("deleteRepositoryAutoPrunePolicy")
+    @define_json_response("AutoPrunePolicyUUID")
     def delete(self, namespace, repository, policy_uuid):
         """
         Deletes the auto-prune policy for the repository
@@ -552,34 +528,11 @@ class UserAutoPrunePolicies(ApiResource):
     Resource for listing and creating organization auto-prune policies
     """
 
-    schemas = {
-        "AutoPrunePolicyConfig": {
-            "type": "object",
-            "description": "The policy configuration that is to be applied to the user namespace",
-            "required": ["method", "value"],
-            "properties": {
-                "method": {
-                    "type": "string",
-                    "description": "The method to use for pruning tags (number_of_tags, creation_date)",
-                },
-                "value": {
-                    "type": ["integer", "string"],
-                    "description": "The value to use for the pruning method (number of tags e.g. 10, time delta e.g. 7d (7 days))",
-                },
-                "tagPattern": {
-                    "type": "string",
-                    "description": "Tags only matching this pattern will be pruned",
-                },
-                "tagPatternMatches": {
-                    "type": "boolean",
-                    "description": "Determine whether pruned tags should or should not match the tagPattern",
-                },
-            },
-        },
-    }
+    schemas = OrgAutoPrunePolicies.schemas
 
     @require_user_admin()
     @nickname("listUserAutoPrunePolicies")
+    @define_json_response("AutoPrunePolicyList")
     def get(self):
         """
         Lists the auto-prune policies for the currently logged in user
@@ -593,6 +546,7 @@ class UserAutoPrunePolicies(ApiResource):
     @require_user_admin()
     @validate_json_request("AutoPrunePolicyConfig")
     @nickname("createUserAutoPrunePolicy")
+    @define_json_response("AutoPrunePolicyUUID")
     def post(self):
         """
         Creates the auto-prune policy for the currently logged in user
@@ -651,34 +605,11 @@ class UserAutoPrunePolicy(ApiResource):
     Resource for fetching, updating, and deleting specific user auto-prune policies
     """
 
-    schemas = {
-        "AutoPrunePolicyConfig": {
-            "type": "object",
-            "description": "The policy configuration that is to be applied to the user namespace",
-            "required": ["method", "value"],
-            "properties": {
-                "method": {
-                    "type": "string",
-                    "description": "The method to use for pruning tags (number_of_tags, creation_date)",
-                },
-                "value": {
-                    "type": ["integer", "string"],
-                    "description": "The value to use for the pruning method (number of tags e.g. 10, time delta e.g. 7d (7 days))",
-                },
-                "tagPattern": {
-                    "type": "string",
-                    "description": "Tags only matching this pattern will be pruned",
-                },
-                "tagPatternMatches": {
-                    "type": "boolean",
-                    "description": "Determine whether pruned tags should or should not match the tagPattern",
-                },
-            },
-        },
-    }
+    schemas = OrgAutoPrunePolicies.schemas
 
     @require_user_admin()
     @nickname("getUserAutoPrunePolicy")
+    @define_json_response("AutoPrunePolicyView")
     def get(self, policy_uuid):
         """
         Fetches the auto-prune policy for the currently logged in user
@@ -694,6 +625,7 @@ class UserAutoPrunePolicy(ApiResource):
     @require_user_admin()
     @validate_json_request("AutoPrunePolicyConfig")
     @nickname("updateUserAutoPrunePolicy")
+    @define_json_response("AutoPrunePolicyUUID")
     def put(self, policy_uuid):
         """
         Updates the auto-prune policy for the currently logged in user
@@ -747,6 +679,7 @@ class UserAutoPrunePolicy(ApiResource):
 
     @require_user_admin()
     @nickname("deleteUserAutoPrunePolicy")
+    @define_json_response("AutoPrunePolicyUUID")
     def delete(self, policy_uuid):
         """
         Deletes the auto-prune policy for the currently logged in user

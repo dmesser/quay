@@ -12,6 +12,7 @@ from data.registry_model import registry_model
 from endpoints.api import RepositoryParamResource
 from endpoints.api import abort as custom_abort
 from endpoints.api import (
+    define_json_response,
     deprecated,
     disallow_for_app_repositories,
     disallow_for_non_normal_repositories,
@@ -31,6 +32,82 @@ from endpoints.api import (
 from endpoints.exception import InvalidRequest, NotFound
 from util.names import TAG_ERROR, TAG_REGEX
 from util.parsing import truthy_bool
+
+# Response schemas for tag endpoints
+TAG_RESPONSE_SCHEMAS = {
+    "Tag": {
+        "type": "object",
+        "description": "Information about a repository tag",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The name of the tag",
+            },
+            "reversion": {
+                "type": "boolean",
+                "description": "Whether this tag is a reversion",
+            },
+            "start_ts": {
+                "type": "integer",
+                "description": "The timestamp when the tag was created",
+            },
+            "end_ts": {
+                "type": "integer",
+                "description": "The timestamp when the tag expires",
+            },
+            "manifest_digest": {
+                "type": "string",
+                "description": "The digest of the manifest this tag points to",
+            },
+            "is_manifest_list": {
+                "type": "boolean",
+                "description": "Whether the manifest is a manifest list",
+            },
+            "size": {
+                "type": "integer",
+                "description": "The total size of all layers in the manifest",
+            },
+            "last_modified": {
+                "type": "string",
+                "description": "The last modified date of the tag",
+                "format": "date-time",
+            },
+            "expiration": {
+                "type": "string",
+                "description": "The expiration date of the tag",
+                "format": "date-time",
+            },
+        },
+        "required": ["name", "reversion", "manifest_digest", "is_manifest_list", "size"],
+    },
+    "TagListResponse": {
+        "type": "object",
+        "description": "Response containing a list of repository tags",
+        "properties": {
+            "tags": {
+                "type": "array",
+                "description": "List of tags in the repository",
+                "items": {
+                    "$ref": "#/definitions/Tag",
+                },
+            },
+            "page": {
+                "type": "integer",
+                "description": "Current page number",
+            },
+            "has_additional": {
+                "type": "boolean",
+                "description": "Whether there are more tags available",
+            },
+        },
+        "required": ["tags", "page", "has_additional"],
+    },
+    "RestoreTagResponse": {
+        "type": "object",
+        "description": "Empty response for tag restoration",
+        "properties": {},
+    },
+}
 
 
 def _tag_dict(tag):
@@ -67,6 +144,8 @@ class ListRepositoryTags(RepositoryParamResource):
     Resource for listing full repository tag history, alive *and dead*.
     """
 
+    schemas = TAG_RESPONSE_SCHEMAS
+
     @require_repo_read(allow_for_superuser=True)
     @disallow_for_app_repositories
     @parse_args()
@@ -84,6 +163,7 @@ class ListRepositoryTags(RepositoryParamResource):
     @query_param("page", "Page index for the results. Default 1.", type=int, default=1)
     @query_param("onlyActiveTags", "Filter to only active tags.", type=truthy_bool, default=False)
     @nickname("listRepoTags")
+    @define_json_response("TagListResponse")
     def get(self, namespace, repository, parsed_args):
         specific_tag = parsed_args.get("specificTag") or None
         filter_tag_name = parsed_args.get("filter_tag_name") or None
@@ -137,6 +217,7 @@ class RepositoryTag(RepositoryParamResource):
                 },
             },
         },
+        **TAG_RESPONSE_SCHEMAS,
     }
 
     @require_repo_write(allow_for_superuser=True)
@@ -282,6 +363,7 @@ class RestoreTag(RepositoryParamResource):
                 },
             },
         },
+        **TAG_RESPONSE_SCHEMAS,
     }
 
     @require_repo_write(allow_for_superuser=True)
@@ -290,6 +372,7 @@ class RestoreTag(RepositoryParamResource):
     @disallow_for_user_namespace
     @nickname("restoreTag")
     @validate_json_request("RestoreTag")
+    @define_json_response("RestoreTagResponse")
     def post(self, namespace, repository, tag):
         """
         Restores a repository tag back to a previous image in the repository.

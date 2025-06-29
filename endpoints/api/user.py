@@ -328,44 +328,237 @@ class User(ApiResource):
                 },
             },
         },
+        "AvatarView": {
+            "type": "object",
+            "description": "Avatar data representing a user's icon",
+            "required": ["name", "hash", "color", "kind"],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name used to generate the avatar",
+                },
+                "hash": {
+                    "type": "string",
+                    "description": "The gravatar hash value",
+                },
+                "color": {
+                    "type": "string",
+                    "description": "The color for the avatar background",
+                },
+                "kind": {
+                    "type": "string",
+                    "description": "The type of avatar (user, org, team, app, robot)",
+                    "enum": ["user", "org", "team", "app", "robot"],
+                },
+            },
+        },
+        "OrganizationView": {
+            "type": "object",
+            "description": "Information about an organization",
+            "required": ["name", "avatar", "can_create_repo", "public"],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The organization's username",
+                },
+                "avatar": {
+                    "$ref": "#/components/schemas/AvatarView",
+                },
+                "can_create_repo": {
+                    "type": "boolean",
+                    "description": "Whether the user can create repositories in this organization",
+                },
+                "public": {
+                    "type": "boolean",
+                    "description": "Whether this is a public namespace",
+                },
+                "is_org_admin": {
+                    "type": "boolean",
+                    "description": "Whether the user is an admin of this organization",
+                },
+                "preferred_namespace": {
+                    "type": "boolean",
+                    "description": "Whether this is the preferred namespace to display",
+                },
+            },
+        },
+        "LoginView": {
+            "type": "object",
+            "description": "Information about an external login provider",
+            "required": ["service", "service_identifier", "metadata"],
+            "properties": {
+                "service": {
+                    "type": "string",
+                    "description": "The name of the external service",
+                },
+                "service_identifier": {
+                    "type": "string",
+                    "description": "The user's identifier in the external service",
+                },
+                "metadata": {
+                    "type": "object",
+                    "description": "Additional metadata from the external service",
+                },
+            },
+        },
+        "QuotaLimitView": {
+            "type": "object",
+            "description": "Information about a quota limit",
+            "required": ["id", "type", "limit_percent"],
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "The limit ID",
+                },
+                "type": {
+                    "type": "string",
+                    "description": "The type of quota limit",
+                },
+                "limit_percent": {
+                    "type": "integer",
+                    "description": "The percentage of the limit",
+                },
+            },
+        },
+        "QuotaView": {
+            "type": "object",
+            "description": "Information about a namespace quota",
+            "required": ["id", "limit_bytes", "limits"],
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "The quota ID",
+                },
+                "limit_bytes": {
+                    "type": "integer",
+                    "description": "The limit in bytes",
+                },
+                "limits": {
+                    "type": "array",
+                    "description": "List of quota limits",
+                    "items": {
+                        "$ref": "#/components/schemas/QuotaLimitView",
+                    },
+                },
+            },
+        },
         "UserView": {
             "type": "object",
             "description": "Describes a user",
-            "required": ["anonymous", "avatar"],
+            "required": ["anonymous", "username", "avatar"],
             "properties": {
-                "verified": {
-                    "type": "boolean",
-                    "description": "Whether the user's email address has been verified",
-                },
                 "anonymous": {
                     "type": "boolean",
                     "description": "true if this user data represents a guest user",
+                },
+                "username": {
+                    "type": "string",
+                    "description": "The user's username",
+                },
+                "avatar": {
+                    "$ref": "#/components/schemas/AvatarView",
+                },
+                "verified": {
+                    "type": "boolean",
+                    "description": "Whether the user's email address has been verified",
                 },
                 "email": {
                     "type": "string",
                     "description": "The user's email address",
                 },
-                "avatar": {
-                    "type": "object",
-                    "description": "Avatar data representing the user's icon",
-                },
                 "organizations": {
                     "type": "array",
                     "description": "Information about the organizations in which the user is a member",
-                    "items": {"type": "object"},
+                    "items": {
+                        "$ref": "#/components/schemas/OrganizationView",
+                    },
                 },
                 "logins": {
                     "type": "array",
                     "description": "The list of external login providers against which the user has authenticated",
-                    "items": {"type": "object"},
+                    "items": {
+                        "$ref": "#/components/schemas/LoginView",
+                    },
                 },
                 "can_create_repo": {
                     "type": "boolean",
                     "description": "Whether the user has permission to create repositories",
                 },
+                "is_me": {
+                    "type": "boolean",
+                    "description": "Whether this is the authenticated user",
+                },
                 "preferred_namespace": {
                     "type": "boolean",
                     "description": "If true, the user's namespace is the preferred namespace to display",
+                },
+                "invoice_email": {
+                    "type": "boolean",
+                    "description": "Whether the user desires to receive an invoice email",
+                },
+                "invoice_email_address": {
+                    "type": ["string", "null"],
+                    "description": "Custom email address for receiving invoices",
+                },
+                "tag_expiration_s": {
+                    "type": ["integer", "null"],
+                    "description": "The number of seconds for tag expiration",
+                },
+                "prompts": {
+                    "type": "array",
+                    "description": "List of prompts shown to the user",
+                    "items": {
+                        "type": "string",
+                    },
+                },
+                "company": {
+                    "type": ["string", "null"],
+                    "description": "The user's company",
+                },
+                "family_name": {
+                    "type": ["string", "null"],
+                    "description": "The user's family name",
+                },
+                "given_name": {
+                    "type": ["string", "null"],
+                    "description": "The user's given name",
+                },
+                "location": {
+                    "type": ["string", "null"],
+                    "description": "The user's location",
+                },
+                "is_free_account": {
+                    "type": "boolean",
+                    "description": "Whether the user has a free account",
+                },
+                "has_password_set": {
+                    "type": "boolean",
+                    "description": "Whether the user has a password set",
+                },
+                "quotas": {
+                    "type": "array",
+                    "description": "List of namespace quotas",
+                    "items": {
+                        "$ref": "#/components/schemas/QuotaView",
+                    },
+                },
+                "quota_report": {
+                    "type": "object",
+                    "description": "Quota usage report",
+                },
+                "super_user": {
+                    "type": "boolean",
+                    "description": "Whether the user is a super user",
+                },
+            },
+        },
+        "CreateUserResponse": {
+            "type": "object",
+            "description": "Response when creating a new user",
+            "properties": {
+                "awaiting_verification": {
+                    "type": "boolean",
+                    "description": "Whether email verification is required",
                 },
             },
         },
@@ -391,6 +584,7 @@ class User(ApiResource):
     @nickname("changeUserDetails")
     @internal_only
     @validate_json_request("UpdateUser")
+    @define_json_response("UserView")
     def put(self):
         """
         Update a users details such as password or email.
@@ -513,6 +707,7 @@ class User(ApiResource):
     @nickname("createNewUser")
     @internal_only
     @validate_json_request("NewUser")
+    @define_json_response("CreateUserResponse")
     def post(self):
         """
         Create a new user.
@@ -622,8 +817,27 @@ class PrivateRepositories(ApiResource):
     Operations dealing with the available count of private repositories.
     """
 
+    schemas = {
+        "PrivateRepositoriesResponse": {
+            "type": "object",
+            "description": "Information about private repository limits",
+            "required": ["privateCount", "privateAllowed"],
+            "properties": {
+                "privateCount": {
+                    "type": "integer",
+                    "description": "The number of private repositories the user currently has",
+                },
+                "privateAllowed": {
+                    "type": "boolean",
+                    "description": "Whether the user is allowed to create more private repositories",
+                },
+            },
+        },
+    }
+
     @require_user_admin()
     @nickname("getUserPrivateAllowed")
+    @define_json_response("PrivateRepositoriesResponse")
     def get(self):
         """
         Get the number of private repos this user has, and whether they are allowed to create more.
@@ -673,12 +887,24 @@ class ClientKey(ApiResource):
                     "description": "The user's password",
                 },
             },
-        }
+        },
+        "ClientKeyResponse": {
+            "type": "object",
+            "description": "Response containing the encrypted client key",
+            "required": ["key"],
+            "properties": {
+                "key": {
+                    "type": "string",
+                    "description": "The encrypted client key that can be used in place of a password",
+                },
+            },
+        },
     }
 
     @require_user_admin()
     @nickname("generateUserClientKey")
     @validate_json_request("GenerateClientKey")
+    @define_json_response("ClientKeyResponse")
     def post(self):
         """
         Return's the user's private client key.
@@ -781,11 +1007,34 @@ class ConvertToOrganization(ApiResource):
                 },
             },
         },
+        "SigninResponse": {
+            "type": "object",
+            "description": "Response from signin operations",
+            "properties": {
+                "success": {
+                    "type": "boolean",
+                    "description": "Whether the signin was successful",
+                },
+                "needsEmailVerification": {
+                    "type": "boolean",
+                    "description": "Whether email verification is required",
+                },
+                "invalidCredentials": {
+                    "type": "boolean",
+                    "description": "Whether the credentials were invalid",
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Error message if signin failed",
+                },
+            },
+        },
     }
 
     @require_user_admin()
     @nickname("convertUserToOrganization")
     @validate_json_request("ConvertUser")
+    @define_json_response("SigninResponse")
     def post(self):
         """
         Convert the user to an organization.
@@ -855,6 +1104,7 @@ class Signin(ApiResource):
     @anon_allowed
     @readonly_call_allowed
     @restricted_user_readonly_call_allowed
+    @define_json_response("SigninResponse")
     def post(self):
         """
         Sign in the user with the specified credentials.
@@ -891,6 +1141,24 @@ class VerifyUser(ApiResource):
                 },
             },
         },
+        "VerifyUserResponse": {
+            "type": "object",
+            "description": "Response from user verification",
+            "properties": {
+                "success": {
+                    "type": "boolean",
+                    "description": "Whether the verification was successful",
+                },
+                "invalidCredentials": {
+                    "type": "boolean",
+                    "description": "Whether the credentials were invalid",
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Error message if verification failed",
+                },
+            },
+        },
     }
 
     @require_user_admin()
@@ -898,6 +1166,7 @@ class VerifyUser(ApiResource):
     @validate_json_request("VerifyUser")
     @readonly_call_allowed
     @restricted_user_readonly_call_allowed
+    @define_json_response("VerifyUserResponse")
     def post(self):
         """
         Verifies the signed in the user with the specified credentials.
@@ -929,9 +1198,24 @@ class Signout(ApiResource):
     Resource for signing out users.
     """
 
+    schemas = {
+        "SignoutResponse": {
+            "type": "object",
+            "description": "Response from signout operation",
+            "required": ["success"],
+            "properties": {
+                "success": {
+                    "type": "boolean",
+                    "description": "Whether the signout was successful",
+                },
+            },
+        },
+    }
+
     @nickname("logout")
     @readonly_call_allowed
     @restricted_user_readonly_call_allowed
+    @define_json_response("SignoutResponse")
     def post(self):
         """
         Request that the current user be signed out.
@@ -973,6 +1257,17 @@ class ExternalLoginInformation(ApiResource):
                 },
             },
         },
+        "ExternalLoginResponse": {
+            "type": "object",
+            "description": "Response containing the external login authorization URL",
+            "required": ["auth_url"],
+            "properties": {
+                "auth_url": {
+                    "type": "string",
+                    "description": "The authorization URL for external login",
+                },
+            },
+        },
     }
 
     @nickname("retrieveExternalLoginAuthorizationUrl")
@@ -980,6 +1275,7 @@ class ExternalLoginInformation(ApiResource):
     @readonly_call_allowed
     @restricted_user_readonly_call_allowed
     @validate_json_request("GetLogin")
+    @define_json_response("ExternalLoginResponse")
     def post(self, service_id):
         """
         Generates the auth URL and CSRF token explicitly for OIDC/OAuth-associated login.
@@ -1011,8 +1307,23 @@ class DetachExternal(ApiResource):
     Resource for detaching an external login.
     """
 
+    schemas = {
+        "DetachExternalResponse": {
+            "type": "object",
+            "description": "Response from detaching external login",
+            "required": ["success"],
+            "properties": {
+                "success": {
+                    "type": "boolean",
+                    "description": "Whether the external login was successfully detached",
+                },
+            },
+        },
+    }
+
     @require_user_admin()
     @nickname("detachExternalLogin")
+    @define_json_response("DetachExternalResponse")
     def post(self, service_id):
         """
         Request that the current user be detached from the external login service.
@@ -1047,11 +1358,32 @@ class Recovery(ApiResource):
                 },
             },
         },
+        "RecoveryResponse": {
+            "type": "object",
+            "description": "Response from password recovery request",
+            "required": ["status"],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "description": "The status of the recovery request",
+                    "enum": ["sent", "org"],
+                },
+                "orgemail": {
+                    "type": "string",
+                    "description": "The organization email (only present when status is 'org')",
+                },
+                "orgname": {
+                    "type": "string",
+                    "description": "The redacted organization name (only present when status is 'org')",
+                },
+            },
+        },
     }
 
     @nickname("requestRecoveryEmail")
     @anon_allowed
     @validate_json_request("RequestRecovery")
+    @define_json_response("RecoveryResponse")
     def post(self):
         """
         Request a password recovery email.
@@ -1105,11 +1437,68 @@ class Recovery(ApiResource):
 @resource("/v1/user/notifications")
 @internal_only
 class UserNotificationList(ApiResource):
+    """
+    Operations for managing user notifications.
+    """
+
+    schemas = {
+        "NotificationView": {
+            "type": "object",
+            "description": "Information about a user notification",
+            "required": ["id", "kind", "created", "metadata", "dismissed"],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "The notification UUID",
+                },
+                "organization": {
+                    "type": ["string", "null"],
+                    "description": "The organization name if the notification is for an organization",
+                },
+                "kind": {
+                    "type": "string",
+                    "description": "The type of notification",
+                },
+                "created": {
+                    "type": "string",
+                    "description": "When the notification was created",
+                },
+                "metadata": {
+                    "type": "object",
+                    "description": "Additional metadata for the notification",
+                },
+                "dismissed": {
+                    "type": "boolean",
+                    "description": "Whether the notification has been dismissed",
+                },
+            },
+        },
+        "UserNotificationListResponse": {
+            "type": "object",
+            "description": "Response containing a list of user notifications",
+            "required": ["notifications", "additional"],
+            "properties": {
+                "notifications": {
+                    "type": "array",
+                    "description": "List of user notifications",
+                    "items": {
+                        "$ref": "#/components/schemas/NotificationView",
+                    },
+                },
+                "additional": {
+                    "type": "boolean",
+                    "description": "Whether there are more notifications available",
+                },
+            },
+        },
+    }
+
     @require_user_admin()
     @parse_args()
     @query_param("page", "Offset page number. (int)", type=int, default=0)
     @query_param("limit", "Limit on the number of results (int)", type=int, default=5)
     @nickname("listUserNotifications")
+    @define_json_response("UserNotificationListResponse")
     def get(self, parsed_args):
         page = parsed_args["page"]
         limit = parsed_args["limit"]
@@ -1150,6 +1539,7 @@ class UserNotification(ApiResource):
 
     @require_user_admin()
     @nickname("getUserNotification")
+    @define_json_response("NotificationView")
     def get(self, uuid):
         note = model.notification.lookup_notification(get_authenticated_user(), uuid)
         if not note:
@@ -1160,6 +1550,7 @@ class UserNotification(ApiResource):
     @require_user_admin()
     @nickname("updateUserNotification")
     @validate_json_request("UpdateNotification")
+    @define_json_response("NotificationView")
     def put(self, uuid):
         note = model.notification.lookup_notification(get_authenticated_user(), uuid)
         if not note:
@@ -1215,8 +1606,111 @@ def assigned_authorization_view(assigned_authorization):
 @resource("/v1/user/authorizations")
 @internal_only
 class UserAuthorizationList(ApiResource):
+    """
+    Operations for managing user OAuth authorizations.
+    """
+
+    schemas = {
+        "ScopeView": {
+            "type": "object",
+            "description": "Information about an OAuth scope",
+            "required": ["title", "scope", "description", "icon", "dangerous"],
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "description": "The human-readable title of the scope",
+                },
+                "scope": {
+                    "type": "string",
+                    "description": "The scope identifier",
+                },
+                "description": {
+                    "type": "string",
+                    "description": "The description of what the scope allows",
+                },
+                "icon": {
+                    "type": "string",
+                    "description": "The icon class for the scope",
+                },
+                "dangerous": {
+                    "type": "boolean",
+                    "description": "Whether this scope is considered dangerous",
+                },
+            },
+        },
+        "AuthorizationView": {
+            "type": "object",
+            "description": "Information about an OAuth authorization",
+            "required": ["application", "scopes", "uuid"],
+            "properties": {
+                "application": {
+                    "type": "object",
+                    "description": "Information about the OAuth application",
+                    "required": ["name", "description", "url", "avatar", "organization"],
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "The application name",
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "The application description",
+                        },
+                        "url": {
+                            "type": "string",
+                            "description": "The application URL",
+                        },
+                        "avatar": {
+                            "$ref": "#/components/schemas/AvatarView",
+                        },
+                        "organization": {
+                            "type": "object",
+                            "description": "Information about the organization that owns the application",
+                            "required": ["name", "avatar"],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "description": "The organization name",
+                                },
+                                "avatar": {
+                                    "$ref": "#/components/schemas/AvatarView",
+                                },
+                            },
+                        },
+                    },
+                },
+                "scopes": {
+                    "type": "array",
+                    "description": "List of OAuth scopes granted to this authorization",
+                    "items": {
+                        "$ref": "#/components/schemas/ScopeView",
+                    },
+                },
+                "uuid": {
+                    "type": "string",
+                    "description": "The authorization UUID",
+                },
+            },
+        },
+        "UserAuthorizationListResponse": {
+            "type": "object",
+            "description": "Response containing a list of user OAuth authorizations",
+            "required": ["authorizations"],
+            "properties": {
+                "authorizations": {
+                    "type": "array",
+                    "description": "List of OAuth authorizations",
+                    "items": {
+                        "$ref": "#/components/schemas/AuthorizationView",
+                    },
+                },
+            },
+        },
+    }
+
     @require_user_admin()
     @nickname("listUserAuthorizations")
+    @define_json_response("UserAuthorizationListResponse")
     def get(self):
         access_tokens = model.oauth.list_access_tokens_for_user(get_authenticated_user())
 
@@ -1229,6 +1723,7 @@ class UserAuthorizationList(ApiResource):
 class UserAuthorization(ApiResource):
     @require_user_admin()
     @nickname("getUserAuthorization")
+    @define_json_response("AuthorizationView")
     def get(self, access_token_uuid):
         access_token = model.oauth.lookup_access_token_for_user(
             get_authenticated_user(), access_token_uuid
@@ -1255,8 +1750,103 @@ class UserAuthorization(ApiResource):
 @show_if(features.ASSIGN_OAUTH_TOKEN)
 @internal_only
 class UserAssignedAuthorizations(ApiResource):
+    """
+    Operations for managing assigned OAuth authorizations.
+    """
+
+    schemas = {
+        "AssignedAuthorizationView": {
+            "type": "object",
+            "description": "Information about an assigned OAuth authorization",
+            "required": ["application", "uuid", "redirectUri", "scopes", "responseType"],
+            "properties": {
+                "application": {
+                    "type": "object",
+                    "description": "Information about the OAuth application",
+                    "required": [
+                        "name",
+                        "clientId",
+                        "description",
+                        "url",
+                        "avatar",
+                        "organization",
+                    ],
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "The application name",
+                        },
+                        "clientId": {
+                            "type": "string",
+                            "description": "The OAuth client ID",
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "The application description",
+                        },
+                        "url": {
+                            "type": "string",
+                            "description": "The application URL",
+                        },
+                        "avatar": {
+                            "$ref": "#/components/schemas/AvatarView",
+                        },
+                        "organization": {
+                            "type": "object",
+                            "description": "Information about the organization that owns the application",
+                            "required": ["name", "avatar"],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "description": "The organization name",
+                                },
+                                "avatar": {
+                                    "$ref": "#/components/schemas/AvatarView",
+                                },
+                            },
+                        },
+                    },
+                },
+                "uuid": {
+                    "type": "string",
+                    "description": "The assigned authorization UUID",
+                },
+                "redirectUri": {
+                    "type": "string",
+                    "description": "The redirect URI for the authorization",
+                },
+                "scopes": {
+                    "type": "array",
+                    "description": "List of OAuth scopes assigned to this authorization",
+                    "items": {
+                        "$ref": "#/components/schemas/ScopeView",
+                    },
+                },
+                "responseType": {
+                    "type": "string",
+                    "description": "The OAuth response type",
+                },
+            },
+        },
+        "UserAssignedAuthorizationsResponse": {
+            "type": "object",
+            "description": "Response containing a list of assigned OAuth authorizations",
+            "required": ["authorizations"],
+            "properties": {
+                "authorizations": {
+                    "type": "array",
+                    "description": "List of assigned OAuth authorizations",
+                    "items": {
+                        "$ref": "#/components/schemas/AssignedAuthorizationView",
+                    },
+                },
+            },
+        },
+    }
+
     @require_user_admin()
     @nickname("listAssignedAuthorizations")
+    @define_json_response("UserAssignedAuthorizationsResponse")
     def get(self):
         user = get_authenticated_user()
 
@@ -1310,13 +1900,66 @@ class StarredRepositoryList(ApiResource):
                 },
                 "repository": {"type": "string", "description": "Repository name"},
             },
-        }
+        },
+        "StarredRepositoryView": {
+            "type": "object",
+            "description": "Information about a starred repository",
+            "required": ["namespace", "name", "description", "is_public"],
+            "properties": {
+                "namespace": {
+                    "type": "string",
+                    "description": "The namespace of the repository",
+                },
+                "name": {
+                    "type": "string",
+                    "description": "The name of the repository",
+                },
+                "description": {
+                    "type": ["string", "null"],
+                    "description": "The description of the repository",
+                },
+                "is_public": {
+                    "type": "boolean",
+                    "description": "Whether the repository is public",
+                },
+            },
+        },
+        "StarredRepositoryListResponse": {
+            "type": "object",
+            "description": "Response containing a list of starred repositories",
+            "required": ["repositories"],
+            "properties": {
+                "repositories": {
+                    "type": "array",
+                    "description": "List of starred repositories",
+                    "items": {
+                        "$ref": "#/components/schemas/StarredRepositoryView",
+                    },
+                },
+            },
+        },
+        "CreateStarredRepositoryResponse": {
+            "type": "object",
+            "description": "Response when creating a starred repository",
+            "required": ["namespace", "repository"],
+            "properties": {
+                "namespace": {
+                    "type": "string",
+                    "description": "The namespace of the starred repository",
+                },
+                "repository": {
+                    "type": "string",
+                    "description": "The name of the starred repository",
+                },
+            },
+        },
     }
 
     @nickname("listStarredRepos")
     @parse_args()
     @require_user_admin()
     @page_support()
+    @define_json_response("StarredRepositoryListResponse")
     def get(self, page_token, parsed_args):
         """
         List all starred repositories.
@@ -1341,6 +1984,7 @@ class StarredRepositoryList(ApiResource):
     @nickname("createStar")
     @validate_json_request("NewStarredRepository")
     @require_user_admin()
+    @define_json_response("CreateStarredRepositoryResponse")
     def post(self):
         """
         Star a repository.
@@ -1391,6 +2035,7 @@ class Users(ApiResource):
     """
 
     @nickname("getUserInformation")
+    @define_json_response("UserView")
     def get(self, username):
         """
         Get user information for the specified user.

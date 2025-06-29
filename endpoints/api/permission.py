@@ -10,6 +10,7 @@ from .permission_models_interface import DeleteException, SaveException
 from .permission_models_pre_oci import pre_oci_model as model
 from endpoints.api import (
     RepositoryParamResource,
+    define_json_response,
     log_action,
     nickname,
     path_param,
@@ -30,8 +31,35 @@ class RepositoryTeamPermissionList(RepositoryParamResource):
     Resource for repository team permissions.
     """
 
+    schemas = {
+        "TeamPermission": {
+            "type": "object",
+            "description": "A team permission object.",
+            "properties": {
+                "role": {
+                    "type": "string",
+                    "enum": ["read", "write", "admin"],
+                    "description": "Role for the team",
+                },
+            },
+            "required": ["role"],
+        },
+        "TeamPermissionsDict": {
+            "type": "object",
+            "description": "Dictionary of team permissions keyed by team name.",
+            "properties": {
+                "permissions": {
+                    "type": "object",
+                    "additionalProperties": {"$ref": "#/definitions/TeamPermission"},
+                },
+            },
+            "required": ["permissions"],
+        },
+    }
+
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("listRepoTeamPermissions")
+    @define_json_response("TeamPermissionsDict")
     def get(self, namespace_name, repository_name):
         """
         List all team permission.
@@ -50,8 +78,35 @@ class RepositoryUserPermissionList(RepositoryParamResource):
     Resource for repository user permissions.
     """
 
+    schemas = {
+        "UserPermission": {
+            "type": "object",
+            "description": "A user permission object.",
+            "properties": {
+                "role": {
+                    "type": "string",
+                    "enum": ["read", "write", "admin"],
+                    "description": "Role for the user",
+                },
+            },
+            "required": ["role"],
+        },
+        "UserPermissionsDict": {
+            "type": "object",
+            "description": "Dictionary of user permissions keyed by username.",
+            "properties": {
+                "permissions": {
+                    "type": "object",
+                    "additionalProperties": {"$ref": "#/definitions/UserPermission"},
+                },
+            },
+            "required": ["permissions"],
+        },
+    }
+
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("listRepoUserPermissions")
+    @define_json_response("UserPermissionsDict")
     def get(self, namespace_name, repository_name):
         """
         List all user permissions.
@@ -69,8 +124,35 @@ class RepositoryUserTransitivePermission(RepositoryParamResource):
     team.
     """
 
+    schemas = {
+        "PermissionRole": {
+            "type": "object",
+            "description": "A permission role object.",
+            "properties": {
+                "role": {
+                    "type": "string",
+                    "enum": ["read", "write", "admin"],
+                    "description": "Role for the user or team",
+                },
+            },
+            "required": ["role"],
+        },
+        "TransitivePermissionsList": {
+            "type": "object",
+            "description": "List of permission roles for a user.",
+            "properties": {
+                "permissions": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/PermissionRole"},
+                },
+            },
+            "required": ["permissions"],
+        },
+    }
+
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("getUserTransitivePermission")
+    @define_json_response("TransitivePermissionsList")
     def get(self, namespace_name, repository_name, username):
         """
         Get the fetch the permission for the specified user.
@@ -115,6 +197,7 @@ class RepositoryUserPermission(RepositoryParamResource):
 
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("getUserPermissions")
+    @define_json_response("UserPermission")
     def get(self, namespace_name, repository_name, username):
         """
         Get the permission for the specified user.
@@ -128,6 +211,7 @@ class RepositoryUserPermission(RepositoryParamResource):
     @require_repo_admin(allow_for_superuser=True)
     @nickname("changeUserPermissions")
     @validate_json_request("UserPermission")
+    @define_json_response("UserPermission")
     def put(self, namespace_name, repository_name, username):  # Also needs to respond to post
         """
         Update the perimssions for an existing repository.
@@ -210,6 +294,7 @@ class RepositoryTeamPermission(RepositoryParamResource):
 
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("getTeamPermissions")
+    @define_json_response("TeamPermission")
     def get(self, namespace_name, repository_name, teamname):
         """
         Fetch the permission for the specified team.
@@ -223,6 +308,7 @@ class RepositoryTeamPermission(RepositoryParamResource):
     @require_repo_admin(allow_for_superuser=True)
     @nickname("changeTeamPermissions")
     @validate_json_request("TeamPermission")
+    @define_json_response("TeamPermission")
     def put(self, namespace_name, repository_name, teamname):
         """
         Update the existing team permission.

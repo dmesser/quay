@@ -29,6 +29,7 @@ from endpoints.api import (
     ApiResource,
     allow_if_global_readonly_superuser,
     allow_if_superuser,
+    define_json_response,
     internal_only,
     log_action,
     nickname,
@@ -142,11 +143,17 @@ class OrganizationList(ApiResource):
                 },
             },
         },
+        "CreateOrgResponse": {
+            "type": "string",
+            "description": "Success message for organization creation",
+            "enum": ["Created"],
+        },
     }
 
     @require_user_admin(disallow_for_restricted_users=features.RESTRICTED_USERS)
     @nickname("createOrganization")
     @validate_json_request("NewOrg")
+    @define_json_response("CreateOrgResponse")
     def post(self):
         """
         Create a new organization.
@@ -240,9 +247,48 @@ class Organization(ApiResource):
                 },
             },
         },
+        "OrganizationView": {
+            "type": "object",
+            "description": "Detailed organization information",
+            "properties": {
+                "name": {"type": "string", "description": "Organization name"},
+                "email": {"type": "string", "description": "Organization email"},
+                "avatar": {"type": "object", "description": "Avatar data"},
+                "is_admin": {"type": "boolean", "description": "Is the user an admin of the org"},
+                "is_member": {"type": "boolean", "description": "Is the user a member of the org"},
+                "teams": {
+                    "type": "object",
+                    "description": "Teams in the organization, keyed by team name",
+                    "additionalProperties": {"type": "object"},
+                },
+                "ordered_teams": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Ordered list of team names",
+                },
+                "invoice_email": {"type": "boolean", "description": "Wants invoice emails"},
+                "invoice_email_address": {
+                    "type": ["string", "null"],
+                    "description": "Invoice email address",
+                },
+                "tag_expiration_s": {"type": "integer", "description": "Tag expiration in seconds"},
+                "is_free_account": {"type": "boolean", "description": "Is a free account"},
+                "quotas": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": "List of quotas for the org",
+                },
+                "quota_report": {
+                    "type": ["object", "null"],
+                    "description": "Quota report object or null",
+                },
+            },
+            "required": ["name", "email", "avatar", "is_admin", "is_member"],
+        },
     }
 
     @nickname("getOrganization")
+    @define_json_response("OrganizationView")
     def get(self, orgname):
         """
         Get the details for the specified organization.
@@ -359,8 +405,28 @@ class OrgPrivateRepositories(ApiResource):
     Custom verb to compute whether additional private repositories are available.
     """
 
+    schemas = {
+        "PrivateAllowedResponse": {
+            "type": "object",
+            "description": "Whether the org is allowed to create new private repositories.",
+            "properties": {
+                "privateAllowed": {
+                    "type": "boolean",
+                    "description": "Is private repo creation allowed?",
+                },
+                "privateCount": {
+                    "type": "integer",
+                    "description": "Current private repo count",
+                    "nullable": True,
+                },
+            },
+            "required": ["privateAllowed"],
+        },
+    }
+
     @require_scope(scopes.ORG_ADMIN)
     @nickname("getOrganizationPrivateAllowed")
+    @define_json_response("PrivateAllowedResponse")
     def get(self, orgname):
         """
         Return whether or not this org is allowed to create new private repositories.
@@ -417,15 +483,38 @@ class OrgPrivateRepositories(ApiResource):
 @resource("/v1/organization/<orgname>/collaborators")
 @path_param("orgname", "The name of the organization")
 class OrganizationCollaboratorList(ApiResource):
-    """
-    Resource for listing outside collaborators of an organization.
-
-    Collaborators are users that do not belong to any team in the organiztion, but who have direct
-    permissions on one or more repositories belonging to the organization.
-    """
+    schemas = {
+        "Collaborator": {
+            "type": "object",
+            "description": "A collaborator user",
+            "properties": {
+                "kind": {"type": "string", "description": "Type of collaborator (user)"},
+                "name": {"type": "string", "description": "Username"},
+                "avatar": {"type": "object", "description": "Avatar data"},
+                "repositories": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Repositories this user collaborates on",
+                },
+            },
+            "required": ["kind", "name", "avatar", "repositories"],
+        },
+        "CollaboratorsList": {
+            "type": "object",
+            "description": "List of collaborators",
+            "properties": {
+                "collaborators": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/Collaborator"},
+                },
+            },
+            "required": ["collaborators"],
+        },
+    }
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("getOrganizationCollaborators")
+    @define_json_response("CollaboratorsList")
     def get(self, orgname):
         """
         List outside collaborators of the specified organization.
@@ -472,12 +561,52 @@ class OrganizationCollaboratorList(ApiResource):
 @resource("/v1/organization/<orgname>/members")
 @path_param("orgname", "The name of the organization")
 class OrganizationMemberList(ApiResource):
-    """
-    Resource for listing the members of an organization.
-    """
+    schemas = {
+        "TeamRef": {
+            "type": "object",
+            "description": "Reference to a team",
+            "properties": {
+                "name": {"type": "string", "description": "Team name"},
+                "avatar": {"type": "object", "description": "Team avatar data"},
+            },
+            "required": ["name", "avatar"],
+        },
+        "Member": {
+            "type": "object",
+            "description": "A member of the organization",
+            "properties": {
+                "name": {"type": "string", "description": "Username"},
+                "kind": {"type": "string", "description": "Type (user)"},
+                "avatar": {"type": "object", "description": "Avatar data"},
+                "teams": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/TeamRef"},
+                    "description": "Teams this user is a member of",
+                },
+                "repositories": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Repositories this user has access to",
+                },
+            },
+            "required": ["name", "kind", "avatar", "teams", "repositories"],
+        },
+        "MembersList": {
+            "type": "object",
+            "description": "List of organization members",
+            "properties": {
+                "members": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/Member"},
+                },
+            },
+            "required": ["members"],
+        },
+    }
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("getOrganizationMembers")
+    @define_json_response("MembersList")
     def get(self, orgname):
         """
         List the human members of the specified organization.
@@ -533,12 +662,32 @@ class OrganizationMemberList(ApiResource):
 @path_param("orgname", "The name of the organization")
 @path_param("membername", "The username of the organization member")
 class OrganizationMember(ApiResource):
-    """
-    Resource for managing individual organization members.
-    """
+    schemas = {
+        "MemberDetail": {
+            "type": "object",
+            "description": "Detailed member information",
+            "properties": {
+                "name": {"type": "string", "description": "Username"},
+                "kind": {"type": "string", "description": "Type (user or robot)"},
+                "avatar": {"type": "object", "description": "Avatar data"},
+                "teams": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/TeamRef"},
+                    "description": "Teams this user is a member of",
+                },
+                "repositories": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Repositories this user has access to",
+                },
+            },
+            "required": ["name", "kind", "avatar", "teams", "repositories"],
+        },
+    }
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("getOrganizationMember")
+    @define_json_response("MemberDetail")
     def get(self, orgname, membername):
         """
         Retrieves the details of a member of the organization.
@@ -615,11 +764,23 @@ class OrganizationMember(ApiResource):
 @resource("/v1/app/<client_id>")
 @path_param("client_id", "The OAuth client ID")
 class ApplicationInformation(ApiResource):
-    """
-    Resource that returns public information about a registered application.
-    """
+    schemas = {
+        "ApplicationView": {
+            "type": "object",
+            "description": "Public information about a registered application.",
+            "properties": {
+                "name": {"type": "string", "description": "Application name"},
+                "description": {"type": "string", "description": "Description"},
+                "uri": {"type": "string", "description": "Application URI"},
+                "avatar": {"type": "object", "description": "Avatar data"},
+                "organization": {"type": "object", "description": "Organization info"},
+            },
+            "required": ["name", "description", "uri", "avatar", "organization"],
+        },
+    }
 
     @nickname("getApplicationInformation")
+    @define_json_response("ApplicationView")
     def get(self, client_id):
         """
         Get information on the specified application.
@@ -662,44 +823,46 @@ def app_view(application):
 @resource("/v1/organization/<orgname>/applications")
 @path_param("orgname", "The name of the organization")
 class OrganizationApplications(ApiResource):
-    """
-    Resource for managing applications defined by an organization.
-    """
-
     schemas = {
-        "NewApp": {
+        "AppView": {
             "type": "object",
-            "description": "Description of a new organization application.",
-            "required": [
-                "name",
-            ],
+            "description": "Application details for an organization.",
             "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "The name of the application",
+                "name": {"type": "string", "description": "Application name"},
+                "description": {"type": "string", "description": "Description"},
+                "application_uri": {"type": "string", "description": "Homepage URI"},
+                "client_id": {"type": "string", "description": "OAuth client ID"},
+                "client_secret": {
+                    "type": ["string", "null"],
+                    "description": "Client secret (admin only)",
                 },
                 "redirect_uri": {
-                    "type": "string",
-                    "description": "The URI for the application's OAuth redirect",
-                },
-                "application_uri": {
-                    "type": "string",
-                    "description": "The URI for the application's homepage",
-                },
-                "description": {
-                    "type": "string",
-                    "description": "The human-readable description for the application",
+                    "type": ["string", "null"],
+                    "description": "Redirect URI (admin only)",
                 },
                 "avatar_email": {
-                    "type": "string",
-                    "description": "The e-mail address of the avatar to use for the application",
+                    "type": ["string", "null"],
+                    "description": "Avatar email (admin only)",
                 },
             },
+            "required": ["name", "description", "application_uri", "client_id"],
+        },
+        "ApplicationsList": {
+            "type": "object",
+            "description": "List of applications for an organization.",
+            "properties": {
+                "applications": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/AppView"},
+                },
+            },
+            "required": ["applications"],
         },
     }
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("getOrganizationApplications")
+    @define_json_response("ApplicationsList")
     def get(self, orgname):
         """
         List the applications for the specified organization.
@@ -719,6 +882,7 @@ class OrganizationApplications(ApiResource):
     @require_scope(scopes.ORG_ADMIN)
     @nickname("createOrganizationApplication")
     @validate_json_request("NewApp")
+    @define_json_response("AppView")
     def post(self, orgname):
         """
         Creates a new application under this organization.
@@ -754,20 +918,13 @@ class OrganizationApplications(ApiResource):
 @path_param("orgname", "The name of the organization")
 @path_param("client_id", "The OAuth client ID")
 class OrganizationApplicationResource(ApiResource):
-    """
-    Resource for managing an application defined by an organizations.
-    """
-
     schemas = {
         "UpdateApp": {
             "type": "object",
             "description": "Description of an updated application.",
             "required": ["name", "redirect_uri", "application_uri"],
             "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "The name of the application",
-                },
+                "name": {"type": "string", "description": "The name of the application"},
                 "redirect_uri": {
                     "type": "string",
                     "description": "The URI for the application's OAuth redirect",
@@ -786,10 +943,34 @@ class OrganizationApplicationResource(ApiResource):
                 },
             },
         },
+        "AppView": {
+            "type": "object",
+            "description": "Application details for an organization.",
+            "properties": {
+                "name": {"type": "string", "description": "Application name"},
+                "description": {"type": "string", "description": "Description"},
+                "application_uri": {"type": "string", "description": "Homepage URI"},
+                "client_id": {"type": "string", "description": "OAuth client ID"},
+                "client_secret": {
+                    "type": ["string", "null"],
+                    "description": "Client secret (admin only)",
+                },
+                "redirect_uri": {
+                    "type": ["string", "null"],
+                    "description": "Redirect URI (admin only)",
+                },
+                "avatar_email": {
+                    "type": ["string", "null"],
+                    "description": "Avatar email (admin only)",
+                },
+            },
+            "required": ["name", "description", "application_uri", "client_id"],
+        },
     }
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("getOrganizationApplication")
+    @define_json_response("AppView")
     def get(self, orgname, client_id):
         """
         Retrieves the application with the specified client_id under the specified organization.
@@ -812,6 +993,7 @@ class OrganizationApplicationResource(ApiResource):
     @require_scope(scopes.ORG_ADMIN)
     @nickname("updateOrganizationApplication")
     @validate_json_request("UpdateApp")
+    @define_json_response("AppView")
     def put(self, orgname, client_id):
         """
         Updates an application under this organization.
@@ -876,11 +1058,34 @@ class OrganizationApplicationResource(ApiResource):
 @path_param("client_id", "The OAuth client ID")
 @internal_only
 class OrganizationApplicationResetClientSecret(ApiResource):
-    """
-    Custom verb for resetting the client secret of an application.
-    """
+    schemas = {
+        "AppView": {
+            "type": "object",
+            "description": "Application details for an organization.",
+            "properties": {
+                "name": {"type": "string", "description": "Application name"},
+                "description": {"type": "string", "description": "Description"},
+                "application_uri": {"type": "string", "description": "Homepage URI"},
+                "client_id": {"type": "string", "description": "OAuth client ID"},
+                "client_secret": {
+                    "type": ["string", "null"],
+                    "description": "Client secret (admin only)",
+                },
+                "redirect_uri": {
+                    "type": ["string", "null"],
+                    "description": "Redirect URI (admin only)",
+                },
+                "avatar_email": {
+                    "type": ["string", "null"],
+                    "description": "Avatar email (admin only)",
+                },
+            },
+            "required": ["name", "description", "application_uri", "client_id"],
+        },
+    }
 
     @nickname("resetOrganizationApplicationClientSecret")
+    @define_json_response("AppView")
     def post(self, orgname, client_id):
         """
         Resets the client secret of the application.
@@ -919,25 +1124,37 @@ def proxy_cache_view(proxy_cache_config):
 @path_param("orgname", "The name of the organization")
 @show_if(features.PROXY_CACHE)
 class OrganizationProxyCacheConfig(ApiResource):
-    """
-    Resource for managing Proxy Cache Config.
-    """
-
     schemas = {
-        "NewProxyCacheConfig": {
+        "ProxyCacheConfig": {
             "type": "object",
-            "description": "Proxy cache configuration for an organization",
-            "required": ["upstream_registry"],
+            "description": "Proxy cache configuration for an organization.",
             "properties": {
-                "upstream_registry": {
-                    "type": "string",
-                    "description": "Name of the upstream registry that is to be cached",
+                "upstream_registry": {"type": "string", "description": "Upstream registry name"},
+                "expiration_s": {
+                    "type": ["string", "null"],
+                    "description": "Expiration in seconds",
+                },
+                "insecure": {
+                    "type": ["boolean", "null"],
+                    "description": "Is the registry insecure?",
                 },
             },
+            "required": ["upstream_registry", "expiration_s", "insecure"],
+        },
+        "CreateProxyCacheResponse": {
+            "type": "string",
+            "description": "Success message for proxy cache creation",
+            "enum": ["Created"],
+        },
+        "DeleteProxyCacheResponse": {
+            "type": "string",
+            "description": "Success message for proxy cache deletion",
+            "enum": ["Deleted"],
         },
     }
 
     @nickname("getProxyCacheConfig")
+    @define_json_response("ProxyCacheConfig")
     def get(self, orgname):
         """
         Retrieves the proxy cache configuration of the organization.
@@ -959,6 +1176,7 @@ class OrganizationProxyCacheConfig(ApiResource):
 
     @nickname("createProxyCacheConfig")
     @validate_json_request("NewProxyCacheConfig")
+    @define_json_response("CreateProxyCacheResponse")
     def post(self, orgname):
         """
         Creates proxy cache configuration for the organization.
@@ -996,6 +1214,7 @@ class OrganizationProxyCacheConfig(ApiResource):
         return request_error("Error while creating Proxy cache configuration")
 
     @nickname("deleteProxyCacheConfig")
+    @define_json_response("DeleteProxyCacheResponse")
     def delete(self, orgname):
         """
         Delete proxy cache configuration for the organization.
@@ -1022,26 +1241,17 @@ class OrganizationProxyCacheConfig(ApiResource):
 @resource("/v1/organization/<orgname>/validateproxycache")
 @show_if(features.PROXY_CACHE)
 class ProxyCacheConfigValidation(ApiResource):
-    """
-    Resource for validating Proxy Cache Config.
-    """
-
     schemas = {
-        "NewProxyCacheConfig": {
-            "type": "object",
-            "description": "Proxy cache configuration for an organization",
-            "required": ["upstream_registry"],
-            "properties": {
-                "upstream_registry": {
-                    "type": "string",
-                    "description": "Name of the upstream registry that is to be cached",
-                },
-            },
+        "ValidateProxyCacheResponse": {
+            "type": "string",
+            "description": "Validation result for proxy cache config",
+            "enum": ["Valid", "Anonymous"],
         },
     }
 
     @nickname("validateProxyCacheConfig")
     @validate_json_request("NewProxyCacheConfig")
+    @define_json_response("ValidateProxyCacheResponse")
     def post(self, orgname):
         permission = AdministerOrganizationPermission(orgname)
         if not permission.can() and not allow_if_superuser():

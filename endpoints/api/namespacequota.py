@@ -13,6 +13,7 @@ from endpoints.api import (
     ApiResource,
     allow_if_global_readonly_superuser,
     allow_if_superuser,
+    define_json_response,
     nickname,
     request_error,
     require_scope,
@@ -94,9 +95,81 @@ class OrganizationQuotaList(ApiResource):
                 },
             ],
         },
+        "QuotaLimit": {
+            "type": "object",
+            "description": "A quota limit configuration",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "Unique identifier for the quota limit",
+                },
+                "type": {
+                    "type": "string",
+                    "description": "Type of quota limit (e.g., 'Warning', 'Reject')",
+                    "enum": ["Warning", "Reject"],
+                },
+                "limit_percent": {
+                    "type": "integer",
+                    "description": "Percentage of the quota limit at which this limit applies",
+                    "minimum": 0,
+                    "maximum": 100,
+                },
+            },
+            "required": ["id", "type", "limit_percent"],
+        },
+        "QuotaView": {
+            "type": "object",
+            "description": "Complete quota information including limits",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "Unique identifier for the quota",
+                },
+                "limit_bytes": {
+                    "type": "integer",
+                    "description": "Quota limit in bytes",
+                },
+                "limit": {
+                    "type": "string",
+                    "description": "Human readable quota limit (e.g., '1.0 GiB')",
+                },
+                "default_config": {
+                    "type": "boolean",
+                    "description": "Whether this is using the default system configuration",
+                },
+                "limits": {
+                    "type": "array",
+                    "description": "List of quota limit configurations",
+                    "items": {"$ref": "#/definitions/QuotaLimit"},
+                },
+                "default_config_exists": {
+                    "type": "boolean",
+                    "description": "Whether a default system quota configuration exists",
+                },
+            },
+            "required": [
+                "id",
+                "limit_bytes",
+                "limit",
+                "default_config",
+                "limits",
+                "default_config_exists",
+            ],
+        },
+        "QuotaList": {
+            "type": "array",
+            "description": "List of organization quotas",
+            "items": {"$ref": "#/definitions/QuotaView"},
+        },
+        "CreateResponse": {
+            "type": "string",
+            "description": "Success message for quota creation",
+            "enum": ["Created"],
+        },
     }
 
     @nickname("listOrganizationQuota")
+    @define_json_response("QuotaList")
     def get(self, orgname):
         orgperm = OrganizationMemberPermission(orgname)
         if (
@@ -123,6 +196,7 @@ class OrganizationQuotaList(ApiResource):
 
     @nickname("createOrganizationQuota")
     @validate_json_request("NewOrgQuota")
+    @define_json_response("CreateResponse")
     @require_scope(scopes.SUPERUSER)
     def post(self, orgname):
         """
@@ -202,6 +276,7 @@ class OrganizationQuota(ApiResource):
     }
 
     @nickname("getOrganizationQuota")
+    @define_json_response("QuotaView")
     def get(self, orgname, quota_id):
         orgperm = OrganizationMemberPermission(orgname)
         if (
@@ -218,6 +293,7 @@ class OrganizationQuota(ApiResource):
     @nickname("changeOrganizationQuota")
     @require_scope(scopes.SUPERUSER)
     @validate_json_request("UpdateOrgQuota")
+    @define_json_response("QuotaView")
     def put(self, orgname, quota_id):
         if not SuperUserPermission().can():
             raise Unauthorized()
@@ -279,9 +355,15 @@ class OrganizationQuotaLimitList(ApiResource):
                 },
             },
         },
+        "QuotaLimitList": {
+            "type": "array",
+            "description": "List of quota limits",
+            "items": {"$ref": "#/definitions/QuotaLimit"},
+        },
     }
 
     @nickname("listOrganizationQuotaLimit")
+    @define_json_response("QuotaLimitList")
     def get(self, orgname, quota_id):
         orgperm = OrganizationMemberPermission(orgname)
         if (
@@ -299,6 +381,7 @@ class OrganizationQuotaLimitList(ApiResource):
 
     @nickname("createOrganizationQuotaLimit")
     @validate_json_request("NewOrgQuotaLimit")
+    @define_json_response("CreateResponse")
     @require_scope(scopes.SUPERUSER)
     def post(self, orgname, quota_id):
         if not SuperUserPermission().can():
@@ -356,6 +439,7 @@ class OrganizationQuotaLimit(ApiResource):
     }
 
     @nickname("getOrganizationQuotaLimit")
+    @define_json_response("QuotaLimit")
     def get(self, orgname, quota_id, limit_id):
         orgperm = OrganizationMemberPermission(orgname)
         if (
@@ -374,6 +458,7 @@ class OrganizationQuotaLimit(ApiResource):
 
     @nickname("changeOrganizationQuotaLimit")
     @validate_json_request("UpdateOrgQuotaLimit")
+    @define_json_response("QuotaView")
     @require_scope(scopes.SUPERUSER)
     def put(self, orgname, quota_id, limit_id):
         if not SuperUserPermission().can():
@@ -420,6 +505,7 @@ class OrganizationQuotaLimit(ApiResource):
 class UserQuotaList(ApiResource):
     @require_user_admin()
     @nickname("listUserQuota")
+    @define_json_response("QuotaList")
     def get(self):
         parent = get_authenticated_user()
         user_quotas = model.namespacequota.get_namespace_quota_list(parent.username)
@@ -433,6 +519,7 @@ class UserQuotaList(ApiResource):
 class UserQuota(ApiResource):
     @require_user_admin()
     @nickname("getUserQuota")
+    @define_json_response("QuotaView")
     def get(self, quota_id):
         parent = get_authenticated_user()
         quota = get_quota(parent.username, quota_id)
@@ -446,6 +533,7 @@ class UserQuota(ApiResource):
 class UserQuotaLimitList(ApiResource):
     @require_user_admin()
     @nickname("listUserQuotaLimit")
+    @define_json_response("QuotaLimitList")
     def get(self, quota_id):
         parent = get_authenticated_user()
         quota = get_quota(parent.username, quota_id)
@@ -462,6 +550,7 @@ class UserQuotaLimitList(ApiResource):
 class UserQuotaLimit(ApiResource):
     @require_user_admin()
     @nickname("getUserQuotaLimit")
+    @define_json_response("QuotaView")
     def get(self, quota_id, limit_id):
         parent = get_authenticated_user()
         quota = get_quota(parent.username, quota_id)

@@ -13,6 +13,7 @@ from data.secscan_model import secscan_model
 from data.secscan_model.datatypes import ScanLookupStatus
 from endpoints.api import (
     RepositoryParamResource,
+    define_json_response,
     deprecated,
     disallow_for_app_repositories,
     nickname,
@@ -42,6 +43,220 @@ class SecurityScanStatus(Enum):
     MANIFEST_LAYER_TOO_LARGE = "manifest_layer_too_large"
 
 
+# Response schemas for security scan endpoints
+SECURITY_RESPONSE_SCHEMAS = {
+    "SecurityScanStatus": {
+        "type": "string",
+        "description": "Status of the security scan",
+        "enum": ["scanned", "failed", "queued", "unsupported", "manifest_layer_too_large"],
+    },
+    "CVSSv3": {
+        "type": "object",
+        "description": "CVSS v3 scoring information",
+        "properties": {
+            "Vectors": {
+                "type": "string",
+                "description": "CVSS v3 attack vectors string",
+            },
+            "Score": {
+                "type": "number",
+                "description": "CVSS v3 base score",
+            },
+        },
+    },
+    "VulnerabilityMetadata": {
+        "type": "object",
+        "description": "Metadata for a vulnerability",
+        "properties": {
+            "UpdatedBy": {
+                "type": "string",
+                "description": "Entity that updated the vulnerability information",
+            },
+            "RepoName": {
+                "type": "string",
+                "description": "Name of the repository containing the vulnerability",
+            },
+            "RepoLink": {
+                "type": "string",
+                "description": "Link to the repository",
+            },
+            "DistroName": {
+                "type": "string",
+                "description": "Distribution name",
+            },
+            "DistroVersion": {
+                "type": "string",
+                "description": "Distribution version",
+            },
+            "NVD": {
+                "$ref": "#/definitions/NVD",
+            },
+        },
+    },
+    "NVD": {
+        "type": "object",
+        "description": "National Vulnerability Database information",
+        "properties": {
+            "CVSSv3": {
+                "$ref": "#/definitions/CVSSv3",
+            },
+        },
+    },
+    "Vulnerability": {
+        "type": "object",
+        "description": "A security vulnerability",
+        "properties": {
+            "Severity": {
+                "type": "string",
+                "description": "Severity level of the vulnerability",
+                "enum": ["Unknown", "Negligible", "Low", "Medium", "High", "Critical"],
+            },
+            "NamespaceName": {
+                "type": "string",
+                "description": "Namespace where the vulnerability was found",
+            },
+            "Link": {
+                "type": "string",
+                "description": "Link to vulnerability details",
+            },
+            "FixedBy": {
+                "type": "string",
+                "description": "Version that fixes the vulnerability",
+            },
+            "Description": {
+                "type": "string",
+                "description": "Description of the vulnerability",
+            },
+            "Name": {
+                "type": "string",
+                "description": "Name/ID of the vulnerability",
+            },
+            "Metadata": {
+                "$ref": "#/definitions/VulnerabilityMetadata",
+            },
+        },
+        "required": [
+            "Severity",
+            "NamespaceName",
+            "Link",
+            "FixedBy",
+            "Description",
+            "Name",
+            "Metadata",
+        ],
+    },
+    "Feature": {
+        "type": "object",
+        "description": "A software feature/package with vulnerability information",
+        "properties": {
+            "Name": {
+                "type": "string",
+                "description": "Name of the feature/package",
+            },
+            "VersionFormat": {
+                "type": "string",
+                "description": "Format of the version string",
+            },
+            "NamespaceName": {
+                "type": "string",
+                "description": "Namespace of the feature",
+            },
+            "AddedBy": {
+                "type": "string",
+                "description": "Layer that added this feature",
+            },
+            "Version": {
+                "type": "string",
+                "description": "Version of the feature",
+            },
+            "BaseScores": {
+                "type": "array",
+                "description": "CVSS base scores for vulnerabilities in this feature",
+                "items": {
+                    "type": "number",
+                },
+            },
+            "CVEIds": {
+                "type": "array",
+                "description": "CVE IDs for vulnerabilities in this feature",
+                "items": {
+                    "type": "string",
+                },
+            },
+            "Vulnerabilities": {
+                "type": "array",
+                "description": "List of vulnerabilities in this feature",
+                "items": {
+                    "$ref": "#/definitions/Vulnerability",
+                },
+            },
+        },
+        "required": [
+            "Name",
+            "VersionFormat",
+            "NamespaceName",
+            "AddedBy",
+            "Version",
+            "BaseScores",
+            "CVEIds",
+            "Vulnerabilities",
+        ],
+    },
+    "Layer": {
+        "type": "object",
+        "description": "A container layer with security information",
+        "properties": {
+            "Name": {
+                "type": "string",
+                "description": "Name/ID of the layer",
+            },
+            "ParentName": {
+                "type": "string",
+                "description": "Name of the parent layer",
+            },
+            "NamespaceName": {
+                "type": "string",
+                "description": "Namespace of the layer",
+            },
+            "IndexedByVersion": {
+                "type": "integer",
+                "description": "Version of the indexer used",
+            },
+            "Features": {
+                "type": "array",
+                "description": "Features found in this layer",
+                "items": {
+                    "$ref": "#/definitions/Feature",
+                },
+            },
+        },
+        "required": ["Name", "ParentName", "NamespaceName", "IndexedByVersion", "Features"],
+    },
+    "SecurityInformation": {
+        "type": "object",
+        "description": "Security information for a manifest",
+        "properties": {
+            "Layer": {
+                "$ref": "#/definitions/Layer",
+            },
+        },
+        "required": ["Layer"],
+    },
+    "SecurityScanResult": {
+        "type": "object",
+        "description": "Result of a security scan",
+        "properties": {
+            "status": {
+                "$ref": "#/definitions/SecurityScanStatus",
+            },
+            "data": {
+                "$ref": "#/definitions/SecurityInformation",
+            },
+        },
+        "required": ["status"],
+    },
+}
+
 MAPPED_STATUSES = {}
 MAPPED_STATUSES[ScanLookupStatus.FAILED_TO_INDEX] = SecurityScanStatus.FAILED
 MAPPED_STATUSES[ScanLookupStatus.SUCCESS] = SecurityScanStatus.SCANNED
@@ -50,7 +265,6 @@ MAPPED_STATUSES[ScanLookupStatus.UNSUPPORTED_FOR_INDEXING] = SecurityScanStatus.
 MAPPED_STATUSES[
     ScanLookupStatus.MANIFEST_LAYER_TOO_LARGE
 ] = SecurityScanStatus.MANIFEST_LAYER_TOO_LARGE
-
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +303,8 @@ class RepositoryManifestSecurity(RepositoryParamResource):
     Operations for managing the vulnerabilities in a repository manifest.
     """
 
+    schemas = SECURITY_RESPONSE_SCHEMAS
+
     @process_basic_auth_no_pass
     @anon_allowed
     @require_repo_read(allow_for_superuser=True)
@@ -98,6 +314,7 @@ class RepositoryManifestSecurity(RepositoryParamResource):
     @query_param(
         "vulnerabilities", "Include vulnerabilities informations", type=truthy_bool, default=False
     )
+    @define_json_response("SecurityScanResult")
     def get(self, namespace, repository, manifestref, parsed_args):
         repo_ref = registry_model.lookup_repository(namespace, repository)
         if repo_ref is None:

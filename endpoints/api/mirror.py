@@ -122,8 +122,24 @@ class RepoMirrorSyncNowResource(RepositoryParamResource):
     A resource for managing RepoMirrorConfig.sync_status.
     """
 
+    schemas = {
+        "EmptyResponse": {
+            "type": "string",
+            "description": "Empty response indicating success",
+            "example": "",
+        },
+        "ErrorDetailResponse": {
+            "type": "object",
+            "description": "Error response with detail message",
+            "properties": {
+                "detail": {"type": "string", "description": "Error detail message"},
+            },
+        },
+    }
+
     @require_repo_admin(allow_for_superuser=True)
     @nickname("syncNow")
+    @define_json_response("EmptyResponse")
     def post(self, namespace_name, repository_name):
         """
         Update the sync_status for a given Repository's mirroring configuration.
@@ -156,8 +172,11 @@ class RepoMirrorSyncCancelResource(RepositoryParamResource):
     A resource for managing RepoMirrorConfig.sync_status.
     """
 
+    schemas = RepoMirrorSyncNowResource.schemas
+
     @require_repo_admin(allow_for_superuser=True)
     @nickname("syncCancel")
+    @define_json_response("EmptyResponse")
     def post(self, namespace_name, repository_name):
         """
         Update the sync_status for a given Repository's mirroring configuration.
@@ -228,6 +247,18 @@ class RepoMirrorResource(RepositoryParamResource):
             ],
             "properties": common_properties,
         },
+        "EmptyResponse": {
+            "type": "string",
+            "description": "Empty response indicating success",
+            "example": "",
+        },
+        "ErrorDetailResponse": {
+            "type": "object",
+            "description": "Error response with detail message",
+            "properties": {
+                "detail": {"type": "string", "description": "Error detail message"},
+            },
+        },
     }
 
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
@@ -282,6 +313,7 @@ class RepoMirrorResource(RepositoryParamResource):
     @require_repo_admin(allow_for_superuser=True)
     @nickname("createRepoMirrorConfig")
     @validate_json_request("CreateMirrorConfig")
+    @define_json_response("EmptyResponse")
     def post(self, namespace_name, repository_name):
         """
         Create a RepoMirrorConfig for a given Repository.
@@ -340,6 +372,7 @@ class RepoMirrorResource(RepositoryParamResource):
     @require_repo_admin(allow_for_superuser=True)
     @validate_json_request("UpdateMirrorConfig")
     @nickname("changeRepoMirrorConfig")
+    @define_json_response("EmptyResponse")
     def put(self, namespace_name, repository_name):
         """
         Allow users to modifying the repository's mirroring configuration.

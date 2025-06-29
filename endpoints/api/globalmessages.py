@@ -4,10 +4,12 @@ Messages API.
 from flask import abort, make_response, request
 
 import features
+from .globalmessages_models_pre_oci import pre_oci_model as model
 from auth import scopes
 from auth.permissions import SuperUserPermission
 from endpoints.api import (
     ApiResource,
+    define_json_response,
     nickname,
     require_fresh_login,
     require_scope,
@@ -16,8 +18,6 @@ from endpoints.api import (
     validate_json_request,
     verify_not_prod,
 )
-
-from .globalmessages_models_pre_oci import pre_oci_model as model
 
 
 @resource("/v1/messages")
@@ -93,9 +93,59 @@ class GlobalUserMessages(ApiResource):
                 },
             },
         },
+        "MessageView": {
+            "type": "object",
+            "description": "Describes a global message",
+            "required": ["uuid", "content", "media_type", "severity"],
+            "properties": {
+                "uuid": {
+                    "type": "string",
+                    "description": "The unique identifier for the message",
+                },
+                "content": {
+                    "type": "string",
+                    "description": "The content of the message",
+                },
+                "media_type": {
+                    "type": "string",
+                    "description": "The media type of the message content",
+                    "enum": ["text/plain", "text/markdown"],
+                },
+                "severity": {
+                    "type": "string",
+                    "description": "The severity level of the message",
+                    "enum": ["info", "warning", "error"],
+                },
+            },
+        },
+        "MessageListResponse": {
+            "type": "object",
+            "description": "Response containing a list of global messages",
+            "required": ["messages"],
+            "properties": {
+                "messages": {
+                    "type": "array",
+                    "description": "List of global messages",
+                    "items": {
+                        "$ref": "#/definitions/MessageView",
+                    },
+                },
+            },
+        },
+        "CreateMessageResponse": {
+            "type": "string",
+            "description": "Empty response indicating successful message creation",
+            "example": "",
+        },
+        "DeleteMessageResponse": {
+            "type": "string",
+            "description": "Empty response indicating successful message deletion",
+            "example": "",
+        },
     }
 
     @nickname("getGlobalMessages")
+    @define_json_response("MessageListResponse")
     def get(self):
         """
         Return a super users messages.
@@ -109,6 +159,7 @@ class GlobalUserMessages(ApiResource):
     @nickname("createGlobalMessage")
     @validate_json_request("CreateMessage")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("CreateMessageResponse")
     def post(self):
         """
         Create a message.
@@ -139,6 +190,7 @@ class GlobalUserMessage(ApiResource):
     @verify_not_prod
     @nickname("deleteGlobalMessage")
     @require_scope(scopes.SUPERUSER)
+    @define_json_response("DeleteMessageResponse")
     def delete(self, uuid):
         """
         Delete a message.

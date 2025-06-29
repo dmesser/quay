@@ -13,6 +13,7 @@ from endpoints.api import (
     ApiResource,
     allow_if_global_readonly_superuser,
     allow_if_superuser,
+    define_json_response,
     log_action,
     nickname,
     path_param,
@@ -137,10 +138,91 @@ class PermissionPrototypeList(ApiResource):
                 },
             },
         },
+        "PrototypeUserView": {
+            "type": "object",
+            "description": "A user in a prototype permission",
+            "properties": {
+                "name": {"type": "string", "description": "Username"},
+                "is_robot": {"type": "boolean", "description": "Whether this is a robot user"},
+                "kind": {"type": "string", "description": "Type (always 'user')", "enum": ["user"]},
+                "is_org_member": {
+                    "type": "boolean",
+                    "description": "Whether user is an org member",
+                },
+                "avatar": {"type": "object", "description": "Avatar data"},
+            },
+            "required": ["name", "is_robot", "kind", "is_org_member", "avatar"],
+        },
+        "PrototypeDelegateView": {
+            "type": "object",
+            "description": "A delegate (user or team) in a prototype permission",
+            "oneOf": [
+                {
+                    "properties": {
+                        "name": {"type": "string", "description": "Username"},
+                        "kind": {"type": "string", "description": "Type (user)", "enum": ["user"]},
+                        "is_robot": {
+                            "type": "boolean",
+                            "description": "Whether this is a robot user",
+                        },
+                        "is_org_member": {
+                            "type": "boolean",
+                            "description": "Whether user is an org member",
+                        },
+                        "avatar": {"type": "object", "description": "Avatar data"},
+                    },
+                    "required": ["name", "kind", "is_robot", "is_org_member", "avatar"],
+                },
+                {
+                    "properties": {
+                        "name": {"type": "string", "description": "Team name"},
+                        "kind": {"type": "string", "description": "Type (team)", "enum": ["team"]},
+                        "avatar": {"type": "object", "description": "Avatar data"},
+                    },
+                    "required": ["name", "kind", "avatar"],
+                },
+            ],
+        },
+        "PrototypeView": {
+            "type": "object",
+            "description": "A permission prototype",
+            "properties": {
+                "activating_user": {
+                    "oneOf": [
+                        {"$ref": "#/definitions/PrototypeUserView"},
+                        {"type": "null"},
+                    ],
+                    "description": "User who activates this prototype (can be null)",
+                },
+                "delegate": {
+                    "$ref": "#/definitions/PrototypeDelegateView",
+                    "description": "Delegate user or team",
+                },
+                "role": {
+                    "type": "string",
+                    "description": "Role to apply",
+                    "enum": ["read", "write", "admin"],
+                },
+                "id": {"type": "string", "description": "Unique identifier for the prototype"},
+            },
+            "required": ["delegate", "role", "id"],
+        },
+        "PrototypeList": {
+            "type": "object",
+            "description": "List of permission prototypes",
+            "properties": {
+                "prototypes": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/PrototypeView"},
+                },
+            },
+            "required": ["prototypes"],
+        },
     }
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("getOrganizationPrototypePermissions")
+    @define_json_response("PrototypeList")
     def get(self, orgname):
         """
         List the existing prototypes for this organization.
@@ -167,6 +249,7 @@ class PermissionPrototypeList(ApiResource):
     @require_scope(scopes.ORG_ADMIN)
     @nickname("createOrganizationPrototypePermission")
     @validate_json_request("NewPrototype")
+    @define_json_response("PrototypeView")
     def post(self, orgname):
         """
         Create a new permission prototype.
@@ -282,6 +365,7 @@ class PermissionPrototype(ApiResource):
     @require_scope(scopes.ORG_ADMIN)
     @nickname("updateOrganizationPrototypePermission")
     @validate_json_request("PrototypeUpdate")
+    @define_json_response("PrototypeView")
     def put(self, orgname, prototypeid):
         """
         Update the role of an existing permission prototype.

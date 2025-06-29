@@ -30,6 +30,7 @@ from endpoints.api import (
     allow_if_global_readonly_superuser,
     allow_if_superuser,
     api,
+    define_json_response,
     disallow_for_app_repositories,
     disallow_for_non_normal_repositories,
     disallow_for_user_namespace,
@@ -236,6 +237,278 @@ class RepositoryBuildList(RepositoryParamResource):
                 },
             },
         },
+        "UserView": {
+            "type": "object",
+            "description": "Describes a user or robot account",
+            "required": ["name", "kind", "is_robot"],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The username of the user or robot",
+                },
+                "kind": {
+                    "type": "string",
+                    "description": "The type of account (e.g., 'user')",
+                },
+                "is_robot": {
+                    "type": "boolean",
+                    "description": "Whether this is a robot account",
+                },
+            },
+        },
+        "TriggerView": {
+            "type": "object",
+            "description": "Describes a build trigger",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "The unique identifier for the trigger",
+                },
+                "service": {
+                    "type": "string",
+                    "description": "The service name (e.g., 'github', 'gitlab')",
+                },
+                "is_active": {
+                    "type": "boolean",
+                    "description": "Whether the trigger is currently active",
+                },
+                "build_source": {
+                    "type": "string",
+                    "description": "The source branch or tag for the build",
+                },
+                "repository_url": {
+                    "type": "string",
+                    "description": "The URL of the source repository",
+                },
+                "config": {
+                    "type": "object",
+                    "description": "The trigger configuration (only visible to admins)",
+                },
+                "can_invoke": {
+                    "type": "boolean",
+                    "description": "Whether the user can manually invoke this trigger",
+                },
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Whether the trigger is enabled",
+                },
+                "disabled_reason": {
+                    "type": "string",
+                    "description": "Reason why the trigger is disabled, if applicable",
+                },
+                "pull_robot": {
+                    "$ref": "#/definitions/UserView",
+                    "description": "The robot account used for pulling images",
+                },
+            },
+        },
+        "RepositoryInfo": {
+            "type": "object",
+            "description": "Describes a repository",
+            "required": ["namespace", "name"],
+            "properties": {
+                "namespace": {
+                    "type": "string",
+                    "description": "The namespace (organization or user) that owns the repository",
+                },
+                "name": {
+                    "type": "string",
+                    "description": "The name of the repository",
+                },
+            },
+        },
+        "BuildStatusView": {
+            "type": "object",
+            "description": "Describes a build status",
+            "required": [
+                "id",
+                "phase",
+                "started",
+                "display_name",
+                "status",
+                "subdirectory",
+                "dockerfile_path",
+                "context",
+                "tags",
+                "is_writer",
+                "repository",
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "The unique identifier for the build",
+                },
+                "phase": {
+                    "type": "string",
+                    "description": "The current phase of the build (e.g., 'waiting', 'building', 'complete', 'error')",
+                },
+                "started": {
+                    "type": "string",
+                    "description": "ISO 8601 timestamp when the build started",
+                },
+                "display_name": {
+                    "type": "string",
+                    "description": "The display name for the build",
+                },
+                "status": {
+                    "type": "object",
+                    "description": "Detailed status information about the build",
+                },
+                "subdirectory": {
+                    "type": "string",
+                    "description": "The subdirectory containing the Dockerfile",
+                },
+                "dockerfile_path": {
+                    "type": "string",
+                    "description": "The path to the Dockerfile",
+                },
+                "context": {
+                    "type": "string",
+                    "description": "The build context",
+                },
+                "tags": {
+                    "type": "array",
+                    "description": "The Docker tags that will be applied to the built image",
+                    "items": {"type": "string"},
+                },
+                "manual_user": {
+                    "type": "string",
+                    "description": "The username of the user who manually triggered the build",
+                },
+                "is_writer": {
+                    "type": "boolean",
+                    "description": "Whether the current user has write permissions to the repository",
+                },
+                "trigger": {
+                    "$ref": "#/definitions/TriggerView",
+                    "description": "The build trigger that started this build",
+                },
+                "trigger_metadata": {
+                    "type": "object",
+                    "description": "Metadata from the build trigger",
+                },
+                "resource_key": {
+                    "type": "string",
+                    "description": "The resource key for the build",
+                },
+                "pull_robot": {
+                    "$ref": "#/definitions/UserView",
+                    "description": "The robot account used for pulling images",
+                },
+                "repository": {
+                    "$ref": "#/definitions/RepositoryInfo",
+                    "description": "Information about the repository being built",
+                },
+                "error": {
+                    "type": "string",
+                    "description": "Error message if the build failed",
+                },
+                "archive_url": {
+                    "type": "string",
+                    "description": "URL to download the build archive",
+                },
+            },
+        },
+        "BuildListResponse": {
+            "type": "object",
+            "description": "Response containing a list of builds",
+            "required": ["builds"],
+            "properties": {
+                "builds": {
+                    "type": "array",
+                    "description": "List of builds",
+                    "items": {
+                        "$ref": "#/definitions/BuildStatusView",
+                    },
+                },
+            },
+        },
+        "BuildResponse": {
+            "type": "object",
+            "description": "Response containing a single build",
+            "allOf": [
+                {"$ref": "#/definitions/BuildStatusView"},
+            ],
+        },
+        "FileDropResponse": {
+            "type": "object",
+            "description": "Response containing file upload information",
+            "required": ["url", "file_id"],
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "The URL to which the file should be uploaded",
+                },
+                "file_id": {
+                    "type": "string",
+                    "description": "The unique identifier for the uploaded file",
+                },
+            },
+        },
+        "LogEntry": {
+            "type": "object",
+            "description": "Describes a single log entry",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "description": "The log message",
+                },
+                "datetime": {
+                    "type": "string",
+                    "description": "ISO 8601 timestamp for the log entry",
+                },
+                "stream": {
+                    "type": "string",
+                    "description": "The stream type (e.g., 'stdout', 'stderr')",
+                },
+            },
+        },
+        "BuildLogsResponse": {
+            "type": "object",
+            "description": "Response containing build logs",
+            "required": ["start", "total", "logs"],
+            "properties": {
+                "start": {
+                    "type": "integer",
+                    "description": "The starting index of the logs returned",
+                },
+                "total": {
+                    "type": "integer",
+                    "description": "The total number of log entries available",
+                },
+                "logs": {
+                    "type": "array",
+                    "description": "List of log entries",
+                    "items": {
+                        "$ref": "#/definitions/LogEntry",
+                    },
+                },
+            },
+        },
+        "BuildLogsUrlResponse": {
+            "type": "object",
+            "description": "Response containing a URL to archived build logs",
+            "required": ["logs_url"],
+            "properties": {
+                "logs_url": {
+                    "type": "string",
+                    "description": "The URL to download the archived build logs",
+                },
+            },
+        },
+        "BuildLogsUnionResponse": {
+            "type": "object",
+            "description": "Response containing either build logs or a URL to archived logs",
+            "oneOf": [
+                {"$ref": "#/definitions/BuildLogsResponse"},
+                {"$ref": "#/definitions/BuildLogsUrlResponse"},
+            ],
+        },
+        "CancelBuildResponse": {
+            "type": "string",
+            "description": "Simple success response for build cancellation",
+            "example": "Okay",
+        },
     }
 
     @require_repo_read(allow_for_superuser=True)
@@ -246,6 +519,7 @@ class RepositoryBuildList(RepositoryParamResource):
     )
     @nickname("getRepoBuilds")
     @disallow_for_app_repositories
+    @define_json_response("BuildListResponse")
     def get(self, namespace, repository, parsed_args):
         """
         Get the list of repository builds.
@@ -265,6 +539,7 @@ class RepositoryBuildList(RepositoryParamResource):
     @disallow_for_non_normal_repositories
     @disallow_for_user_namespace
     @validate_json_request("RepositoryBuildRequest")
+    @define_json_response("BuildResponse")
     def post(self, namespace, repository):
         """
         Request that a repository be built and pushed from the specified input.
@@ -404,6 +679,7 @@ class RepositoryBuildResource(RepositoryParamResource):
     @require_repo_read(allow_for_superuser=True)
     @nickname("getRepoBuild")
     @disallow_for_app_repositories
+    @define_json_response("BuildResponse")
     def get(self, namespace, repository, build_uuid):
         """
         Returns information about a build.
@@ -426,6 +702,7 @@ class RepositoryBuildResource(RepositoryParamResource):
     @disallow_for_app_repositories
     @disallow_for_non_normal_repositories
     @disallow_for_user_namespace
+    @define_json_response("CancelBuildResponse")
     def delete(self, namespace, repository, build_uuid):
         """
         Cancels a repository build.
@@ -459,6 +736,7 @@ class RepositoryBuildStatus(RepositoryParamResource):
     @require_repo_read(allow_for_superuser=True)
     @nickname("getRepoBuildStatus")
     @disallow_for_app_repositories
+    @define_json_response("BuildResponse")
     def get(self, namespace, repository, build_uuid):
         """
         Return the status for the builds specified by the build uuids.
@@ -510,6 +788,7 @@ class RepositoryBuildLogs(RepositoryParamResource):
     @require_repo_read(allow_for_superuser=True)
     @nickname("getRepoBuildLogs")
     @disallow_for_app_repositories
+    @define_json_response("BuildLogsUnionResponse")
     def get(self, namespace, repository, build_uuid):
         """
         Return the build logs for the build specified by the build uuid.
@@ -559,6 +838,7 @@ class FileDropResource(ApiResource):
 
     @nickname("getFiledropUrl")
     @validate_json_request("FileDropRequest")
+    @define_json_response("FileDropResponse")
     def post(self):
         """
         Request a URL to which a file may be uploaded.

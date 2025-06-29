@@ -19,6 +19,7 @@ from endpoints.api import (
     RepositoryParamResource,
     allow_if_global_readonly_superuser,
     allow_if_superuser,
+    define_json_response,
     format_date,
     log_action,
     nickname,
@@ -127,12 +128,153 @@ class RepositoryLogs(RepositoryParamResource):
     Resource for fetching logs for the specific repository.
     """
 
+    schemas = {
+        "LogEntry": {
+            "type": "object",
+            "description": "Describes a single log entry",
+            "properties": {
+                "kind": {
+                    "type": "string",
+                    "description": "The type of action logged",
+                },
+                "datetime": {
+                    "type": "string",
+                    "description": "ISO 8601 timestamp when the action occurred",
+                },
+                "performer": {
+                    "type": "object",
+                    "description": "Information about the user who performed the action",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "The username of the performer",
+                        },
+                        "kind": {
+                            "type": "string",
+                            "description": "The type of performer (e.g., 'user', 'robot')",
+                        },
+                        "is_robot": {
+                            "type": "boolean",
+                            "description": "Whether the performer is a robot account",
+                        },
+                        "avatar": {
+                            "type": "string",
+                            "description": "URL to the performer's avatar",
+                        },
+                    },
+                },
+                "repository": {
+                    "type": "object",
+                    "description": "Information about the repository involved",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "The name of the repository",
+                        },
+                        "namespace": {
+                            "type": "string",
+                            "description": "The namespace of the repository",
+                        },
+                    },
+                },
+                "metadata": {
+                    "type": "object",
+                    "description": "Additional metadata about the action",
+                },
+                "ip": {
+                    "type": "string",
+                    "description": "The IP address from which the action was performed",
+                },
+            },
+        },
+        "LogsResponse": {
+            "type": "object",
+            "description": "Response containing a list of logs",
+            "required": ["start_time", "end_time", "logs"],
+            "properties": {
+                "start_time": {
+                    "type": "string",
+                    "description": "ISO 8601 timestamp for the start of the log period",
+                },
+                "end_time": {
+                    "type": "string",
+                    "description": "ISO 8601 timestamp for the end of the log period",
+                },
+                "logs": {
+                    "type": "array",
+                    "description": "List of log entries",
+                    "items": {
+                        "$ref": "#/definitions/LogEntry",
+                    },
+                },
+            },
+        },
+        "AggregatedLogEntry": {
+            "type": "object",
+            "description": "Describes an aggregated log entry",
+            "properties": {
+                "kind": {
+                    "type": "string",
+                    "description": "The type of action logged",
+                },
+                "count": {
+                    "type": "integer",
+                    "description": "The number of times this action occurred",
+                },
+                "datetime": {
+                    "type": "string",
+                    "description": "ISO 8601 timestamp for the aggregated period",
+                },
+            },
+        },
+        "AggregatedLogsResponse": {
+            "type": "object",
+            "description": "Response containing aggregated log counts",
+            "required": ["aggregated"],
+            "properties": {
+                "aggregated": {
+                    "type": "array",
+                    "description": "List of aggregated log entries",
+                    "items": {
+                        "$ref": "#/definitions/AggregatedLogEntry",
+                    },
+                },
+            },
+        },
+        "ExportLogsRequest": {
+            "type": "object",
+            "description": "Configuration for an export logs operation",
+            "properties": {
+                "callback_url": {
+                    "type": "string",
+                    "description": "The callback URL to invoke with a link to the exported logs",
+                },
+                "callback_email": {
+                    "type": "string",
+                    "description": "The e-mail address at which to e-mail a link to the exported logs",
+                },
+            },
+        },
+        "ExportLogsResponse": {
+            "type": "object",
+            "description": "Response containing export information",
+            "required": ["export_id"],
+            "properties": {
+                "export_id": {
+                    "type": "string",
+                    "description": "The unique identifier for the export operation",
+                },
+            },
+        },
+    }
+
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("listRepoLogs")
     @parse_args()
     @query_param("starttime", 'Earliest time for logs. Format: "%m/%d/%Y" in UTC.', type=str)
     @query_param("endtime", 'Latest time for logs. Format: "%m/%d/%Y" in UTC.', type=str)
     @page_support()
+    @define_json_response("LogsResponse")
     def get(self, namespace, repository, page_token, parsed_args):
         """
         List the logs for the specified repository.
@@ -164,6 +306,7 @@ class UserLogs(ApiResource):
     @query_param("endtime", 'Latest time for logs. Format: "%m/%d/%Y" in UTC.', type=str)
     @query_param("performer", "Username for which to filter logs.", type=str)
     @page_support()
+    @define_json_response("LogsResponse")
     def get(self, parsed_args, page_token):
         """
         List the logs for the current user.
@@ -198,6 +341,7 @@ class OrgLogs(ApiResource):
     @query_param("performer", "Username for which to filter logs.", type=str)
     @page_support()
     @require_scope(scopes.ORG_ADMIN)
+    @define_json_response("LogsResponse")
     def get(self, orgname, page_token, parsed_args):
         """
         List the logs for the specified organization.
@@ -232,6 +376,7 @@ class RepositoryAggregateLogs(RepositoryParamResource):
     @parse_args()
     @query_param("starttime", 'Earliest time for logs. Format: "%m/%d/%Y" in UTC.', type=str)
     @query_param("endtime", 'Latest time for logs. Format: "%m/%d/%Y" in UTC.', type=str)
+    @define_json_response("AggregatedLogsResponse")
     def get(self, namespace, repository, parsed_args):
         """
         Returns the aggregated logs for the specified repository.
@@ -257,6 +402,7 @@ class UserAggregateLogs(ApiResource):
     @query_param("starttime", 'Earliest time for logs. Format: "%m/%d/%Y" in UTC.', type=str)
     @query_param("endtime", 'Latest time for logs. Format: "%m/%d/%Y" in UTC.', type=str)
     @query_param("performer", "Username for which to filter logs.", type=str)
+    @define_json_response("AggregatedLogsResponse")
     def get(self, parsed_args):
         """
         Returns the aggregated logs for the current user.
@@ -290,6 +436,7 @@ class OrgAggregateLogs(ApiResource):
     @query_param("endtime", 'Latest time for logs. Format: "%m/%d/%Y" in UTC.', type=str)
     @query_param("performer", "Username for which to filter logs.", type=str)
     @require_scope(scopes.ORG_ADMIN)
+    @define_json_response("AggregatedLogsResponse")
     def get(self, orgname, parsed_args):
         """
         Gets the aggregated logs for the specified organization.
@@ -407,6 +554,7 @@ class ExportRepositoryLogs(RepositoryParamResource):
     @query_param("starttime", 'Earliest time for logs. Format: "%m/%d/%Y" in UTC.', type=str)
     @query_param("endtime", 'Latest time for logs. Format: "%m/%d/%Y" in UTC.', type=str)
     @validate_json_request("ExportLogs")
+    @define_json_response("ExportLogsResponse")
     def post(self, namespace, repository, parsed_args):
         """
         Queues an export of the logs for the specified repository.
@@ -447,6 +595,7 @@ class ExportUserLogs(ApiResource):
     @query_param("starttime", 'Earliest time for logs. Format: "%m/%d/%Y" in UTC.', type=str)
     @query_param("endtime", 'Latest time for logs. Format: "%m/%d/%Y" in UTC.', type=str)
     @validate_json_request("ExportLogs")
+    @define_json_response("ExportLogsResponse")
     def post(self, parsed_args):
         """
         Returns the aggregated logs for the current user.
@@ -486,6 +635,7 @@ class ExportOrgLogs(ApiResource):
     @query_param("endtime", 'Latest time for logs. Format: "%m/%d/%Y" in UTC.', type=str)
     @require_scope(scopes.ORG_ADMIN)
     @validate_json_request("ExportLogs")
+    @define_json_response("ExportLogsResponse")
     def post(self, orgname, parsed_args):
         """
         Exports the logs for the specified organization.

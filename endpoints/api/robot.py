@@ -26,6 +26,7 @@ from endpoints.api import (
     ApiResource,
     allow_if_global_readonly_superuser,
     allow_if_superuser,
+    define_json_response,
     log_action,
     max_json_size,
     nickname,
@@ -79,6 +80,163 @@ CREATE_ROBOT_FEDERATION_SCHEMA = {
     },
 }
 
+# Response schemas for robot endpoints
+ROBOT_RESPONSE_SCHEMAS = {
+    "Robot": {
+        "type": "object",
+        "description": "A robot account",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The robot's username",
+            },
+            "created": {
+                "type": "string",
+                "description": "The date the robot was created",
+                "format": "date-time",
+            },
+            "last_accessed": {
+                "type": "string",
+                "description": "The date the robot was last accessed",
+                "format": "date-time",
+            },
+            "description": {
+                "type": "string",
+                "description": "The robot's description",
+            },
+            "token": {
+                "type": "string",
+                "description": "The robot's authentication token",
+            },
+            "unstructured_metadata": {
+                "type": "object",
+                "description": "Unstructured metadata for the robot",
+            },
+        },
+        "required": ["name", "created", "last_accessed", "description"],
+    },
+    "RobotWithPermissions": {
+        "type": "object",
+        "description": "A robot account with permissions information",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The robot's username",
+            },
+            "created": {
+                "type": "string",
+                "description": "The date the robot was created",
+                "format": "date-time",
+            },
+            "last_accessed": {
+                "type": "string",
+                "description": "The date the robot was last accessed",
+                "format": "date-time",
+            },
+            "teams": {
+                "type": "array",
+                "description": "Teams the robot belongs to",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "The team name",
+                        },
+                        "avatar": {
+                            "type": "object",
+                            "description": "The team's avatar information",
+                        },
+                    },
+                    "required": ["name", "avatar"],
+                },
+            },
+            "repositories": {
+                "type": "array",
+                "description": "Repository names the robot has access to",
+                "items": {
+                    "type": "string",
+                },
+            },
+            "description": {
+                "type": "string",
+                "description": "The robot's description",
+            },
+            "token": {
+                "type": "string",
+                "description": "The robot's authentication token",
+            },
+        },
+        "required": ["name", "created", "last_accessed", "teams", "repositories", "description"],
+    },
+    "RobotList": {
+        "type": "object",
+        "description": "List of robots",
+        "properties": {
+            "robots": {
+                "type": "array",
+                "description": "List of robot objects",
+                "items": {
+                    "$ref": "#/definitions/RobotWithPermissions",
+                },
+            },
+        },
+        "required": ["robots"],
+    },
+    "Permission": {
+        "type": "object",
+        "description": "A robot's permission on a repository",
+        "properties": {
+            "repository": {
+                "type": "object",
+                "description": "Repository information",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The repository name",
+                    },
+                    "is_public": {
+                        "type": "boolean",
+                        "description": "Whether the repository is public",
+                    },
+                },
+                "required": ["name", "is_public"],
+            },
+            "role": {
+                "type": "string",
+                "description": "The role the robot has on the repository",
+                "enum": ["read", "write", "admin"],
+            },
+        },
+        "required": ["repository", "role"],
+    },
+    "PermissionList": {
+        "type": "object",
+        "description": "List of robot permissions",
+        "properties": {
+            "permissions": {
+                "type": "array",
+                "description": "List of permission objects",
+                "items": {
+                    "$ref": "#/definitions/Permission",
+                },
+            },
+        },
+        "required": ["permissions"],
+    },
+    "ErrorResponse": {
+        "type": "object",
+        "description": "Error response",
+        "properties": {
+            "message": {
+                "type": "string",
+                "description": "Error message",
+            },
+        },
+        "required": ["message"],
+    },
+}
+
 ROBOT_MAX_SIZE = 1024 * 1024  # 1 KB.
 
 logger = logging.getLogger(__name__)
@@ -97,6 +255,8 @@ class UserRobotList(ApiResource):
     Resource for listing user robots.
     """
 
+    schemas = ROBOT_RESPONSE_SCHEMAS
+
     @require_user_admin()
     @nickname("getUserRobots")
     @parse_args()
@@ -110,6 +270,7 @@ class UserRobotList(ApiResource):
         "token", "If false, the robot's token is not returned.", type=truthy_bool, default=True
     )
     @query_param("limit", "If specified, the number of robots to return.", type=int, default=None)
+    @define_json_response("RobotList")
     def get(self, parsed_args):
         """
         List the available robots for the user.
@@ -134,10 +295,12 @@ class UserRobot(ApiResource):
 
     schemas = {
         "CreateRobot": CREATE_ROBOT_SCHEMA,
+        **ROBOT_RESPONSE_SCHEMAS,
     }
 
     @require_user_admin()
     @nickname("getUserRobot")
+    @define_json_response("Robot")
     def get(self, robot_shortname):
         """
         Returns the user's robot with the specified name.
@@ -150,6 +313,7 @@ class UserRobot(ApiResource):
     @nickname("createUserRobot")
     @max_json_size(ROBOT_MAX_SIZE)
     @validate_json_request("CreateRobot", optional=True)
+    @define_json_response("Robot")
     def put(self, robot_shortname):
         """
         Create a new user robot with the specified name.
@@ -202,6 +366,8 @@ class OrgRobotList(ApiResource):
     Resource for listing an organization's robots.
     """
 
+    schemas = ROBOT_RESPONSE_SCHEMAS
+
     @require_scope(scopes.ORG_ADMIN)
     @nickname("getOrgRobots")
     @parse_args()
@@ -215,6 +381,7 @@ class OrgRobotList(ApiResource):
         "token", "If false, the robot's token is not returned.", type=truthy_bool, default=True
     )
     @query_param("limit", "If specified, the number of robots to return.", type=int, default=None)
+    @define_json_response("RobotList")
     def get(self, orgname, parsed_args):
         """
         List the organization's robots.
@@ -251,10 +418,12 @@ class OrgRobot(ApiResource):
 
     schemas = {
         "CreateRobot": CREATE_ROBOT_SCHEMA,
+        **ROBOT_RESPONSE_SCHEMAS,
     }
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("getOrgRobot")
+    @define_json_response("Robot")
     def get(self, orgname, robot_shortname):
         """
         Returns the organization's robot with the specified name.
@@ -270,6 +439,7 @@ class OrgRobot(ApiResource):
     @nickname("createOrgRobot")
     @max_json_size(ROBOT_MAX_SIZE)
     @validate_json_request("CreateRobot", optional=True)
+    @define_json_response("Robot")
     def put(self, orgname, robot_shortname):
         """
         Create a new robot in the organization.
@@ -328,8 +498,11 @@ class UserRobotPermissions(ApiResource):
     Resource for listing the permissions a user's robot has in the system.
     """
 
+    schemas = ROBOT_RESPONSE_SCHEMAS
+
     @require_user_admin()
     @nickname("getUserRobotPermissions")
+    @define_json_response("PermissionList")
     def get(self, robot_shortname):
         """
         Returns the list of repository permissions for the user's robot.
@@ -352,8 +525,11 @@ class OrgRobotPermissions(ApiResource):
     Resource for listing the permissions an org's robot has in the system.
     """
 
+    schemas = ROBOT_RESPONSE_SCHEMAS
+
     @require_user_admin()
     @nickname("getOrgRobotPermissions")
+    @define_json_response("PermissionList")
     def get(self, orgname, robot_shortname):
         """
         Returns the list of repository permissions for the org's robot.
@@ -377,8 +553,11 @@ class RegenerateUserRobot(ApiResource):
     Resource for regenerate an organization's robot's token.
     """
 
+    schemas = ROBOT_RESPONSE_SCHEMAS
+
     @require_user_admin(disallow_for_restricted_users=True)
     @nickname("regenerateUserRobotToken")
+    @define_json_response("Robot")
     def post(self, robot_shortname):
         """
         Regenerates the token for a user's robot.
@@ -400,8 +579,11 @@ class RegenerateOrgRobot(ApiResource):
     Resource for regenerate an organization's robot's token.
     """
 
+    schemas = ROBOT_RESPONSE_SCHEMAS
+
     @require_scope(scopes.ORG_ADMIN)
     @nickname("regenerateOrgRobotToken")
+    @define_json_response("Robot")
     def post(self, orgname, robot_shortname):
         """
         Regenerates the token for an organization robot.
@@ -425,9 +607,29 @@ class OrgRobotFederation(ApiResource):
 
     schemas = {
         "CreateRobotFederation": CREATE_ROBOT_FEDERATION_SCHEMA,
+        "RobotFederationConfig": {
+            "type": "array",
+            "description": "Federation configuration for the robot",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "issuer": {
+                        "type": "string",
+                        "description": "The issuer of the token",
+                    },
+                    "subject": {
+                        "type": "string",
+                        "description": "The subject of the token",
+                    },
+                },
+                "required": ["issuer", "subject"],
+            },
+        },
     }
 
     @require_scope(scopes.ORG_ADMIN)
+    @nickname("getOrgRobotFederation")
+    @define_json_response("RobotFederationConfig")
     def get(self, orgname, robot_shortname):
         permission = AdministerOrganizationPermission(orgname)
         if permission.can() or allow_if_superuser() or allow_if_global_readonly_superuser():
@@ -438,7 +640,9 @@ class OrgRobotFederation(ApiResource):
         raise Unauthorized()
 
     @require_scope(scopes.ORG_ADMIN)
+    @nickname("createOrgRobotFederation")
     @validate_json_request("CreateRobotFederation", optional=False)
+    @define_json_response("RobotFederationConfig")
     def post(self, orgname, robot_shortname):
         permission = AdministerOrganizationPermission(orgname)
         if permission.can() or allow_if_superuser():
@@ -457,6 +661,7 @@ class OrgRobotFederation(ApiResource):
         raise Unauthorized()
 
     @require_scope(scopes.ORG_ADMIN)
+    @nickname("deleteOrgRobotFederation")
     def delete(self, orgname, robot_shortname):
         permission = AdministerOrganizationPermission(orgname)
         if permission.can() or allow_if_superuser():

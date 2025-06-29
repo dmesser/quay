@@ -24,6 +24,7 @@ from endpoints.api import (
     abort,
     allow_if_superuser,
     api,
+    define_json_response,
     disallow_for_app_repositories,
     disallow_for_non_normal_repositories,
     disallow_for_user_namespace,
@@ -64,6 +65,363 @@ def get_trigger(trigger_uuid):
     return trigger
 
 
+# Response schemas for build trigger endpoints
+TRIGGER_RESPONSE_SCHEMAS = {
+    "UserView": {
+        "type": "object",
+        "description": "Information about a user or robot account",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The username of the user or robot",
+            },
+            "kind": {
+                "type": "string",
+                "description": "The type of account",
+            },
+            "is_robot": {
+                "type": "boolean",
+                "description": "Whether this is a robot account",
+            },
+        },
+        "required": ["name", "kind", "is_robot"],
+    },
+    "TriggerView": {
+        "type": "object",
+        "description": "Information about a build trigger",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "The unique identifier for the trigger",
+            },
+            "service": {
+                "type": "string",
+                "description": "The service name (e.g., 'github', 'gitlab')",
+            },
+            "is_active": {
+                "type": "boolean",
+                "description": "Whether the trigger is currently active",
+            },
+            "build_source": {
+                "type": "string",
+                "description": "The source branch or tag for the build",
+            },
+            "repository_url": {
+                "type": "string",
+                "description": "The URL of the source repository",
+            },
+            "config": {
+                "type": "object",
+                "description": "The trigger configuration (only visible to admins)",
+            },
+            "can_invoke": {
+                "type": "boolean",
+                "description": "Whether the user can manually invoke this trigger",
+            },
+            "enabled": {
+                "type": "boolean",
+                "description": "Whether the trigger is enabled",
+            },
+            "disabled_reason": {
+                "type": "string",
+                "description": "Reason why the trigger is disabled, if applicable",
+            },
+            "pull_robot": {
+                "$ref": "#/definitions/UserView",
+                "description": "The robot account used for pulling images",
+            },
+        },
+        "required": ["id", "service", "is_active", "can_invoke", "enabled"],
+    },
+    "TriggerListResponse": {
+        "type": "object",
+        "description": "Response containing a list of build triggers",
+        "properties": {
+            "triggers": {
+                "type": "array",
+                "description": "List of build triggers",
+                "items": {
+                    "$ref": "#/definitions/TriggerView",
+                },
+            },
+        },
+        "required": ["triggers"],
+    },
+    "BuildStatusView": {
+        "type": "object",
+        "description": "Information about a build status",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "Build ID",
+            },
+            "phase": {
+                "type": "string",
+                "description": "Build phase",
+            },
+            "started": {
+                "type": "string",
+                "description": "Start time",
+                "format": "date-time",
+            },
+            "display_name": {
+                "type": "string",
+                "description": "Display name",
+            },
+            "status": {
+                "type": "object",
+                "description": "Build status",
+            },
+            "subdirectory": {
+                "type": "string",
+                "description": "Build subdirectory",
+            },
+            "dockerfile_path": {
+                "type": "string",
+                "description": "Dockerfile path",
+            },
+            "context": {
+                "type": "string",
+                "description": "Build context",
+            },
+            "tags": {
+                "type": "array",
+                "description": "Docker tags",
+                "items": {
+                    "type": "string",
+                },
+            },
+            "manual_user": {
+                "type": "string",
+                "description": "Manual user",
+            },
+            "is_writer": {
+                "type": "boolean",
+                "description": "Whether user can write",
+            },
+            "trigger": {
+                "$ref": "#/definitions/TriggerView",
+            },
+            "trigger_metadata": {
+                "type": "object",
+                "description": "Trigger metadata",
+            },
+            "resource_key": {
+                "type": "string",
+                "description": "Resource key",
+            },
+            "pull_robot": {
+                "$ref": "#/definitions/UserView",
+            },
+            "repository": {
+                "type": "object",
+                "description": "Repository information",
+                "properties": {
+                    "namespace": {
+                        "type": "string",
+                        "description": "Repository namespace",
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Repository name",
+                    },
+                },
+                "required": ["namespace", "name"],
+            },
+            "error": {
+                "type": "string",
+                "description": "Error message",
+            },
+            "archive_url": {
+                "type": "string",
+                "description": "Archive URL",
+            },
+        },
+        "required": [
+            "id",
+            "phase",
+            "started",
+            "display_name",
+            "status",
+            "subdirectory",
+            "dockerfile_path",
+            "context",
+            "tags",
+            "is_writer",
+            "trigger",
+            "resource_key",
+            "repository",
+        ],
+    },
+    "BuildListResponse": {
+        "type": "object",
+        "description": "Response containing a list of builds",
+        "properties": {
+            "builds": {
+                "type": "array",
+                "description": "List of builds",
+                "items": {
+                    "$ref": "#/definitions/BuildStatusView",
+                },
+            },
+        },
+        "required": ["builds"],
+    },
+    "SubdirsResponse": {
+        "type": "object",
+        "description": "Response containing buildable subdirectories",
+        "properties": {
+            "dockerfile_paths": {
+                "type": "array",
+                "description": "List of Dockerfile paths",
+                "items": {
+                    "type": "string",
+                },
+            },
+            "contextMap": {
+                "type": "object",
+                "description": "Context mapping information",
+            },
+            "status": {
+                "type": "string",
+                "description": "Status of the operation",
+                "enum": ["success", "error"],
+            },
+            "message": {
+                "type": "string",
+                "description": "Error message if status is error",
+            },
+        },
+        "required": ["dockerfile_paths", "contextMap", "status"],
+    },
+    "AnalysisResponse": {
+        "type": "object",
+        "description": "Response containing trigger analysis",
+        "properties": {
+            "status": {
+                "type": "string",
+                "description": "Analysis status",
+                "enum": ["analyzed", "error", "notimplemented"],
+            },
+            "message": {
+                "type": "string",
+                "description": "Error message if status is error",
+            },
+            "robots": {
+                "type": "array",
+                "description": "List of available robot accounts",
+                "items": {
+                    "$ref": "#/definitions/UserView",
+                },
+            },
+            "is_public": {
+                "type": "boolean",
+                "description": "Whether the repository is public",
+            },
+        },
+        "required": ["status"],
+    },
+    "FieldValuesResponse": {
+        "type": "object",
+        "description": "Response containing field values",
+        "properties": {
+            "values": {
+                "type": "array",
+                "description": "List of field values",
+                "items": {
+                    "type": "string",
+                },
+            },
+        },
+        "required": ["values"],
+    },
+    "SourcesResponse": {
+        "type": "object",
+        "description": "Response containing build sources",
+        "properties": {
+            "sources": {
+                "type": "array",
+                "description": "List of build sources",
+                "items": {
+                    "type": "object",
+                    "description": "Build source information",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Repository name",
+                        },
+                        "full_name": {
+                            "type": "string",
+                            "description": "Full repository name",
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "Repository description",
+                        },
+                        "last_updated": {
+                            "type": "integer",
+                            "description": "Last update timestamp",
+                        },
+                        "url": {
+                            "type": "string",
+                            "description": "Repository URL",
+                        },
+                        "has_admin_permissions": {
+                            "type": "boolean",
+                            "description": "Whether user has admin permissions",
+                        },
+                        "private": {
+                            "type": "boolean",
+                            "description": "Whether repository is private",
+                        },
+                    },
+                    "required": [
+                        "name",
+                        "full_name",
+                        "description",
+                        "last_updated",
+                        "url",
+                        "has_admin_permissions",
+                        "private",
+                    ],
+                },
+            },
+        },
+        "required": ["sources"],
+    },
+    "NamespacesResponse": {
+        "type": "object",
+        "description": "Response containing build source namespaces",
+        "properties": {
+            "namespaces": {
+                "type": "array",
+                "description": "List of namespaces",
+                "items": {
+                    "type": "object",
+                    "description": "Namespace information",
+                    "properties": {
+                        "id": {
+                            "type": "string",
+                            "description": "Namespace ID",
+                        },
+                        "name": {
+                            "type": "string",
+                            "description": "Namespace name",
+                        },
+                        "kind": {
+                            "type": "string",
+                            "description": "Namespace kind",
+                        },
+                    },
+                    "required": ["id", "name", "kind"],
+                },
+            },
+        },
+        "required": ["namespaces"],
+    },
+}
+
+
 @resource("/v1/repository/<apirepopath:repository>/trigger/")
 @path_param("repository", "The full path of the repository. e.g. namespace/name")
 class BuildTriggerList(RepositoryParamResource):
@@ -71,9 +429,12 @@ class BuildTriggerList(RepositoryParamResource):
     Resource for listing repository build triggers.
     """
 
+    schemas = TRIGGER_RESPONSE_SCHEMAS
+
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @disallow_for_app_repositories
     @nickname("listBuildTriggers")
+    @define_json_response("TriggerListResponse")
     def get(self, namespace_name, repo_name):
         """
         List the triggers for the specified repository.
@@ -104,11 +465,13 @@ class BuildTrigger(RepositoryParamResource):
                 },
             },
         },
+        **TRIGGER_RESPONSE_SCHEMAS,
     }
 
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @disallow_for_app_repositories
     @nickname("getBuildTrigger")
+    @define_json_response("TriggerView")
     def get(self, namespace_name, repo_name, trigger_uuid):
         """
         Get information for the specified build trigger.
@@ -121,6 +484,7 @@ class BuildTrigger(RepositoryParamResource):
     @disallow_for_user_namespace
     @nickname("updateBuildTrigger")
     @validate_json_request("UpdateTrigger")
+    @define_json_response("TriggerView")
     def put(self, namespace_name, repo_name, trigger_uuid):
         """
         Updates the specified build trigger.
@@ -195,6 +559,7 @@ class BuildTriggerSubdirs(RepositoryParamResource):
             "type": "object",
             "description": "Arbitrary json.",
         },
+        **TRIGGER_RESPONSE_SCHEMAS,
     }
 
     @require_repo_admin(allow_for_superuser=True)
@@ -203,6 +568,7 @@ class BuildTriggerSubdirs(RepositoryParamResource):
     @disallow_for_user_namespace
     @nickname("listBuildTriggerSubdirs")
     @validate_json_request("BuildTriggerSubdirRequest")
+    @define_json_response("SubdirsResponse")
     def post(self, namespace_name, repo_name, trigger_uuid):
         """
         List the subdirectories available for the specified build trigger and source.
@@ -263,6 +629,7 @@ class BuildTriggerActivate(RepositoryParamResource):
                 },
             },
         },
+        **TRIGGER_RESPONSE_SCHEMAS,
     }
 
     @require_repo_admin(allow_for_superuser=True)
@@ -271,6 +638,7 @@ class BuildTriggerActivate(RepositoryParamResource):
     @disallow_for_user_namespace
     @nickname("activateBuildTrigger")
     @validate_json_request("BuildTriggerActivateRequest")
+    @define_json_response("TriggerView")
     def post(self, namespace_name, repo_name, trigger_uuid):
         """
         Activate the specified build trigger.
@@ -375,6 +743,7 @@ class BuildTriggerAnalyze(RepositoryParamResource):
                 }
             },
         },
+        **TRIGGER_RESPONSE_SCHEMAS,
     }
 
     @require_repo_admin(allow_for_superuser=True)
@@ -383,6 +752,7 @@ class BuildTriggerAnalyze(RepositoryParamResource):
     @disallow_for_user_namespace
     @nickname("analyzeBuildTrigger")
     @validate_json_request("BuildTriggerAnalyzeRequest")
+    @define_json_response("AnalysisResponse")
     def post(self, namespace_name, repo_name, trigger_uuid):
         """
         Analyze the specified build trigger configuration.
@@ -445,7 +815,8 @@ class ActivateBuildTrigger(RepositoryParamResource):
                 },
             },
             "additionalProperties": False,
-        }
+        },
+        **TRIGGER_RESPONSE_SCHEMAS,
     }
 
     @require_repo_admin(allow_for_superuser=True)
@@ -454,6 +825,7 @@ class ActivateBuildTrigger(RepositoryParamResource):
     @disallow_for_user_namespace
     @nickname("manuallyStartBuildTrigger")
     @validate_json_request("RunParameters")
+    @define_json_response("BuildStatusView")
     def post(self, namespace_name, repo_name, trigger_uuid):
         """
         Manually start a build from the specified trigger.
@@ -505,11 +877,14 @@ class TriggerBuildList(RepositoryParamResource):
     Resource to represent builds that were activated from the specified trigger.
     """
 
+    schemas = TRIGGER_RESPONSE_SCHEMAS
+
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @disallow_for_app_repositories
     @parse_args()
     @query_param("limit", "The maximum number of builds to return", type=int, default=5)
     @nickname("listTriggerRecentBuilds")
+    @define_json_response("BuildListResponse")
     def get(self, namespace_name, repo_name, trigger_uuid, parsed_args):
         """
         List the builds started by the specified trigger.
@@ -529,11 +904,14 @@ class BuildTriggerFieldValues(RepositoryParamResource):
     Custom verb to fetch a values list for a particular field name.
     """
 
+    schemas = TRIGGER_RESPONSE_SCHEMAS
+
     @require_repo_admin(allow_for_superuser=True)
     @disallow_for_app_repositories
     @disallow_for_non_normal_repositories
     @disallow_for_user_namespace
     @nickname("listTriggerFieldValues")
+    @define_json_response("FieldValuesResponse")
     def post(self, namespace_name, repo_name, trigger_uuid, field_name):
         """
         List the field values for a custom run field.
@@ -572,7 +950,8 @@ class BuildTriggerSources(RepositoryParamResource):
                     "description": "The namespace for which to fetch sources",
                 },
             },
-        }
+        },
+        **TRIGGER_RESPONSE_SCHEMAS,
     }
 
     @require_repo_admin(allow_for_superuser=True)
@@ -581,6 +960,7 @@ class BuildTriggerSources(RepositoryParamResource):
     @disallow_for_user_namespace
     @nickname("listTriggerBuildSources")
     @validate_json_request("BuildTriggerSourcesRequest")
+    @define_json_response("SourcesResponse")
     def post(self, namespace_name, repo_name, trigger_uuid):
         """
         List the build sources for the trigger configuration thus far.
@@ -612,9 +992,12 @@ class BuildTriggerSourceNamespaces(RepositoryParamResource):
     Custom verb to fetch the list of namespaces (orgs, projects, etc) for the trigger config.
     """
 
+    schemas = TRIGGER_RESPONSE_SCHEMAS
+
     @require_repo_admin(allow_for_superuser=True)
     @disallow_for_app_repositories
     @nickname("listTriggerBuildSourceNamespaces")
+    @define_json_response("NamespacesResponse")
     def get(self, namespace_name, repo_name, trigger_uuid):
         """
         List the build sources for the trigger configuration thus far.

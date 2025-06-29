@@ -14,6 +14,7 @@ from app import app, config_provider
 from auth.permissions import SuperUserPermission
 from endpoints.api import (
     ApiResource,
+    define_json_response,
     internal_only,
     nickname,
     resource,
@@ -23,6 +24,32 @@ from endpoints.api import (
 from endpoints.api.suconfig_models_pre_oci import pre_oci_model as model
 
 logger = logging.getLogger(__name__)
+
+# Response schemas for superuser configuration endpoints
+SUPERUSER_RESPONSE_SCHEMAS = {
+    "RegistryStatus": {
+        "type": "object",
+        "description": "Status of the registry configuration",
+        "properties": {
+            "status": {
+                "type": "string",
+                "description": "The registry status",
+                "enum": ["ready", "setup-incomplete"],
+            },
+            "provider_id": {
+                "type": "string",
+                "description": "The configuration provider ID (only present when status is 'ready')",
+            },
+        },
+        "required": ["status"],
+    },
+    "ShutdownResponse": {
+        "type": "object",
+        "description": "Response from shutdown request",
+        "properties": {},
+        "additionalProperties": False,
+    },
+}
 
 
 def database_is_valid():
@@ -51,8 +78,11 @@ class SuperUserRegistryStatus(ApiResource):
     configured, and if it has any defined users.
     """
 
+    schemas = SUPERUSER_RESPONSE_SCHEMAS
+
     @nickname("scRegistryStatus")
     @verify_not_prod
+    @define_json_response("RegistryStatus")
     def get(self):
         """
         Returns the status of the registry.
@@ -98,8 +128,11 @@ class SuperUserShutdown(ApiResource):
     Resource for sending a shutdown signal to the container.
     """
 
+    schemas = SUPERUSER_RESPONSE_SCHEMAS
+
     @verify_not_prod
     @nickname("scShutdownContainer")
+    @define_json_response("ShutdownResponse")
     def post(self):
         """
         Sends a signal to the phusion init system to shut down the container.

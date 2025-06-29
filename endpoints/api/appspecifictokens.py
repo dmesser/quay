@@ -15,6 +15,7 @@ from data import model
 from endpoints.api import (
     ApiResource,
     NotFound,
+    define_json_response,
     format_date,
     log_action,
     nickname,
@@ -76,12 +77,119 @@ class AppTokens(ApiResource):
                 },
             },
         },
+        "TokenView": {
+            "type": "object",
+            "description": "Describes an app-specific token",
+            "required": ["uuid", "title", "last_accessed", "created", "expiration"],
+            "properties": {
+                "uuid": {
+                    "type": "string",
+                    "description": "The unique identifier for the token",
+                    "format": "uuid",
+                },
+                "title": {
+                    "type": "string",
+                    "description": "The user-defined title for the token",
+                },
+                "last_accessed": {
+                    "type": "string",
+                    "description": "ISO 8601 formatted date when the token was last accessed",
+                    "format": "date-time",
+                },
+                "created": {
+                    "type": "string",
+                    "description": "ISO 8601 formatted date when the token was created",
+                    "format": "date-time",
+                },
+                "expiration": {
+                    "type": "string",
+                    "description": "ISO 8601 formatted date when the token expires",
+                    "format": "date-time",
+                },
+            },
+        },
+        "TokenViewWithCode": {
+            "type": "object",
+            "description": "Describes an app-specific token including the full token code",
+            "required": ["uuid", "title", "last_accessed", "created", "expiration", "token_code"],
+            "properties": {
+                "uuid": {
+                    "type": "string",
+                    "description": "The unique identifier for the token",
+                    "format": "uuid",
+                },
+                "title": {
+                    "type": "string",
+                    "description": "The user-defined title for the token",
+                },
+                "last_accessed": {
+                    "type": "string",
+                    "description": "ISO 8601 formatted date when the token was last accessed",
+                    "format": "date-time",
+                },
+                "created": {
+                    "type": "string",
+                    "description": "ISO 8601 formatted date when the token was created",
+                    "format": "date-time",
+                },
+                "expiration": {
+                    "type": "string",
+                    "description": "ISO 8601 formatted date when the token expires",
+                    "format": "date-time",
+                },
+                "token_code": {
+                    "type": "string",
+                    "description": "The full token string that can be used for authentication",
+                },
+            },
+        },
+        "TokenListResponse": {
+            "type": "object",
+            "description": "Response containing a list of app-specific tokens",
+            "required": ["tokens", "only_expiring"],
+            "properties": {
+                "tokens": {
+                    "type": "array",
+                    "description": "List of app-specific tokens",
+                    "items": {
+                        "$ref": "#/definitions/TokenView",
+                    },
+                },
+                "only_expiring": {
+                    "type": "boolean",
+                    "description": "Whether the response only includes tokens that are expiring soon",
+                },
+            },
+        },
+        "TokenCreateResponse": {
+            "type": "object",
+            "description": "Response containing a newly created app-specific token",
+            "required": ["token"],
+            "properties": {
+                "token": {
+                    "$ref": "#/definitions/TokenViewWithCode",
+                    "description": "The newly created token with its full token code",
+                },
+            },
+        },
+        "TokenGetResponse": {
+            "type": "object",
+            "description": "Response containing a specific app-specific token",
+            "required": ["token"],
+            "properties": {
+                "token": {
+                    "$ref": "#/definitions/TokenViewWithCode",
+                    "description": "The requested token with its full token code",
+                },
+            },
+        },
     }
 
     @require_user_admin()
     @nickname("listAppTokens")
     @parse_args()
     @query_param("expiring", "If true, only returns those tokens expiring soon", type=truthy_bool)
+    @define_json_response("TokenListResponse")
     def get(self, parsed_args):
         """
         Lists the app specific tokens for the user.
@@ -105,6 +213,7 @@ class AppTokens(ApiResource):
     @require_fresh_login
     @nickname("createAppToken")
     @validate_json_request("NewToken")
+    @define_json_response("TokenCreateResponse")
     def post(self):
         """
         Create a new app specific token for user.
@@ -131,9 +240,59 @@ class AppToken(ApiResource):
     Provides operations on an app specific token.
     """
 
+    schemas = {
+        "TokenViewWithCode": {
+            "type": "object",
+            "description": "Describes an app-specific token including the full token code",
+            "required": ["uuid", "title", "last_accessed", "created", "expiration", "token_code"],
+            "properties": {
+                "uuid": {
+                    "type": "string",
+                    "description": "The unique identifier for the token",
+                    "format": "uuid",
+                },
+                "title": {
+                    "type": "string",
+                    "description": "The user-defined title for the token",
+                },
+                "last_accessed": {
+                    "type": "string",
+                    "description": "ISO 8601 formatted date when the token was last accessed",
+                    "format": "date-time",
+                },
+                "created": {
+                    "type": "string",
+                    "description": "ISO 8601 formatted date when the token was created",
+                    "format": "date-time",
+                },
+                "expiration": {
+                    "type": "string",
+                    "description": "ISO 8601 formatted date when the token expires",
+                    "format": "date-time",
+                },
+                "token_code": {
+                    "type": "string",
+                    "description": "The full token string that can be used for authentication",
+                },
+            },
+        },
+        "TokenGetResponse": {
+            "type": "object",
+            "description": "Response containing a specific app-specific token",
+            "required": ["token"],
+            "properties": {
+                "token": {
+                    "$ref": "#/definitions/TokenViewWithCode",
+                    "description": "The requested token with its full token code",
+                },
+            },
+        },
+    }
+
     @require_user_admin()
     @require_fresh_login
     @nickname("getAppToken")
+    @define_json_response("TokenGetResponse")
     def get(self, token_uuid):
         """
         Returns a specific app token for the user.

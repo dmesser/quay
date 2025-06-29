@@ -22,6 +22,7 @@ from endpoints.api import (
     ApiResource,
     allow_if_global_readonly_superuser,
     allow_if_superuser,
+    define_json_response,
     format_date,
     internal_only,
     log_action,
@@ -169,6 +170,207 @@ disallow_nonrobots_for_synced_team = disallow_for_synced_team(except_robots=True
 disallow_all_for_synced_team = disallow_for_synced_team(except_robots=False)
 
 
+# Response schemas for team endpoints
+TEAM_RESPONSE_SCHEMAS = {
+    "Avatar": {
+        "type": "object",
+        "description": "Avatar information for an entity",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The name used for the avatar",
+            },
+            "hash": {
+                "type": "string",
+                "description": "The gravatar hash",
+            },
+            "color": {
+                "type": "string",
+                "description": "The color for the avatar",
+            },
+            "kind": {
+                "type": "string",
+                "description": "The kind of entity",
+                "enum": ["user", "org", "team", "robot", "app"],
+            },
+        },
+        "required": ["name", "hash", "color", "kind"],
+    },
+    "Team": {
+        "type": "object",
+        "description": "Information about a team",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The name of the team",
+            },
+            "description": {
+                "type": "string",
+                "description": "The description of the team",
+            },
+            "can_view": {
+                "type": "boolean",
+                "description": "Whether the current user can view the team",
+            },
+            "role": {
+                "type": "string",
+                "description": "The role of the team in the organization",
+                "enum": ["member", "creator", "admin"],
+            },
+            "avatar": {
+                "$ref": "#/definitions/Avatar",
+            },
+            "new_team": {
+                "type": "boolean",
+                "description": "Whether this is a newly created team",
+            },
+        },
+        "required": ["name", "description", "can_view", "role", "avatar"],
+    },
+    "Member": {
+        "type": "object",
+        "description": "Information about a team member",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The username of the member",
+            },
+            "kind": {
+                "type": "string",
+                "description": "The kind of member",
+                "enum": ["user", "invite"],
+            },
+            "is_robot": {
+                "type": "boolean",
+                "description": "Whether the member is a robot account",
+            },
+            "avatar": {
+                "$ref": "#/definitions/Avatar",
+            },
+            "invited": {
+                "type": "boolean",
+                "description": "Whether the member is invited (not yet accepted)",
+            },
+            "email": {
+                "type": "string",
+                "description": "Email address (only for invite kind)",
+            },
+        },
+        "required": ["name", "kind", "avatar", "invited"],
+    },
+    "TeamSyncInfo": {
+        "type": "object",
+        "description": "Information about team syncing",
+        "properties": {
+            "service": {
+                "type": "string",
+                "description": "The service name for syncing",
+            },
+            "last_updated": {
+                "type": "string",
+                "description": "Last sync update time",
+                "format": "date-time",
+            },
+            "config": {
+                "type": "object",
+                "description": "Sync configuration",
+            },
+        },
+        "required": ["service"],
+    },
+    "TeamMembersResponse": {
+        "type": "object",
+        "description": "Response containing team members",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The team name",
+            },
+            "members": {
+                "type": "array",
+                "description": "List of team members",
+                "items": {
+                    "$ref": "#/definitions/Member",
+                },
+            },
+            "can_edit": {
+                "type": "boolean",
+                "description": "Whether the current user can edit the team",
+            },
+            "can_sync": {
+                "type": "object",
+                "description": "Sync capabilities information",
+                "properties": {
+                    "service": {
+                        "type": "string",
+                        "description": "The service name",
+                    },
+                },
+            },
+            "synced": {
+                "$ref": "#/definitions/TeamSyncInfo",
+            },
+        },
+        "required": ["name", "members", "can_edit"],
+    },
+    "Permission": {
+        "type": "object",
+        "description": "Repository permission for a team",
+        "properties": {
+            "repository": {
+                "type": "object",
+                "description": "Repository information",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Repository name",
+                    },
+                    "is_public": {
+                        "type": "boolean",
+                        "description": "Whether the repository is public",
+                    },
+                },
+                "required": ["name", "is_public"],
+            },
+            "role": {
+                "type": "string",
+                "description": "The role/permission level",
+            },
+        },
+        "required": ["repository", "role"],
+    },
+    "TeamPermissionsResponse": {
+        "type": "object",
+        "description": "Response containing team permissions",
+        "properties": {
+            "permissions": {
+                "type": "array",
+                "description": "List of repository permissions",
+                "items": {
+                    "$ref": "#/definitions/Permission",
+                },
+            },
+        },
+        "required": ["permissions"],
+    },
+    "TeamInviteResponse": {
+        "type": "object",
+        "description": "Response for team invite acceptance",
+        "properties": {
+            "org": {
+                "type": "string",
+                "description": "The organization name",
+            },
+            "team": {
+                "type": "string",
+                "description": "The team name",
+            },
+        },
+        "required": ["org", "team"],
+    },
+}
+
+
 @resource("/v1/organization/<orgname>/team/<teamname>")
 @path_param("orgname", "The name of the organization")
 @path_param("teamname", "The name of the team")
@@ -200,11 +402,13 @@ class OrganizationTeam(ApiResource):
                 },
             },
         },
+        **TEAM_RESPONSE_SCHEMAS,
     }
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("updateOrganizationTeam")
     @validate_json_request("TeamDescription")
+    @define_json_response("Team")
     def put(self, orgname, teamname):
         """
         Update the org-wide permission for the specified team.
@@ -287,11 +491,14 @@ class OrganizationTeamSyncing(ApiResource):
     Resource for managing syncing of a team by a backing group.
     """
 
+    schemas = TEAM_RESPONSE_SCHEMAS
+
     @require_scope(scopes.ORG_ADMIN)
     @require_scope(scopes.SUPERUSER)
     @nickname("enableOrganizationTeamSync")
     @verify_not_prod
     @require_fresh_login
+    @define_json_response("Team")
     def post(self, orgname, teamname):
         if _syncing_setup_allowed(orgname):
             try:
@@ -323,6 +530,7 @@ class OrganizationTeamSyncing(ApiResource):
     @nickname("disableOrganizationTeamSync")
     @verify_not_prod
     @require_fresh_login
+    @define_json_response("Team")
     def delete(self, orgname, teamname):
         if _syncing_setup_allowed(orgname):
             try:
@@ -345,12 +553,15 @@ class TeamMemberList(ApiResource):
     Resource for managing the list of members for a team.
     """
 
+    schemas = TEAM_RESPONSE_SCHEMAS
+
     @require_scope(scopes.ORG_ADMIN)
     @parse_args()
     @query_param(
         "includePending", "Whether to include pending members", type=truthy_bool, default=False
     )
     @nickname("getOrganizationTeamMembers")
+    @define_json_response("TeamMembersResponse")
     def get(self, orgname, teamname, parsed_args):
         """
         Retrieve the list of members for the specified team.
@@ -413,9 +624,12 @@ class TeamMember(ApiResource):
     Resource for managing individual members of a team.
     """
 
+    schemas = TEAM_RESPONSE_SCHEMAS
+
     @require_scope(scopes.ORG_ADMIN)
     @nickname("updateOrganizationTeamMember")
     @disallow_nonrobots_for_synced_team
+    @define_json_response("Member")
     def put(self, orgname, teamname, membername):
         """
         Adds or invites a member to an existing team.
@@ -505,9 +719,12 @@ class InviteTeamMember(ApiResource):
     Resource for inviting a team member via email address.
     """
 
+    schemas = TEAM_RESPONSE_SCHEMAS
+
     @require_scope(scopes.ORG_ADMIN)
     @nickname("inviteTeamMemberEmail")
     @disallow_all_for_synced_team
+    @define_json_response("Member")
     def put(self, orgname, teamname, email):
         """
         Invites an email address to an existing team.
@@ -572,7 +789,10 @@ class TeamPermissions(ApiResource):
     Resource for listing the permissions an org's team has in the system.
     """
 
+    schemas = TEAM_RESPONSE_SCHEMAS
+
     @nickname("getOrganizationTeamPermissions")
+    @define_json_response("TeamPermissionsResponse")
     def get(self, orgname, teamname):
         """
         Returns the list of repository permissions for the org's team.
@@ -599,8 +819,11 @@ class TeamMemberInvite(ApiResource):
     Resource for managing invites to join a team.
     """
 
+    schemas = TEAM_RESPONSE_SCHEMAS
+
     @require_user_admin()
     @nickname("acceptOrganizationTeamInvite")
+    @define_json_response("TeamInviteResponse")
     def put(self, code):
         """
         Accepts an invite to join a team in an organization.

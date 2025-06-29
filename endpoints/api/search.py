@@ -26,6 +26,7 @@ from endpoints.api import (
     ApiResource,
     InvalidRequest,
     Unauthorized,
+    define_json_response,
     internal_only,
     nickname,
     parse_args,
@@ -37,6 +38,283 @@ from endpoints.api import (
 )
 from util.names import parse_robot_username
 from util.parsing import truthy_bool
+
+# Response schemas for search endpoints
+SEARCH_RESPONSE_SCHEMAS = {
+    "Avatar": {
+        "type": "object",
+        "description": "Avatar information for an entity",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The name used for the avatar",
+            },
+            "hash": {
+                "type": "string",
+                "description": "The gravatar hash",
+            },
+            "color": {
+                "type": "string",
+                "description": "The color for the avatar",
+            },
+            "kind": {
+                "type": "string",
+                "description": "The kind of entity (user, org, team, robot, app)",
+                "enum": ["user", "org", "team", "robot", "app"],
+            },
+        },
+        "required": ["name", "hash", "color", "kind"],
+    },
+    "Entity": {
+        "type": "object",
+        "description": "A searchable entity (user, team, org, external user)",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The entity name",
+            },
+            "kind": {
+                "type": "string",
+                "description": "The entity kind",
+                "enum": ["user", "team", "org", "external"],
+            },
+            "is_robot": {
+                "type": "boolean",
+                "description": "Whether the entity is a robot (for users)",
+            },
+            "is_org_member": {
+                "type": "boolean",
+                "description": "Whether the entity is an org member",
+            },
+            "title": {
+                "type": "string",
+                "description": "Title/email for external users",
+            },
+            "avatar": {
+                "$ref": "#/definitions/Avatar",
+            },
+        },
+        "required": ["name", "kind", "avatar"],
+    },
+    "EntitySearchResults": {
+        "type": "object",
+        "description": "Results from entity search",
+        "properties": {
+            "results": {
+                "type": "array",
+                "description": "List of matching entities",
+                "items": {
+                    "$ref": "#/definitions/Entity",
+                },
+            },
+        },
+        "required": ["results"],
+    },
+    "SearchEntity": {
+        "type": "object",
+        "description": "A searchable entity with score and href",
+        "properties": {
+            "title": {
+                "type": "string",
+                "description": "The entity title",
+            },
+            "kind": {
+                "type": "string",
+                "description": "The entity kind",
+                "enum": ["user", "organization", "robot", "team"],
+            },
+            "avatar": {
+                "$ref": "#/definitions/Avatar",
+            },
+            "name": {
+                "type": "string",
+                "description": "The entity name",
+            },
+            "score": {
+                "type": "number",
+                "description": "The search score",
+            },
+            "href": {
+                "type": "string",
+                "description": "The entity URL",
+            },
+            "short_name": {
+                "type": "string",
+                "description": "Short name (for robots)",
+            },
+        },
+        "required": ["title", "kind", "name", "score", "href"],
+    },
+    "SearchTeam": {
+        "type": "object",
+        "description": "A searchable team",
+        "properties": {
+            "kind": {
+                "type": "string",
+                "description": "Always 'team'",
+                "enum": ["team"],
+            },
+            "name": {
+                "type": "string",
+                "description": "The team name",
+            },
+            "organization": {
+                "$ref": "#/definitions/SearchEntity",
+            },
+            "avatar": {
+                "$ref": "#/definitions/Avatar",
+            },
+            "score": {
+                "type": "number",
+                "description": "The search score",
+            },
+            "href": {
+                "type": "string",
+                "description": "The team URL",
+            },
+        },
+        "required": ["kind", "name", "organization", "avatar", "score", "href"],
+    },
+    "SearchRepository": {
+        "type": "object",
+        "description": "A searchable repository",
+        "properties": {
+            "kind": {
+                "type": "string",
+                "description": "The repository kind",
+                "enum": ["repository", "application"],
+            },
+            "title": {
+                "type": "string",
+                "description": "The repository title",
+                "enum": ["repo", "app"],
+            },
+            "namespace": {
+                "$ref": "#/definitions/SearchEntity",
+            },
+            "name": {
+                "type": "string",
+                "description": "The repository name",
+            },
+            "description": {
+                "type": "string",
+                "description": "The repository description",
+            },
+            "is_public": {
+                "type": "boolean",
+                "description": "Whether the repository is public",
+            },
+            "score": {
+                "type": "number",
+                "description": "The search score",
+            },
+            "href": {
+                "type": "string",
+                "description": "The repository URL",
+            },
+            "last_modified": {
+                "type": "string",
+                "description": "Last modified date",
+                "format": "date-time",
+            },
+            "stars": {
+                "type": "integer",
+                "description": "Number of stars",
+            },
+            "popularity": {
+                "type": "number",
+                "description": "Popularity score",
+            },
+        },
+        "required": [
+            "kind",
+            "title",
+            "namespace",
+            "name",
+            "description",
+            "is_public",
+            "score",
+            "href",
+        ],
+    },
+    "SearchResults": {
+        "type": "object",
+        "description": "Results from general search",
+        "properties": {
+            "results": {
+                "type": "array",
+                "description": "List of search results",
+                "items": {
+                    "oneOf": [
+                        {"$ref": "#/definitions/SearchEntity"},
+                        {"$ref": "#/definitions/SearchTeam"},
+                        {"$ref": "#/definitions/SearchRepository"},
+                    ],
+                },
+            },
+        },
+        "required": ["results"],
+    },
+    "RepositorySearchResults": {
+        "type": "object",
+        "description": "Results from repository search with pagination",
+        "properties": {
+            "results": {
+                "type": "array",
+                "description": "List of repository search results",
+                "items": {
+                    "$ref": "#/definitions/SearchRepository",
+                },
+            },
+            "has_additional": {
+                "type": "boolean",
+                "description": "Whether there are more results",
+            },
+            "page": {
+                "type": "integer",
+                "description": "Current page number",
+            },
+            "page_size": {
+                "type": "integer",
+                "description": "Number of results per page",
+            },
+            "start_index": {
+                "type": "integer",
+                "description": "Starting index of results",
+            },
+        },
+        "required": ["results", "has_additional", "page", "page_size", "start_index"],
+    },
+    "LinkedEntity": {
+        "type": "object",
+        "description": "A linked external entity",
+        "properties": {
+            "entity": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The entity name",
+                    },
+                    "kind": {
+                        "type": "string",
+                        "description": "The entity kind",
+                        "enum": ["user"],
+                    },
+                    "is_robot": {
+                        "type": "boolean",
+                        "description": "Whether the entity is a robot",
+                    },
+                    "avatar": {
+                        "$ref": "#/definitions/Avatar",
+                    },
+                },
+                "required": ["name", "kind", "is_robot", "avatar"],
+            },
+        },
+        "required": ["entity"],
+    },
+}
 
 ENTITY_SEARCH_SCORE = 1
 TEAM_SEARCH_SCORE = 2
@@ -50,7 +328,10 @@ class LinkExternalEntity(ApiResource):
     Resource for linking external entities to internal users.
     """
 
+    schemas = SEARCH_RESPONSE_SCHEMAS
+
     @nickname("linkExternalUser")
+    @define_json_response("LinkedEntity")
     def post(self, username):
         if not authentication.federated_service:
             abort(404)
@@ -80,6 +361,8 @@ class EntitySearch(ApiResource):
     Resource for searching entities.
     """
 
+    schemas = SEARCH_RESPONSE_SCHEMAS
+
     @path_param("prefix", "The prefix of the entities being looked up")
     @parse_args()
     @query_param(
@@ -88,6 +371,7 @@ class EntitySearch(ApiResource):
     @query_param("includeTeams", "Whether to include team names.", type=truthy_bool, default=False)
     @query_param("includeOrgs", "Whether to include orgs names.", type=truthy_bool, default=False)
     @nickname("getMatchingEntities")
+    @define_json_response("EntitySearchResults")
     def get(self, prefix, parsed_args):
         """
         Get a list of entities that match the specified prefix.
@@ -352,10 +636,13 @@ class ConductSearch(ApiResource):
     Resource for finding users, repositories, teams, etc.
     """
 
+    schemas = SEARCH_RESPONSE_SCHEMAS
+
     @parse_args()
     @query_param("query", "The search query.", type=str, default="")
     @require_scope(scopes.READ_REPO)
     @nickname("conductSearch")
+    @define_json_response("SearchResults")
     def get(self, parsed_args):
         """
         Get a list of entities and resources that match the specified query.
@@ -403,6 +690,8 @@ class ConductRepositorySearch(ApiResource):
     Resource for finding repositories.
     """
 
+    schemas = SEARCH_RESPONSE_SCHEMAS
+
     @parse_args()
     @query_param("query", "The search query.", type=str, default="")
     @query_param("page", "The page.", type=int, default=1)
@@ -410,6 +699,7 @@ class ConductRepositorySearch(ApiResource):
         "includeUsage", "Whether to include usage metadata", type=truthy_bool, default=False
     )
     @nickname("conductRepoSearch")
+    @define_json_response("RepositorySearchResults")
     def get(self, parsed_args):
         """
         Get a list of apps and repositories that match the specified query.

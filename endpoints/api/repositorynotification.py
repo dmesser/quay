@@ -9,6 +9,7 @@ from flask import request
 from endpoints.api import (
     InvalidRequest,
     RepositoryParamResource,
+    define_json_response,
     disallow_for_app_repositories,
     log_action,
     nickname,
@@ -70,12 +71,78 @@ class RepositoryNotificationList(RepositoryParamResource):
                 },
             },
         },
+        "NotificationView": {
+            "type": "object",
+            "description": "Repository notification information",
+            "properties": {
+                "uuid": {"type": "string", "description": "Unique identifier for the notification"},
+                "event_name": {
+                    "type": "string",
+                    "description": "Event that triggers this notification",
+                },
+                "method_name": {
+                    "type": "string",
+                    "description": "Method used for notification delivery",
+                },
+                "config": {
+                    "type": "object",
+                    "description": "Configuration for the notification method",
+                },
+                "event_config": {
+                    "type": "object",
+                    "description": "Configuration for the notification event",
+                },
+                "title": {
+                    "type": ["string", "null"],
+                    "description": "Human-readable title for the notification",
+                },
+                "number_of_failures": {
+                    "type": "integer",
+                    "description": "Number of consecutive failures",
+                },
+                "created": {
+                    "type": "string",
+                    "description": "When the notification was created",
+                    "format": "date-time",
+                },
+                "updated": {
+                    "type": "string",
+                    "description": "When the notification was last updated",
+                    "format": "date-time",
+                },
+            },
+            "required": [
+                "uuid",
+                "event_name",
+                "method_name",
+                "config",
+                "event_config",
+                "number_of_failures",
+            ],
+        },
+        "NotificationList": {
+            "type": "object",
+            "description": "List of repository notifications",
+            "properties": {
+                "notifications": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/NotificationView"},
+                },
+            },
+            "required": ["notifications"],
+        },
+        "EmptyResponse": {
+            "type": "object",
+            "description": "Empty response object",
+            "properties": {},
+        },
     }
 
     @require_repo_admin(allow_for_superuser=True)
     @nickname("createRepoNotification")
     @disallow_for_app_repositories
     @validate_json_request("NotificationCreateRequest")
+    @define_json_response("NotificationView")
     def post(self, namespace_name, repository_name):
         parsed = request.get_json()
 
@@ -112,6 +179,7 @@ class RepositoryNotificationList(RepositoryParamResource):
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("listRepoNotifications")
     @disallow_for_app_repositories
+    @define_json_response("NotificationList")
     def get(self, namespace_name, repository_name):
         """
         List the notifications for the specified repository.
@@ -131,6 +199,7 @@ class RepositoryNotification(RepositoryParamResource):
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("getRepoNotification")
     @disallow_for_app_repositories
+    @define_json_response("NotificationView")
     def get(self, namespace_name, repository_name, uuid):
         """
         Get information for the specified notification.
@@ -210,6 +279,7 @@ class TestRepositoryNotification(RepositoryParamResource):
     @require_repo_admin(allow_for_superuser=True)
     @nickname("testRepoNotification")
     @disallow_for_app_repositories
+    @define_json_response("EmptyResponse")
     def post(self, namespace_name, repository_name, uuid):
         """
         Queues a test notification for this repository.

@@ -20,6 +20,7 @@ from data.model import InvalidOrganizationException, organization_skus
 from endpoints.api import (
     ApiResource,
     abort,
+    define_json_response,
     internal_only,
     log_action,
     nickname,
@@ -247,7 +248,59 @@ class ListPlans(ApiResource):
     Resource for listing the available plans.
     """
 
+    schemas = {
+        "PlanView": {
+            "type": "object",
+            "description": "Describes a billing plan",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "The unique identifier for the plan",
+                },
+                "name": {
+                    "type": "string",
+                    "description": "The display name of the plan",
+                },
+                "price": {
+                    "type": "number",
+                    "description": "The price of the plan in cents",
+                },
+                "currency": {
+                    "type": "string",
+                    "description": "The currency code for the plan price",
+                },
+                "privateRepos": {
+                    "type": "integer",
+                    "description": "Number of private repositories allowed",
+                },
+                "stripeId": {
+                    "type": "string",
+                    "description": "The Stripe price ID for this plan",
+                },
+                "free_trial_days": {
+                    "type": "integer",
+                    "description": "Number of free trial days",
+                },
+            },
+        },
+        "PlanListResponse": {
+            "type": "object",
+            "description": "Response containing available billing plans",
+            "required": ["plans"],
+            "properties": {
+                "plans": {
+                    "type": "array",
+                    "description": "List of available billing plans",
+                    "items": {
+                        "$ref": "#/definitions/PlanView",
+                    },
+                },
+            },
+        },
+    }
+
     @nickname("listPlans")
+    @define_json_response("PlanListResponse")
     def get(self):
         """
         List the avaialble plans.
@@ -282,10 +335,88 @@ class UserCard(ApiResource):
                 },
             },
         },
+        "CardInfo": {
+            "type": "object",
+            "description": "Describes a credit card",
+            "required": ["is_valid"],
+            "properties": {
+                "is_valid": {
+                    "type": "boolean",
+                    "description": "Whether the card information is valid",
+                },
+                "owner": {
+                    "type": "string",
+                    "description": "The name of the card owner",
+                },
+                "type": {
+                    "type": "string",
+                    "description": "The type of payment method (e.g., 'card')",
+                },
+                "last4": {
+                    "type": "string",
+                    "description": "The last 4 digits of the card number",
+                },
+                "exp_month": {
+                    "type": "integer",
+                    "description": "The expiration month (1-12)",
+                },
+                "exp_year": {
+                    "type": "integer",
+                    "description": "The expiration year",
+                },
+            },
+        },
+        "CardResponse": {
+            "type": "object",
+            "description": "Response containing credit card information",
+            "required": ["card"],
+            "properties": {
+                "card": {
+                    "$ref": "#/definitions/CardInfo",
+                    "description": "The credit card information",
+                },
+            },
+        },
+        "CheckoutSession": {
+            "type": "object",
+            "description": "Stripe checkout session for payment setup",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "The checkout session ID",
+                },
+                "url": {
+                    "type": "string",
+                    "description": "The URL to redirect the user to complete payment",
+                },
+                "payment_method_types": {
+                    "type": "array",
+                    "description": "List of accepted payment method types",
+                    "items": {"type": "string"},
+                },
+                "mode": {
+                    "type": "string",
+                    "description": "The mode of the checkout session",
+                },
+                "customer": {
+                    "type": "string",
+                    "description": "The Stripe customer ID",
+                },
+                "success_url": {
+                    "type": "string",
+                    "description": "URL to redirect after successful payment",
+                },
+                "cancel_url": {
+                    "type": "string",
+                    "description": "URL to redirect after cancelled payment",
+                },
+            },
+        },
     }
 
     @require_user_admin()
     @nickname("getUserCard")
+    @define_json_response("CardResponse")
     def get(self):
         """
         Get the user's credit card.
@@ -296,6 +427,7 @@ class UserCard(ApiResource):
     @require_user_admin()
     @nickname("setUserCard")
     @validate_json_request("UserCard")
+    @define_json_response("CheckoutSession")
     def post(self):
         """
         Update the user's credit card.
@@ -370,10 +502,88 @@ class OrganizationCard(ApiResource):
                 },
             },
         },
+        "CardInfo": {
+            "type": "object",
+            "description": "Describes a credit card",
+            "required": ["is_valid"],
+            "properties": {
+                "is_valid": {
+                    "type": "boolean",
+                    "description": "Whether the card information is valid",
+                },
+                "owner": {
+                    "type": "string",
+                    "description": "The name of the card owner",
+                },
+                "type": {
+                    "type": "string",
+                    "description": "The type of payment method (e.g., 'card')",
+                },
+                "last4": {
+                    "type": "string",
+                    "description": "The last 4 digits of the card number",
+                },
+                "exp_month": {
+                    "type": "integer",
+                    "description": "The expiration month (1-12)",
+                },
+                "exp_year": {
+                    "type": "integer",
+                    "description": "The expiration year",
+                },
+            },
+        },
+        "CardResponse": {
+            "type": "object",
+            "description": "Response containing credit card information",
+            "required": ["card"],
+            "properties": {
+                "card": {
+                    "$ref": "#/definitions/CardInfo",
+                    "description": "The credit card information",
+                },
+            },
+        },
+        "CheckoutSession": {
+            "type": "object",
+            "description": "Stripe checkout session for payment setup",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "The checkout session ID",
+                },
+                "url": {
+                    "type": "string",
+                    "description": "The URL to redirect the user to complete payment",
+                },
+                "payment_method_types": {
+                    "type": "array",
+                    "description": "List of accepted payment method types",
+                    "items": {"type": "string"},
+                },
+                "mode": {
+                    "type": "string",
+                    "description": "The mode of the checkout session",
+                },
+                "customer": {
+                    "type": "string",
+                    "description": "The Stripe customer ID",
+                },
+                "success_url": {
+                    "type": "string",
+                    "description": "URL to redirect after successful payment",
+                },
+                "cancel_url": {
+                    "type": "string",
+                    "description": "URL to redirect after cancelled payment",
+                },
+            },
+        },
     }
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("getOrgCard")
+    @define_json_response("CardResponse")
     def get(self, orgname):
         """
         Get the organization's credit card.
@@ -387,6 +597,7 @@ class OrganizationCard(ApiResource):
 
     @nickname("setOrgCard")
     @validate_json_request("OrgCard")
+    @define_json_response("CheckoutSession")
     def post(self, orgname):
         """
         Update the orgnaization's credit card.
@@ -467,11 +678,112 @@ class UserPlan(ApiResource):
                 },
             },
         },
+        "SubscriptionView": {
+            "type": "object",
+            "description": "Describes a subscription",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "The Stripe subscription ID",
+                },
+                "status": {
+                    "type": "string",
+                    "description": "The subscription status",
+                },
+                "plan": {
+                    "type": "string",
+                    "description": "The plan ID",
+                },
+                "current_period_start": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the start of the current period",
+                },
+                "current_period_end": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the end of the current period",
+                },
+                "cancel_at_period_end": {
+                    "type": "boolean",
+                    "description": "Whether the subscription will cancel at period end",
+                },
+                "trial_start": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the start of the trial period",
+                },
+                "trial_end": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the end of the trial period",
+                },
+            },
+        },
+        "SubscriptionResponse": {
+            "type": "object",
+            "description": "Response containing subscription information",
+            "required": ["hasSubscription", "isExistingCustomer", "plan", "usedPrivateRepos"],
+            "properties": {
+                "hasSubscription": {
+                    "type": "boolean",
+                    "description": "Whether the user has an active subscription",
+                },
+                "isExistingCustomer": {
+                    "type": "boolean",
+                    "description": "Whether the user is an existing Stripe customer",
+                },
+                "plan": {
+                    "type": "string",
+                    "description": "The current plan name",
+                },
+                "usedPrivateRepos": {
+                    "type": "integer",
+                    "description": "Number of private repositories currently used",
+                },
+                "subscription": {
+                    "$ref": "#/definitions/SubscriptionView",
+                    "description": "The subscription details if hasSubscription is true",
+                },
+            },
+        },
+        "CheckoutSession": {
+            "type": "object",
+            "description": "Stripe checkout session for subscription",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "The checkout session ID",
+                },
+                "url": {
+                    "type": "string",
+                    "description": "The URL to redirect the user to complete payment",
+                },
+                "payment_method_types": {
+                    "type": "array",
+                    "description": "List of accepted payment method types",
+                    "items": {"type": "string"},
+                },
+                "mode": {
+                    "type": "string",
+                    "description": "The mode of the checkout session",
+                },
+                "customer": {
+                    "type": "string",
+                    "description": "The Stripe customer ID",
+                },
+                "success_url": {
+                    "type": "string",
+                    "description": "URL to redirect after successful payment",
+                },
+                "cancel_url": {
+                    "type": "string",
+                    "description": "URL to redirect after cancelled payment",
+                },
+            },
+        },
     }
 
     @require_user_admin()
     @nickname("createUserSubscription")
     @validate_json_request("UserSubscription")
+    @define_json_response("CheckoutSession")
     def post(self):
         """
         Create the user's subscription. Returns a Stripe checkout session.
@@ -530,6 +842,7 @@ class UserPlan(ApiResource):
     @require_user_admin()
     @nickname("updateUserSubscription")
     @validate_json_request("UserSubscription")
+    @define_json_response("SubscriptionView")
     def put(self):
         """
         Update the user's existing subscription.
@@ -549,6 +862,7 @@ class UserPlan(ApiResource):
 
     @require_user_admin()
     @nickname("getUserSubscription")
+    @define_json_response("SubscriptionResponse")
     def get(self):
         """
         Fetch any existing subscription for the user.
@@ -605,11 +919,112 @@ class OrganizationPlan(ApiResource):
                 },
             },
         },
+        "SubscriptionView": {
+            "type": "object",
+            "description": "Describes a subscription",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "The Stripe subscription ID",
+                },
+                "status": {
+                    "type": "string",
+                    "description": "The subscription status",
+                },
+                "plan": {
+                    "type": "string",
+                    "description": "The plan ID",
+                },
+                "current_period_start": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the start of the current period",
+                },
+                "current_period_end": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the end of the current period",
+                },
+                "cancel_at_period_end": {
+                    "type": "boolean",
+                    "description": "Whether the subscription will cancel at period end",
+                },
+                "trial_start": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the start of the trial period",
+                },
+                "trial_end": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the end of the trial period",
+                },
+            },
+        },
+        "SubscriptionResponse": {
+            "type": "object",
+            "description": "Response containing subscription information",
+            "required": ["hasSubscription", "isExistingCustomer", "plan", "usedPrivateRepos"],
+            "properties": {
+                "hasSubscription": {
+                    "type": "boolean",
+                    "description": "Whether the organization has an active subscription",
+                },
+                "isExistingCustomer": {
+                    "type": "boolean",
+                    "description": "Whether the organization is an existing Stripe customer",
+                },
+                "plan": {
+                    "type": "string",
+                    "description": "The current plan name",
+                },
+                "usedPrivateRepos": {
+                    "type": "integer",
+                    "description": "Number of private repositories currently used",
+                },
+                "subscription": {
+                    "$ref": "#/definitions/SubscriptionView",
+                    "description": "The subscription details if hasSubscription is true",
+                },
+            },
+        },
+        "CheckoutSession": {
+            "type": "object",
+            "description": "Stripe checkout session for subscription",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "The checkout session ID",
+                },
+                "url": {
+                    "type": "string",
+                    "description": "The URL to redirect the user to complete payment",
+                },
+                "payment_method_types": {
+                    "type": "array",
+                    "description": "List of accepted payment method types",
+                    "items": {"type": "string"},
+                },
+                "mode": {
+                    "type": "string",
+                    "description": "The mode of the checkout session",
+                },
+                "customer": {
+                    "type": "string",
+                    "description": "The Stripe customer ID",
+                },
+                "success_url": {
+                    "type": "string",
+                    "description": "URL to redirect after successful payment",
+                },
+                "cancel_url": {
+                    "type": "string",
+                    "description": "URL to redirect after cancelled payment",
+                },
+            },
+        },
     }
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("createOrgSubscription")
     @validate_json_request("OrgSubscription")
+    @define_json_response("CheckoutSession")
     def post(self, orgname):
         """
         Create the org's subscription. Returns a Stripe checkout session.
@@ -673,6 +1088,7 @@ class OrganizationPlan(ApiResource):
     @require_scope(scopes.ORG_ADMIN)
     @nickname("updateOrgSubscription")
     @validate_json_request("OrgSubscription")
+    @define_json_response("SubscriptionView")
     def put(self, orgname):
         """
         Update the org's subscription.
@@ -696,6 +1112,7 @@ class OrganizationPlan(ApiResource):
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("getOrgSubscription")
+    @define_json_response("SubscriptionResponse")
     def get(self, orgname):
         """
         Fetch any existing subscription for the org.
@@ -732,8 +1149,76 @@ class UserInvoiceList(ApiResource):
     Resource for listing a user's invoices.
     """
 
+    schemas = {
+        "InvoiceView": {
+            "type": "object",
+            "description": "Describes an invoice",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "The Stripe invoice ID",
+                },
+                "date": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the invoice date",
+                },
+                "period_start": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the start of the billing period",
+                },
+                "period_end": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the end of the billing period",
+                },
+                "paid": {
+                    "type": "boolean",
+                    "description": "Whether the invoice has been paid",
+                },
+                "amount_due": {
+                    "type": "integer",
+                    "description": "Amount due in cents",
+                },
+                "next_payment_attempt": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the next payment attempt",
+                },
+                "attempted": {
+                    "type": "boolean",
+                    "description": "Whether payment has been attempted",
+                },
+                "closed": {
+                    "type": "boolean",
+                    "description": "Whether the invoice is closed",
+                },
+                "total": {
+                    "type": "integer",
+                    "description": "Total amount in cents",
+                },
+                "plan": {
+                    "type": "string",
+                    "description": "The plan ID associated with this invoice",
+                },
+            },
+        },
+        "InvoiceListResponse": {
+            "type": "object",
+            "description": "Response containing a list of invoices",
+            "required": ["invoices"],
+            "properties": {
+                "invoices": {
+                    "type": "array",
+                    "description": "List of invoices",
+                    "items": {
+                        "$ref": "#/definitions/InvoiceView",
+                    },
+                },
+            },
+        },
+    }
+
     @require_user_admin()
     @nickname("listUserInvoices")
+    @define_json_response("InvoiceListResponse")
     def get(self):
         """
         List the invoices for the current user.
@@ -754,8 +1239,76 @@ class OrganizationInvoiceList(ApiResource):
     Resource for listing an orgnaization's invoices.
     """
 
+    schemas = {
+        "InvoiceView": {
+            "type": "object",
+            "description": "Describes an invoice",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "The Stripe invoice ID",
+                },
+                "date": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the invoice date",
+                },
+                "period_start": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the start of the billing period",
+                },
+                "period_end": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the end of the billing period",
+                },
+                "paid": {
+                    "type": "boolean",
+                    "description": "Whether the invoice has been paid",
+                },
+                "amount_due": {
+                    "type": "integer",
+                    "description": "Amount due in cents",
+                },
+                "next_payment_attempt": {
+                    "type": "integer",
+                    "description": "Unix timestamp for the next payment attempt",
+                },
+                "attempted": {
+                    "type": "boolean",
+                    "description": "Whether payment has been attempted",
+                },
+                "closed": {
+                    "type": "boolean",
+                    "description": "Whether the invoice is closed",
+                },
+                "total": {
+                    "type": "integer",
+                    "description": "Total amount in cents",
+                },
+                "plan": {
+                    "type": "string",
+                    "description": "The plan ID associated with this invoice",
+                },
+            },
+        },
+        "InvoiceListResponse": {
+            "type": "object",
+            "description": "Response containing a list of invoices",
+            "required": ["invoices"],
+            "properties": {
+                "invoices": {
+                    "type": "array",
+                    "description": "List of invoices",
+                    "items": {
+                        "$ref": "#/definitions/InvoiceView",
+                    },
+                },
+            },
+        },
+    }
+
     @require_scope(scopes.ORG_ADMIN)
     @nickname("listOrgInvoices")
+    @define_json_response("InvoiceListResponse")
     def get(self, orgname):
         """
         List the invoices for the specified orgnaization.
@@ -796,10 +1349,44 @@ class UserInvoiceFieldList(ApiResource):
                 },
             },
         },
+        "InvoiceFieldView": {
+            "type": "object",
+            "description": "Describes a custom invoice field",
+            "required": ["uuid", "title", "value"],
+            "properties": {
+                "uuid": {
+                    "type": "string",
+                    "description": "The unique identifier for the invoice field",
+                },
+                "title": {
+                    "type": "string",
+                    "description": "The title of the invoice field",
+                },
+                "value": {
+                    "type": "string",
+                    "description": "The value of the invoice field",
+                },
+            },
+        },
+        "InvoiceFieldListResponse": {
+            "type": "object",
+            "description": "Response containing a list of custom invoice fields",
+            "required": ["fields"],
+            "properties": {
+                "fields": {
+                    "type": "array",
+                    "description": "List of custom invoice fields",
+                    "items": {
+                        "$ref": "#/definitions/InvoiceFieldView",
+                    },
+                },
+            },
+        },
     }
 
     @require_user_admin()
     @nickname("listUserInvoiceFields")
+    @define_json_response("InvoiceFieldListResponse")
     def get(self):
         """
         List the invoice fields for the current user.
@@ -813,6 +1400,7 @@ class UserInvoiceFieldList(ApiResource):
     @require_user_admin()
     @nickname("createUserInvoiceField")
     @validate_json_request("InvoiceField")
+    @define_json_response("InvoiceFieldView")
     def post(self):
         """
         Creates a new invoice field.
@@ -878,10 +1466,44 @@ class OrganizationInvoiceFieldList(ApiResource):
                 },
             },
         },
+        "InvoiceFieldView": {
+            "type": "object",
+            "description": "Describes a custom invoice field",
+            "required": ["uuid", "title", "value"],
+            "properties": {
+                "uuid": {
+                    "type": "string",
+                    "description": "The unique identifier for the invoice field",
+                },
+                "title": {
+                    "type": "string",
+                    "description": "The title of the invoice field",
+                },
+                "value": {
+                    "type": "string",
+                    "description": "The value of the invoice field",
+                },
+            },
+        },
+        "InvoiceFieldListResponse": {
+            "type": "object",
+            "description": "Response containing a list of custom invoice fields",
+            "required": ["fields"],
+            "properties": {
+                "fields": {
+                    "type": "array",
+                    "description": "List of custom invoice fields",
+                    "items": {
+                        "$ref": "#/definitions/InvoiceFieldView",
+                    },
+                },
+            },
+        },
     }
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("listOrgInvoiceFields")
+    @define_json_response("InvoiceFieldListResponse")
     def get(self, orgname):
         """
         List the invoice fields for the organization.
@@ -899,6 +1521,7 @@ class OrganizationInvoiceFieldList(ApiResource):
     @require_scope(scopes.ORG_ADMIN)
     @nickname("createOrgInvoiceField")
     @validate_json_request("InvoiceField")
+    @define_json_response("InvoiceFieldView")
     def post(self, orgname):
         """
         Creates a new invoice field.
@@ -955,8 +1578,65 @@ class OrganizationRhSku(ApiResource):
     Resource for managing an organization's RH SKU
     """
 
+    schemas = {
+        "MarketplaceSubscriptionView": {
+            "type": "object",
+            "description": "Describes a marketplace subscription",
+            "properties": {
+                "subscription_id": {
+                    "type": "integer",
+                    "description": "The marketplace subscription ID",
+                },
+                "quantity": {
+                    "type": "integer",
+                    "description": "The quantity of the subscription",
+                },
+                "sku": {
+                    "type": "string",
+                    "description": "The SKU identifier",
+                },
+                "metadata": {
+                    "type": "object",
+                    "description": "Plan metadata associated with the SKU",
+                },
+            },
+        },
+        "MarketplaceSubscriptionListResponse": {
+            "type": "array",
+            "description": "Response containing marketplace subscriptions",
+            "items": {
+                "$ref": "#/definitions/MarketplaceSubscriptionView",
+            },
+        },
+        "SubscriptionBindingRequest": {
+            "type": "object",
+            "description": "Request to bind subscriptions to an organization",
+            "required": ["subscriptions"],
+            "properties": {
+                "subscriptions": {
+                    "type": "array",
+                    "description": "List of subscriptions to bind",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "subscription_id": {
+                                "type": "integer",
+                                "description": "The subscription ID to bind",
+                            },
+                            "quantity": {
+                                "type": "integer",
+                                "description": "The quantity to bind (optional)",
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    }
+
     @require_scope(scopes.ORG_ADMIN)
     @nickname("listOrgSkus")
+    @define_json_response("MarketplaceSubscriptionListResponse")
     def get(self, orgname):
         """
         Get sku assigned to org
@@ -993,6 +1673,7 @@ class OrganizationRhSku(ApiResource):
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("bindSkuToOrg")
+    @validate_json_request("SubscriptionBindingRequest")
     def post(self, orgname):
         """
         Assigns a sku to an org
@@ -1058,8 +1739,32 @@ class OrganizationRhSku(ApiResource):
 @path_param("orgname", "The name of the organization")
 @show_if(features.BILLING)
 class OrganizationRhSkuBatchRemoval(ApiResource):
+    schemas = {
+        "BatchRemoveRequest": {
+            "type": "object",
+            "description": "Request to batch remove subscriptions",
+            "required": ["subscriptions"],
+            "properties": {
+                "subscriptions": {
+                    "type": "array",
+                    "description": "List of subscription IDs to remove",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "subscription_id": {
+                                "type": "integer",
+                                "description": "The subscription ID to remove",
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    }
+
     @require_scope(scopes.ORG_ADMIN)
     @nickname("batchRemoveSku")
+    @validate_json_request("BatchRemoveRequest")
     def post(self, orgname):
         """
         Batch remove skus from org
@@ -1118,8 +1823,45 @@ class UserSkuList(ApiResource):
     bound to an org
     """
 
+    schemas = {
+        "UserMarketplaceSubscriptionView": {
+            "type": "object",
+            "description": "Describes a user's marketplace subscription",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "The marketplace subscription ID",
+                },
+                "sku": {
+                    "type": "string",
+                    "description": "The SKU identifier",
+                },
+                "quantity": {
+                    "type": "integer",
+                    "description": "The quantity of the subscription",
+                },
+                "assigned_to_org": {
+                    "type": "string",
+                    "description": "The organization name this subscription is assigned to, or null if unassigned",
+                },
+                "metadata": {
+                    "type": "object",
+                    "description": "Plan metadata associated with the SKU",
+                },
+            },
+        },
+        "UserMarketplaceSubscriptionListResponse": {
+            "type": "array",
+            "description": "Response containing user's marketplace subscriptions",
+            "items": {
+                "$ref": "#/definitions/UserMarketplaceSubscriptionView",
+            },
+        },
+    }
+
     @require_user_admin()
     @nickname("getUserMarketplaceSubscriptions")
+    @define_json_response("UserMarketplaceSubscriptionListResponse")
     def get(self):
         """
         List the invoices for the current user.

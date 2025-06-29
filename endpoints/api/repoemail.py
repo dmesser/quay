@@ -11,6 +11,7 @@ from app import tf
 from data.database import db
 from endpoints.api import (
     RepositoryParamResource,
+    define_json_response,
     internal_only,
     log_action,
     nickname,
@@ -37,8 +38,28 @@ class RepositoryAuthorizedEmail(RepositoryParamResource):
     Resource for checking and authorizing e-mail addresses to receive repo notifications.
     """
 
+    schemas = {
+        "EmailAuthorizationView": {
+            "type": "object",
+            "description": "Email authorization record for repository notifications",
+            "properties": {
+                "email": {"type": "string", "description": "The email address"},
+                "confirmed": {"type": "boolean", "description": "Whether the email is confirmed"},
+                "created": {
+                    "type": "string",
+                    "description": "When the authorization was created",
+                    "format": "date-time",
+                },
+                "namespace": {"type": "string", "description": "Repository namespace"},
+                "repository": {"type": "string", "description": "Repository name"},
+            },
+            "required": ["email", "confirmed"],
+        },
+    }
+
     @require_repo_admin(allow_for_superuser=True)
     @nickname("checkRepoEmailAuthorized")
+    @define_json_response("EmailAuthorizationView")
     def get(self, namespace, repository, email):
         """
         Checks to see if the given e-mail address is authorized on this repository.
@@ -53,6 +74,7 @@ class RepositoryAuthorizedEmail(RepositoryParamResource):
 
     @require_repo_admin(allow_for_superuser=True)
     @nickname("sendAuthorizeRepoEmail")
+    @define_json_response("EmailAuthorizationView")
     def post(self, namespace, repository, email):
         """
         Starts the authorization process for an e-mail address on a repository.
