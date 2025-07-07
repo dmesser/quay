@@ -8,7 +8,7 @@ import pytz
 from flask import Blueprint, request, session
 from flask_restful import Api, Resource, abort, reqparse
 from flask_restful.utils import unpack
-from jsonschema import ValidationError, validate
+from jsonschema import RefResolver, ValidationError, validate
 from werkzeug.routing.exceptions import RequestRedirect
 
 import features
@@ -654,7 +654,18 @@ def define_json_response(schema_name):
 
             if app.config["TESTING"]:
                 try:
-                    validate(resp, schema)
+                    # Create a complete JSON Schema document with all schemas in definitions
+                    full_schema = {
+                        "$schema": "http://json-schema.org/draft-07/schema#",
+                        "definitions": self.schemas,
+                        **schema,  # This spreads the top-level schema properties
+                    }
+
+                    # Create a RefResolver that can resolve references to definitions
+                    resolver = RefResolver(base_uri="", referrer=full_schema)
+
+                    # Validate using the resolver
+                    validate(resp, schema, resolver=resolver)
                 except ValidationError as ex:
                     raise InvalidResponse(str(ex))
 
