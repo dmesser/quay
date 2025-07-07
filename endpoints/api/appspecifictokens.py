@@ -80,7 +80,7 @@ class AppTokens(ApiResource):
         "TokenView": {
             "type": "object",
             "description": "Describes an app-specific token",
-            "required": ["uuid", "title", "last_accessed", "created", "expiration"],
+            "required": ["uuid", "title", "created"],
             "properties": {
                 "uuid": {
                     "type": "string",
@@ -93,25 +93,24 @@ class AppTokens(ApiResource):
                 },
                 "last_accessed": {
                     "type": "string",
-                    "description": "ISO 8601 formatted date when the token was last accessed",
-                    "format": "date-time",
+                    "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null if not set.",
+                    "x-nullable": True,
                 },
                 "created": {
                     "type": "string",
-                    "description": "ISO 8601 formatted date when the token was created",
-                    "format": "date-time",
+                    "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000)",
                 },
                 "expiration": {
                     "type": "string",
-                    "description": "ISO 8601 formatted date when the token expires",
-                    "format": "date-time",
+                    "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null if not set.",
+                    "x-nullable": True,
                 },
             },
         },
         "TokenViewWithCode": {
             "type": "object",
             "description": "Describes an app-specific token including the full token code",
-            "required": ["uuid", "title", "last_accessed", "created", "expiration", "token_code"],
+            "required": ["uuid", "title", "created", "token_code"],
             "properties": {
                 "uuid": {
                     "type": "string",
@@ -124,18 +123,17 @@ class AppTokens(ApiResource):
                 },
                 "last_accessed": {
                     "type": "string",
-                    "description": "ISO 8601 formatted date when the token was last accessed",
-                    "format": "date-time",
+                    "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null if not set.",
+                    "x-nullable": True,
                 },
                 "created": {
                     "type": "string",
-                    "description": "ISO 8601 formatted date when the token was created",
-                    "format": "date-time",
+                    "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000)",
                 },
                 "expiration": {
                     "type": "string",
-                    "description": "ISO 8601 formatted date when the token expires",
-                    "format": "date-time",
+                    "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null if not set.",
+                    "x-nullable": True,
                 },
                 "token_code": {
                     "type": "string",
@@ -161,25 +159,14 @@ class AppTokens(ApiResource):
                 },
             },
         },
-        "TokenCreateResponse": {
+        "TokenResponse": {
             "type": "object",
-            "description": "Response containing a newly created app-specific token",
+            "description": "Response containing a single app-specific token with its full token code",
             "required": ["token"],
             "properties": {
                 "token": {
-                    "$ref": "#/definitions/TokenViewWithCode",
-                    "description": "The newly created token with its full token code",
-                },
-            },
-        },
-        "TokenGetResponse": {
-            "type": "object",
-            "description": "Response containing a specific app-specific token",
-            "required": ["token"],
-            "properties": {
-                "token": {
-                    "$ref": "#/definitions/TokenViewWithCode",
-                    "description": "The requested token with its full token code",
+                    "allOf": [{"$ref": "#/definitions/TokenViewWithCode"}],
+                    "description": "The app-specific token with its full token code",
                 },
             },
         },
@@ -213,7 +200,7 @@ class AppTokens(ApiResource):
     @require_fresh_login
     @nickname("createAppToken")
     @validate_json_request("NewToken")
-    @define_json_response("TokenCreateResponse")
+    @define_json_response("TokenResponse")
     def post(self):
         """
         Create a new app specific token for user.
@@ -240,59 +227,10 @@ class AppToken(ApiResource):
     Provides operations on an app specific token.
     """
 
-    schemas = {
-        "TokenViewWithCode": {
-            "type": "object",
-            "description": "Describes an app-specific token including the full token code",
-            "required": ["uuid", "title", "last_accessed", "created", "expiration", "token_code"],
-            "properties": {
-                "uuid": {
-                    "type": "string",
-                    "description": "The unique identifier for the token",
-                    "format": "uuid",
-                },
-                "title": {
-                    "type": "string",
-                    "description": "The user-defined title for the token",
-                },
-                "last_accessed": {
-                    "type": "string",
-                    "description": "ISO 8601 formatted date when the token was last accessed",
-                    "format": "date-time",
-                },
-                "created": {
-                    "type": "string",
-                    "description": "ISO 8601 formatted date when the token was created",
-                    "format": "date-time",
-                },
-                "expiration": {
-                    "type": "string",
-                    "description": "ISO 8601 formatted date when the token expires",
-                    "format": "date-time",
-                },
-                "token_code": {
-                    "type": "string",
-                    "description": "The full token string that can be used for authentication",
-                },
-            },
-        },
-        "TokenGetResponse": {
-            "type": "object",
-            "description": "Response containing a specific app-specific token",
-            "required": ["token"],
-            "properties": {
-                "token": {
-                    "$ref": "#/definitions/TokenViewWithCode",
-                    "description": "The requested token with its full token code",
-                },
-            },
-        },
-    }
-
     @require_user_admin()
     @require_fresh_login
     @nickname("getAppToken")
-    @define_json_response("TokenGetResponse")
+    @define_json_response("TokenResponse")
     def get(self, token_uuid):
         """
         Returns a specific app token for the user.

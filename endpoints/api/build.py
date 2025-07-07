@@ -239,7 +239,7 @@ class RepositoryBuildList(RepositoryParamResource):
         },
         "UserView": {
             "type": "object",
-            "description": "Describes a user or robot account",
+            "description": "Describes a user or robot account in build context",
             "required": ["name", "kind", "is_robot"],
             "properties": {
                 "name": {
@@ -248,7 +248,8 @@ class RepositoryBuildList(RepositoryParamResource):
                 },
                 "kind": {
                     "type": "string",
-                    "description": "The type of account (e.g., 'user')",
+                    "description": "The type of account (always 'user' for build context)",
+                    "enum": ["user"],
                 },
                 "is_robot": {
                     "type": "boolean",
@@ -259,6 +260,7 @@ class RepositoryBuildList(RepositoryParamResource):
         "TriggerView": {
             "type": "object",
             "description": "Describes a build trigger",
+            "required": ["id", "service", "is_active", "config", "can_invoke", "enabled"],
             "properties": {
                 "id": {
                     "type": "string",
@@ -274,15 +276,17 @@ class RepositoryBuildList(RepositoryParamResource):
                 },
                 "build_source": {
                     "type": "string",
-                    "description": "The source branch or tag for the build",
+                    "description": "The source branch or tag for the build (visible based on permissions)",
+                    "x-nullable": True,
                 },
                 "repository_url": {
                     "type": "string",
-                    "description": "The URL of the source repository",
+                    "description": "The URL of the source repository (visible based on permissions)",
+                    "x-nullable": True,
                 },
                 "config": {
                     "type": "object",
-                    "description": "The trigger configuration (only visible to admins)",
+                    "description": "The trigger configuration (detailed only for admins, empty object otherwise)",
                 },
                 "can_invoke": {
                     "type": "boolean",
@@ -295,10 +299,13 @@ class RepositoryBuildList(RepositoryParamResource):
                 "disabled_reason": {
                     "type": "string",
                     "description": "Reason why the trigger is disabled, if applicable",
+                    "x-nullable": True,
                 },
                 "pull_robot": {
-                    "$ref": "#/definitions/UserView",
-                    "description": "The robot account used for pulling images",
+                    "allOf": [
+                        {"$ref": "#/definitions/UserView"},
+                    ],
+                    "description": "The robot account used for pulling images (only present for admins and not in build context)",
                 },
             },
         },
@@ -340,11 +347,13 @@ class RepositoryBuildList(RepositoryParamResource):
                 },
                 "phase": {
                     "type": "string",
-                    "description": "The current phase of the build (e.g., 'waiting', 'building', 'complete', 'error')",
+                    "description": "The current phase of the build (e.g., 'waiting', 'building', 'complete', 'error', 'expired', 'cannot_load')",
                 },
                 "started": {
                     "type": "string",
-                    "description": "ISO 8601 timestamp when the build started",
+                    "description": "When the build started (RFC 2822 format)",
+                    "format": "date-time",
+                    "x-format-note": "RFC 2822 format",
                 },
                 "display_name": {
                     "type": "string",
@@ -353,6 +362,7 @@ class RepositoryBuildList(RepositoryParamResource):
                 "status": {
                     "type": "object",
                     "description": "Detailed status information about the build",
+                    "additionalProperties": True,
                 },
                 "subdirectory": {
                     "type": "string",
@@ -374,38 +384,52 @@ class RepositoryBuildList(RepositoryParamResource):
                 "manual_user": {
                     "type": "string",
                     "description": "The username of the user who manually triggered the build",
+                    "x-nullable": True,
                 },
                 "is_writer": {
                     "type": "boolean",
                     "description": "Whether the current user has write permissions to the repository",
                 },
                 "trigger": {
-                    "$ref": "#/definitions/TriggerView",
+                    "allOf": [
+                        {"$ref": "#/definitions/TriggerView"},
+                    ],
                     "description": "The build trigger that started this build",
+                    "x-nullable": True,
                 },
                 "trigger_metadata": {
                     "type": "object",
-                    "description": "Metadata from the build trigger",
+                    "description": "Metadata from the build trigger (visible based on permissions)",
+                    "x-nullable": True,
+                    "additionalProperties": True,
                 },
                 "resource_key": {
                     "type": "string",
                     "description": "The resource key for the build",
+                    "x-nullable": True,
                 },
                 "pull_robot": {
-                    "$ref": "#/definitions/UserView",
-                    "description": "The robot account used for pulling images",
+                    "allOf": [
+                        {"$ref": "#/definitions/UserView"},
+                    ],
+                    "description": "The robot account used for pulling images (only present for admins and not in build context)",
+                    "x-nullable": True,
                 },
                 "repository": {
-                    "$ref": "#/definitions/RepositoryInfo",
+                    "allOf": [
+                        {"$ref": "#/definitions/RepositoryInfo"},
+                    ],
                     "description": "Information about the repository being built",
+                    "x-nullable": True,
                 },
                 "error": {
                     "type": "string",
                     "description": "Error message if the build failed",
+                    "x-nullable": True,
                 },
                 "archive_url": {
                     "type": "string",
-                    "description": "URL to download the build archive",
+                    "description": "URL to download the build archive (only present based on permissions and feature flags)",
                 },
             },
         },
@@ -448,18 +472,28 @@ class RepositoryBuildList(RepositoryParamResource):
         "LogEntry": {
             "type": "object",
             "description": "Describes a single log entry",
+            "required": ["message"],
             "properties": {
                 "message": {
                     "type": "string",
                     "description": "The log message",
                 },
-                "datetime": {
+                "type": {
                     "type": "string",
-                    "description": "ISO 8601 timestamp for the log entry",
+                    "description": "The type of log entry (e.g., 'phase', 'command', 'error', or null for regular output)",
+                    "enum": ["phase", "command", "error"],
+                    "x-nullable": True,
                 },
-                "stream": {
-                    "type": "string",
-                    "description": "The stream type (e.g., 'stdout', 'stderr')",
+                "data": {
+                    "type": "object",
+                    "description": "Additional data for the log entry",
+                    "properties": {
+                        "datetime": {
+                            "type": "string",
+                            "description": "When the log entry was created (ISO format string representation)",
+                        },
+                    },
+                    "additionalProperties": True,
                 },
             },
         },
@@ -498,11 +532,32 @@ class RepositoryBuildList(RepositoryParamResource):
         },
         "BuildLogsUnionResponse": {
             "type": "object",
-            "description": "Response containing either build logs or a URL to archived logs",
-            "oneOf": [
-                {"$ref": "#/definitions/BuildLogsResponse"},
-                {"$ref": "#/definitions/BuildLogsUrlResponse"},
-            ],
+            "description": "Response containing either build logs OR a URL to archived logs. If logs are archived, only 'logs_url' will be present. If logs are active, 'start', 'total', and 'logs' will be present.",
+            "properties": {
+                "start": {
+                    "type": "integer",
+                    "description": "The starting index of the logs returned",
+                    "x-nullable": True,
+                },
+                "total": {
+                    "type": "integer",
+                    "description": "The total number of log entries available",
+                    "x-nullable": True,
+                },
+                "logs": {
+                    "type": "array",
+                    "description": "List of log entries",
+                    "items": {
+                        "$ref": "#/definitions/LogEntry",
+                    },
+                    "x-nullable": True,
+                },
+                "logs_url": {
+                    "type": "string",
+                    "description": "The URL to download the archived build logs",
+                    "x-nullable": True,
+                },
+            },
         },
         "CancelBuildResponse": {
             "type": "string",

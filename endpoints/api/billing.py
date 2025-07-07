@@ -44,6 +44,346 @@ from util.request import get_request_ip
 
 MILLISECONDS_IN_SECONDS = 1000
 
+# --- Consolidated Shared Schemas ---
+SHARED_SCHEMAS = {
+    "CardInfo": {
+        "type": "object",
+        "description": "Describes a credit card",
+        "required": [],
+        "properties": {
+            "is_valid": {"type": "boolean", "description": "Whether the card information is valid"},
+            "owner": {"type": "string", "description": "The name of the card owner"},
+            "type": {"type": "string", "description": "The type of payment method (e.g., 'card')"},
+            "last4": {"type": "string", "description": "The last 4 digits of the card number"},
+            "exp_month": {"type": "integer", "description": "The expiration month (1-12)"},
+            "exp_year": {"type": "integer", "description": "The expiration year"},
+        },
+    },
+    "CardResponse": {
+        "type": "object",
+        "description": "Response containing credit card information",
+        "required": ["card"],
+        "properties": {
+            "card": {
+                "allOf": [
+                    {"$ref": "#/definitions/CardInfo"},
+                ],
+                "description": "The credit card information",
+            },
+        },
+    },
+    "CheckoutSession": {
+        # Schema based on Stripe Checkout Session object:
+        # https://docs.stripe.com/api/checkout/sessions/create
+        "type": "object",
+        "description": "Stripe checkout session for payment setup or subscription. See: https://docs.stripe.com/api/checkout/sessions/create",
+        "properties": {
+            "id": {"type": "string"},
+            "object": {"type": "string"},
+            "after_expiration": {"type": "object", "x-nullable": True},
+            "allow_promotion_codes": {"type": "boolean", "x-nullable": True},
+            "amount_subtotal": {"type": "integer", "x-nullable": True},
+            "amount_total": {"type": "integer", "x-nullable": True},
+            "automatic_tax": {"type": "object", "x-nullable": True},
+            "billing_address_collection": {"type": "string", "x-nullable": True},
+            "cancel_url": {"type": "string", "x-nullable": True},
+            "client_reference_id": {"type": "string", "x-nullable": True},
+            "consent": {"type": "object", "x-nullable": True},
+            "consent_collection": {"type": "object", "x-nullable": True},
+            "created": {"type": "integer"},
+            "currency": {"type": "string", "x-nullable": True},
+            "custom_fields": {"type": "array", "items": {"type": "object"}},
+            "custom_text": {"type": "object", "x-nullable": True},
+            "customer": {"type": "string", "x-nullable": True},
+            "customer_creation": {"type": "string", "x-nullable": True},
+            "customer_details": {"type": "object", "x-nullable": True},
+            "customer_email": {"type": "string", "x-nullable": True},
+            "expires_at": {"type": "integer"},
+            "invoice": {"type": "string", "x-nullable": True},
+            "invoice_creation": {"type": "object", "x-nullable": True},
+            "livemode": {"type": "boolean"},
+            "locale": {"type": "string", "x-nullable": True},
+            "metadata": {"type": "object"},
+            "mode": {"type": "string"},
+            "payment_intent": {"type": "string", "x-nullable": True},
+            "payment_link": {"type": "string", "x-nullable": True},
+            "payment_method_collection": {"type": "string", "x-nullable": True},
+            "payment_method_options": {"type": "object"},
+            "payment_method_types": {"type": "array", "items": {"type": "string"}},
+            "payment_status": {"type": "string"},
+            "phone_number_collection": {"type": "object", "x-nullable": True},
+            "recovered_from": {"type": "string", "x-nullable": True},
+            "setup_intent": {"type": "string", "x-nullable": True},
+            "shipping_address_collection": {"type": "object", "x-nullable": True},
+            "shipping_cost": {"type": "object", "x-nullable": True},
+            "shipping_details": {"type": "object", "x-nullable": True},
+            "shipping_options": {"type": "array", "items": {"type": "object"}},
+            "status": {"type": "string", "x-nullable": True},
+            "submit_type": {"type": "string", "x-nullable": True},
+            "subscription": {"type": "string", "x-nullable": True},
+            "success_url": {"type": "string", "x-nullable": True},
+            "total_details": {"type": "object", "x-nullable": True},
+            "url": {"type": "string", "x-nullable": True},
+        },
+        "required": [
+            "id",
+            "object",
+            "created",
+            "livemode",
+            "mode",
+            "payment_method_types",
+            "payment_status",
+            "status",
+        ],
+        "additionalProperties": True,
+    },
+    "SubscriptionView": {
+        "type": "object",
+        "description": "Describes a subscription",
+        "properties": {
+            "id": {"type": "string", "description": "The Stripe subscription ID"},
+            "status": {"type": "string", "description": "The subscription status"},
+            "plan": {"type": "string", "description": "The plan ID"},
+            "currentPeriodStart": {
+                "type": "integer",
+                "description": "Unix timestamp for the start of the current period",
+            },
+            "currentPeriodEnd": {
+                "type": "integer",
+                "description": "Unix timestamp for the end of the current period",
+            },
+            "cancelAtPeriodEnd": {
+                "type": "boolean",
+                "description": "Whether the subscription will cancel at period end",
+            },
+            "trialStart": {
+                "type": "integer",
+                "description": "Unix timestamp for the start of the trial period",
+                "x-nullable": True,
+            },
+            "trialEnd": {
+                "type": "integer",
+                "description": "Unix timestamp for the end of the trial period",
+                "x-nullable": True,
+            },
+        },
+    },
+    "SubscriptionResponse": {
+        "type": "object",
+        "description": "Response containing subscription information",
+        "required": ["hasSubscription", "isExistingCustomer", "plan", "usedPrivateRepos"],
+        "properties": {
+            "hasSubscription": {
+                "type": "boolean",
+                "description": "Whether the user/org has an active subscription",
+            },
+            "isExistingCustomer": {
+                "type": "boolean",
+                "description": "Whether the user/org is an existing Stripe customer",
+            },
+            "plan": {"type": "string", "description": "The current plan name"},
+            "usedPrivateRepos": {
+                "type": "integer",
+                "description": "Number of private repositories currently used",
+            },
+            "subscription": {
+                "allOf": [
+                    {"$ref": "#/definitions/SubscriptionView"},
+                    {"description": "The subscription details if hasSubscription is true"},
+                ]
+            },
+        },
+    },
+    "InvoiceView": {
+        "type": "object",
+        "description": "Describes an invoice",
+        "properties": {
+            "id": {"type": "string", "description": "The Stripe invoice ID"},
+            "date": {"type": "integer", "description": "Unix timestamp for the invoice date"},
+            "period_start": {
+                "type": "integer",
+                "description": "Unix timestamp for the start of the billing period",
+            },
+            "period_end": {
+                "type": "integer",
+                "description": "Unix timestamp for the end of the billing period",
+            },
+            "paid": {"type": "boolean", "description": "Whether the invoice has been paid"},
+            "amount_due": {"type": "integer", "description": "Amount due in cents"},
+            "next_payment_attempt": {
+                "type": "integer",
+                "description": "Unix timestamp for the next payment attempt",
+            },
+            "attempted": {"type": "boolean", "description": "Whether payment has been attempted"},
+            "closed": {"type": "boolean", "description": "Whether the invoice is closed"},
+            "total": {"type": "integer", "description": "Total amount in cents"},
+            "plan": {
+                "type": "string",
+                "description": "The plan ID associated with this invoice",
+                "x-nullable": True,
+            },
+        },
+    },
+    "InvoiceListResponse": {
+        "type": "object",
+        "description": "Response containing a list of invoices",
+        "required": ["invoices"],
+        "properties": {
+            "invoices": {
+                "type": "array",
+                "description": "List of invoices",
+                "items": {"$ref": "#/definitions/InvoiceView"},
+            },
+        },
+    },
+    "InvoiceField": {
+        "type": "object",
+        "description": "Description of an invoice field",
+        "required": ["title", "value"],
+        "properties": {
+            "title": {"type": "string", "description": "The title of the field being added"},
+            "value": {"type": "string", "description": "The value of the field being added"},
+        },
+    },
+    "InvoiceFieldView": {
+        "type": "object",
+        "description": "Describes a custom invoice field",
+        "required": ["uuid", "title", "value"],
+        "properties": {
+            "uuid": {
+                "type": "string",
+                "description": "The unique identifier for the invoice field",
+            },
+            "title": {"type": "string", "description": "The title of the invoice field"},
+            "value": {"type": "string", "description": "The value of the invoice field"},
+        },
+    },
+    "InvoiceFieldListResponse": {
+        "type": "object",
+        "description": "Response containing a list of custom invoice fields",
+        "required": ["fields"],
+        "properties": {
+            "fields": {
+                "type": "array",
+                "description": "List of custom invoice fields",
+                "items": {"$ref": "#/definitions/InvoiceFieldView"},
+            },
+        },
+    },
+    "PlanView": {
+        "type": "object",
+        "description": "Describes a billing plan",
+        "properties": {
+            "title": {"type": "string", "description": "The display name of the plan"},
+            "price": {
+                "type": "integer",
+                "description": "The price of the plan in cents",
+                "x-nullable": True,
+            },
+            "privateRepos": {
+                "type": "integer",
+                "description": "Number of private repositories allowed",
+            },
+            "stripeId": {"type": "string", "description": "The Stripe price ID for this plan"},
+            "audience": {
+                "type": "string",
+                "description": "Intended audience for the plan",
+                "x-nullable": True,
+            },
+            "bus_features": {
+                "type": "boolean",
+                "description": "Whether business features are enabled",
+                "x-nullable": True,
+            },
+            "deprecated": {
+                "type": "boolean",
+                "description": "Whether the plan is deprecated",
+                "x-nullable": True,
+            },
+            "free_trial_days": {
+                "type": "integer",
+                "description": "Number of free trial days",
+                "x-nullable": True,
+            },
+            "superseded_by": {
+                "type": "string",
+                "description": "Plan that supersedes this one, if any",
+                "x-nullable": True,
+            },
+            "plans_page_hidden": {
+                "type": "boolean",
+                "description": "Whether the plan is hidden from the plans page",
+                "x-nullable": True,
+            },
+            "rh_sku": {
+                "type": "string",
+                "description": "Red Hat SKU for the plan",
+                "x-nullable": True,
+            },
+            "sku_billing": {
+                "type": "boolean",
+                "description": "Whether SKU billing is enabled",
+                "x-nullable": True,
+            },
+            "billing_enabled": {
+                "type": "boolean",
+                "description": "Whether billing is enabled",
+                "x-nullable": True,
+            },
+        },
+        "required": ["title", "privateRepos", "stripeId"],
+    },
+    "PlanListResponse": {
+        "type": "object",
+        "description": "Response containing available billing plans",
+        "required": ["plans"],
+        "properties": {
+            "plans": {
+                "type": "array",
+                "description": "List of available billing plans",
+                "items": {"$ref": "#/definitions/PlanView"},
+            }
+        },
+    },
+    "SubscriptionRequest": {
+        "type": "object",
+        "description": "Request to create or update a subscription",
+        "required": ["plan"],
+        "properties": {
+            "plan": {"type": "string", "description": "The plan to subscribe to"},
+            "success_url": {"type": "string", "description": "The URL to redirect to on success"},
+            "cancel_url": {
+                "type": "string",
+                "description": "The URL to redirect to on cancellation",
+            },
+        },
+    },
+    "UserCard": {
+        "type": "object",
+        "description": "Request to update user's credit card",
+        "required": ["success_url", "cancel_url"],
+        "properties": {
+            "success_url": {"type": "string", "description": "The URL to redirect to on success"},
+            "cancel_url": {
+                "type": "string",
+                "description": "The URL to redirect to on cancellation",
+            },
+        },
+    },
+    "OrgCard": {
+        "type": "object",
+        "description": "Request to update organization's credit card",
+        "required": ["success_url", "cancel_url"],
+        "properties": {
+            "success_url": {"type": "string", "description": "The URL to redirect to on success"},
+            "cancel_url": {
+                "type": "string",
+                "description": "The URL to redirect to on cancellation",
+            },
+        },
+    },
+}
+
 
 def check_internal_api_for_subscription(namespace_user):
     """
@@ -249,54 +589,8 @@ class ListPlans(ApiResource):
     """
 
     schemas = {
-        "PlanView": {
-            "type": "object",
-            "description": "Describes a billing plan",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "description": "The unique identifier for the plan",
-                },
-                "name": {
-                    "type": "string",
-                    "description": "The display name of the plan",
-                },
-                "price": {
-                    "type": "number",
-                    "description": "The price of the plan in cents",
-                },
-                "currency": {
-                    "type": "string",
-                    "description": "The currency code for the plan price",
-                },
-                "privateRepos": {
-                    "type": "integer",
-                    "description": "Number of private repositories allowed",
-                },
-                "stripeId": {
-                    "type": "string",
-                    "description": "The Stripe price ID for this plan",
-                },
-                "free_trial_days": {
-                    "type": "integer",
-                    "description": "Number of free trial days",
-                },
-            },
-        },
-        "PlanListResponse": {
-            "type": "object",
-            "description": "Response containing available billing plans",
-            "required": ["plans"],
-            "properties": {
-                "plans": {
-                    "type": "array",
-                    "description": "List of available billing plans",
-                    "items": {
-                        "$ref": "#/definitions/PlanView",
-                    },
-                },
-            },
-        },
+        "PlanView": SHARED_SCHEMAS["PlanView"],
+        "PlanListResponse": SHARED_SCHEMAS["PlanListResponse"],
     }
 
     @nickname("listPlans")
@@ -319,99 +613,9 @@ class UserCard(ApiResource):
     """
 
     schemas = {
-        "UserCard": {
-            "id": "UserCard",
-            "type": "object",
-            "description": "Description of a user card",
-            "required": ["success_url", "cancel_url"],
-            "properties": {
-                "success_url": {
-                    "type": "string",
-                    "description": "Redirect url after successful checkout",
-                },
-                "cancel_url": {
-                    "type": "string",
-                    "description": "Redirect url after cancelled checkout",
-                },
-            },
-        },
-        "CardInfo": {
-            "type": "object",
-            "description": "Describes a credit card",
-            "required": ["is_valid"],
-            "properties": {
-                "is_valid": {
-                    "type": "boolean",
-                    "description": "Whether the card information is valid",
-                },
-                "owner": {
-                    "type": "string",
-                    "description": "The name of the card owner",
-                },
-                "type": {
-                    "type": "string",
-                    "description": "The type of payment method (e.g., 'card')",
-                },
-                "last4": {
-                    "type": "string",
-                    "description": "The last 4 digits of the card number",
-                },
-                "exp_month": {
-                    "type": "integer",
-                    "description": "The expiration month (1-12)",
-                },
-                "exp_year": {
-                    "type": "integer",
-                    "description": "The expiration year",
-                },
-            },
-        },
-        "CardResponse": {
-            "type": "object",
-            "description": "Response containing credit card information",
-            "required": ["card"],
-            "properties": {
-                "card": {
-                    "$ref": "#/definitions/CardInfo",
-                    "description": "The credit card information",
-                },
-            },
-        },
-        "CheckoutSession": {
-            "type": "object",
-            "description": "Stripe checkout session for payment setup",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "description": "The checkout session ID",
-                },
-                "url": {
-                    "type": "string",
-                    "description": "The URL to redirect the user to complete payment",
-                },
-                "payment_method_types": {
-                    "type": "array",
-                    "description": "List of accepted payment method types",
-                    "items": {"type": "string"},
-                },
-                "mode": {
-                    "type": "string",
-                    "description": "The mode of the checkout session",
-                },
-                "customer": {
-                    "type": "string",
-                    "description": "The Stripe customer ID",
-                },
-                "success_url": {
-                    "type": "string",
-                    "description": "URL to redirect after successful payment",
-                },
-                "cancel_url": {
-                    "type": "string",
-                    "description": "URL to redirect after cancelled payment",
-                },
-            },
-        },
+        "CardResponse": SHARED_SCHEMAS["CardResponse"],
+        "UserCard": SHARED_SCHEMAS["UserCard"],
+        "CheckoutSession": SHARED_SCHEMAS["CheckoutSession"],
     }
 
     @require_user_admin()
@@ -486,99 +690,9 @@ class OrganizationCard(ApiResource):
     """
 
     schemas = {
-        "OrgCard": {
-            "id": "OrgCard",
-            "type": "object",
-            "description": "Description of an Organization card",
-            "required": ["success_url", "cancel_url"],
-            "properties": {
-                "success_url": {
-                    "type": "string",
-                    "description": "Redirect url after successful checkout",
-                },
-                "cancel_url": {
-                    "type": "string",
-                    "description": "Redirect url after cancelled checkout",
-                },
-            },
-        },
-        "CardInfo": {
-            "type": "object",
-            "description": "Describes a credit card",
-            "required": ["is_valid"],
-            "properties": {
-                "is_valid": {
-                    "type": "boolean",
-                    "description": "Whether the card information is valid",
-                },
-                "owner": {
-                    "type": "string",
-                    "description": "The name of the card owner",
-                },
-                "type": {
-                    "type": "string",
-                    "description": "The type of payment method (e.g., 'card')",
-                },
-                "last4": {
-                    "type": "string",
-                    "description": "The last 4 digits of the card number",
-                },
-                "exp_month": {
-                    "type": "integer",
-                    "description": "The expiration month (1-12)",
-                },
-                "exp_year": {
-                    "type": "integer",
-                    "description": "The expiration year",
-                },
-            },
-        },
-        "CardResponse": {
-            "type": "object",
-            "description": "Response containing credit card information",
-            "required": ["card"],
-            "properties": {
-                "card": {
-                    "$ref": "#/definitions/CardInfo",
-                    "description": "The credit card information",
-                },
-            },
-        },
-        "CheckoutSession": {
-            "type": "object",
-            "description": "Stripe checkout session for payment setup",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "description": "The checkout session ID",
-                },
-                "url": {
-                    "type": "string",
-                    "description": "The URL to redirect the user to complete payment",
-                },
-                "payment_method_types": {
-                    "type": "array",
-                    "description": "List of accepted payment method types",
-                    "items": {"type": "string"},
-                },
-                "mode": {
-                    "type": "string",
-                    "description": "The mode of the checkout session",
-                },
-                "customer": {
-                    "type": "string",
-                    "description": "The Stripe customer ID",
-                },
-                "success_url": {
-                    "type": "string",
-                    "description": "URL to redirect after successful payment",
-                },
-                "cancel_url": {
-                    "type": "string",
-                    "description": "URL to redirect after cancelled payment",
-                },
-            },
-        },
+        "CardResponse": SHARED_SCHEMAS["CardResponse"],
+        "OrgCard": SHARED_SCHEMAS["OrgCard"],
+        "CheckoutSession": SHARED_SCHEMAS["CheckoutSession"],
     }
 
     @require_scope(scopes.ORG_ADMIN)
@@ -658,126 +772,10 @@ class UserPlan(ApiResource):
     """
 
     schemas = {
-        "UserSubscription": {
-            "id": "UserSubscription",
-            "type": "object",
-            "description": "Description of a user card",
-            "required": ["plan"],
-            "properties": {
-                "plan": {
-                    "type": "string",
-                    "description": "Plan name to which the user wants to subscribe",
-                },
-                "success_url": {
-                    "type": "string",
-                    "description": "Redirect url after successful checkout",
-                },
-                "cancel_url": {
-                    "type": "string",
-                    "description": "Redirect url after cancelled checkout",
-                },
-            },
-        },
-        "SubscriptionView": {
-            "type": "object",
-            "description": "Describes a subscription",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "description": "The Stripe subscription ID",
-                },
-                "status": {
-                    "type": "string",
-                    "description": "The subscription status",
-                },
-                "plan": {
-                    "type": "string",
-                    "description": "The plan ID",
-                },
-                "current_period_start": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the start of the current period",
-                },
-                "current_period_end": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the end of the current period",
-                },
-                "cancel_at_period_end": {
-                    "type": "boolean",
-                    "description": "Whether the subscription will cancel at period end",
-                },
-                "trial_start": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the start of the trial period",
-                },
-                "trial_end": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the end of the trial period",
-                },
-            },
-        },
-        "SubscriptionResponse": {
-            "type": "object",
-            "description": "Response containing subscription information",
-            "required": ["hasSubscription", "isExistingCustomer", "plan", "usedPrivateRepos"],
-            "properties": {
-                "hasSubscription": {
-                    "type": "boolean",
-                    "description": "Whether the user has an active subscription",
-                },
-                "isExistingCustomer": {
-                    "type": "boolean",
-                    "description": "Whether the user is an existing Stripe customer",
-                },
-                "plan": {
-                    "type": "string",
-                    "description": "The current plan name",
-                },
-                "usedPrivateRepos": {
-                    "type": "integer",
-                    "description": "Number of private repositories currently used",
-                },
-                "subscription": {
-                    "$ref": "#/definitions/SubscriptionView",
-                    "description": "The subscription details if hasSubscription is true",
-                },
-            },
-        },
-        "CheckoutSession": {
-            "type": "object",
-            "description": "Stripe checkout session for subscription",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "description": "The checkout session ID",
-                },
-                "url": {
-                    "type": "string",
-                    "description": "The URL to redirect the user to complete payment",
-                },
-                "payment_method_types": {
-                    "type": "array",
-                    "description": "List of accepted payment method types",
-                    "items": {"type": "string"},
-                },
-                "mode": {
-                    "type": "string",
-                    "description": "The mode of the checkout session",
-                },
-                "customer": {
-                    "type": "string",
-                    "description": "The Stripe customer ID",
-                },
-                "success_url": {
-                    "type": "string",
-                    "description": "URL to redirect after successful payment",
-                },
-                "cancel_url": {
-                    "type": "string",
-                    "description": "URL to redirect after cancelled payment",
-                },
-            },
-        },
+        "UserSubscription": SHARED_SCHEMAS["SubscriptionRequest"],
+        "SubscriptionResponse": SHARED_SCHEMAS["SubscriptionResponse"],
+        "CheckoutSession": SHARED_SCHEMAS["CheckoutSession"],
+        "SubscriptionView": SHARED_SCHEMAS["SubscriptionView"],
     }
 
     @require_user_admin()
@@ -899,126 +897,10 @@ class OrganizationPlan(ApiResource):
     """
 
     schemas = {
-        "OrgSubscription": {
-            "id": "OrgSubscription",
-            "type": "object",
-            "description": "Description of a user card",
-            "required": ["plan"],
-            "properties": {
-                "plan": {
-                    "type": "string",
-                    "description": "Plan name to which the user wants to subscribe",
-                },
-                "success_url": {
-                    "type": "string",
-                    "description": "Redirect url after successful checkout",
-                },
-                "cancel_url": {
-                    "type": "string",
-                    "description": "Redirect url after cancelled checkout",
-                },
-            },
-        },
-        "SubscriptionView": {
-            "type": "object",
-            "description": "Describes a subscription",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "description": "The Stripe subscription ID",
-                },
-                "status": {
-                    "type": "string",
-                    "description": "The subscription status",
-                },
-                "plan": {
-                    "type": "string",
-                    "description": "The plan ID",
-                },
-                "current_period_start": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the start of the current period",
-                },
-                "current_period_end": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the end of the current period",
-                },
-                "cancel_at_period_end": {
-                    "type": "boolean",
-                    "description": "Whether the subscription will cancel at period end",
-                },
-                "trial_start": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the start of the trial period",
-                },
-                "trial_end": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the end of the trial period",
-                },
-            },
-        },
-        "SubscriptionResponse": {
-            "type": "object",
-            "description": "Response containing subscription information",
-            "required": ["hasSubscription", "isExistingCustomer", "plan", "usedPrivateRepos"],
-            "properties": {
-                "hasSubscription": {
-                    "type": "boolean",
-                    "description": "Whether the organization has an active subscription",
-                },
-                "isExistingCustomer": {
-                    "type": "boolean",
-                    "description": "Whether the organization is an existing Stripe customer",
-                },
-                "plan": {
-                    "type": "string",
-                    "description": "The current plan name",
-                },
-                "usedPrivateRepos": {
-                    "type": "integer",
-                    "description": "Number of private repositories currently used",
-                },
-                "subscription": {
-                    "$ref": "#/definitions/SubscriptionView",
-                    "description": "The subscription details if hasSubscription is true",
-                },
-            },
-        },
-        "CheckoutSession": {
-            "type": "object",
-            "description": "Stripe checkout session for subscription",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "description": "The checkout session ID",
-                },
-                "url": {
-                    "type": "string",
-                    "description": "The URL to redirect the user to complete payment",
-                },
-                "payment_method_types": {
-                    "type": "array",
-                    "description": "List of accepted payment method types",
-                    "items": {"type": "string"},
-                },
-                "mode": {
-                    "type": "string",
-                    "description": "The mode of the checkout session",
-                },
-                "customer": {
-                    "type": "string",
-                    "description": "The Stripe customer ID",
-                },
-                "success_url": {
-                    "type": "string",
-                    "description": "URL to redirect after successful payment",
-                },
-                "cancel_url": {
-                    "type": "string",
-                    "description": "URL to redirect after cancelled payment",
-                },
-            },
-        },
+        "OrgSubscription": SHARED_SCHEMAS["SubscriptionRequest"],
+        "SubscriptionResponse": SHARED_SCHEMAS["SubscriptionResponse"],
+        "CheckoutSession": SHARED_SCHEMAS["CheckoutSession"],
+        "SubscriptionView": SHARED_SCHEMAS["SubscriptionView"],
     }
 
     @require_scope(scopes.ORG_ADMIN)
@@ -1150,70 +1032,7 @@ class UserInvoiceList(ApiResource):
     """
 
     schemas = {
-        "InvoiceView": {
-            "type": "object",
-            "description": "Describes an invoice",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "description": "The Stripe invoice ID",
-                },
-                "date": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the invoice date",
-                },
-                "period_start": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the start of the billing period",
-                },
-                "period_end": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the end of the billing period",
-                },
-                "paid": {
-                    "type": "boolean",
-                    "description": "Whether the invoice has been paid",
-                },
-                "amount_due": {
-                    "type": "integer",
-                    "description": "Amount due in cents",
-                },
-                "next_payment_attempt": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the next payment attempt",
-                },
-                "attempted": {
-                    "type": "boolean",
-                    "description": "Whether payment has been attempted",
-                },
-                "closed": {
-                    "type": "boolean",
-                    "description": "Whether the invoice is closed",
-                },
-                "total": {
-                    "type": "integer",
-                    "description": "Total amount in cents",
-                },
-                "plan": {
-                    "type": "string",
-                    "description": "The plan ID associated with this invoice",
-                },
-            },
-        },
-        "InvoiceListResponse": {
-            "type": "object",
-            "description": "Response containing a list of invoices",
-            "required": ["invoices"],
-            "properties": {
-                "invoices": {
-                    "type": "array",
-                    "description": "List of invoices",
-                    "items": {
-                        "$ref": "#/definitions/InvoiceView",
-                    },
-                },
-            },
-        },
+        "InvoiceListResponse": SHARED_SCHEMAS["InvoiceListResponse"],
     }
 
     @require_user_admin()
@@ -1240,70 +1059,7 @@ class OrganizationInvoiceList(ApiResource):
     """
 
     schemas = {
-        "InvoiceView": {
-            "type": "object",
-            "description": "Describes an invoice",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "description": "The Stripe invoice ID",
-                },
-                "date": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the invoice date",
-                },
-                "period_start": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the start of the billing period",
-                },
-                "period_end": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the end of the billing period",
-                },
-                "paid": {
-                    "type": "boolean",
-                    "description": "Whether the invoice has been paid",
-                },
-                "amount_due": {
-                    "type": "integer",
-                    "description": "Amount due in cents",
-                },
-                "next_payment_attempt": {
-                    "type": "integer",
-                    "description": "Unix timestamp for the next payment attempt",
-                },
-                "attempted": {
-                    "type": "boolean",
-                    "description": "Whether payment has been attempted",
-                },
-                "closed": {
-                    "type": "boolean",
-                    "description": "Whether the invoice is closed",
-                },
-                "total": {
-                    "type": "integer",
-                    "description": "Total amount in cents",
-                },
-                "plan": {
-                    "type": "string",
-                    "description": "The plan ID associated with this invoice",
-                },
-            },
-        },
-        "InvoiceListResponse": {
-            "type": "object",
-            "description": "Response containing a list of invoices",
-            "required": ["invoices"],
-            "properties": {
-                "invoices": {
-                    "type": "array",
-                    "description": "List of invoices",
-                    "items": {
-                        "$ref": "#/definitions/InvoiceView",
-                    },
-                },
-            },
-        },
+        "InvoiceListResponse": SHARED_SCHEMAS["InvoiceListResponse"],
     }
 
     @require_scope(scopes.ORG_ADMIN)
@@ -1333,55 +1089,9 @@ class UserInvoiceFieldList(ApiResource):
     """
 
     schemas = {
-        "InvoiceField": {
-            "id": "InvoiceField",
-            "type": "object",
-            "description": "Description of an invoice field",
-            "required": ["title", "value"],
-            "properties": {
-                "title": {
-                    "type": "string",
-                    "description": "The title of the field being added",
-                },
-                "value": {
-                    "type": "string",
-                    "description": "The value of the field being added",
-                },
-            },
-        },
-        "InvoiceFieldView": {
-            "type": "object",
-            "description": "Describes a custom invoice field",
-            "required": ["uuid", "title", "value"],
-            "properties": {
-                "uuid": {
-                    "type": "string",
-                    "description": "The unique identifier for the invoice field",
-                },
-                "title": {
-                    "type": "string",
-                    "description": "The title of the invoice field",
-                },
-                "value": {
-                    "type": "string",
-                    "description": "The value of the invoice field",
-                },
-            },
-        },
-        "InvoiceFieldListResponse": {
-            "type": "object",
-            "description": "Response containing a list of custom invoice fields",
-            "required": ["fields"],
-            "properties": {
-                "fields": {
-                    "type": "array",
-                    "description": "List of custom invoice fields",
-                    "items": {
-                        "$ref": "#/definitions/InvoiceFieldView",
-                    },
-                },
-            },
-        },
+        "InvoiceFieldListResponse": SHARED_SCHEMAS["InvoiceFieldListResponse"],
+        "InvoiceField": SHARED_SCHEMAS["InvoiceField"],
+        "InvoiceFieldView": SHARED_SCHEMAS["InvoiceFieldView"],
     }
 
     @require_user_admin()
@@ -1450,55 +1160,9 @@ class OrganizationInvoiceFieldList(ApiResource):
     """
 
     schemas = {
-        "InvoiceField": {
-            "id": "InvoiceField",
-            "type": "object",
-            "description": "Description of an invoice field",
-            "required": ["title", "value"],
-            "properties": {
-                "title": {
-                    "type": "string",
-                    "description": "The title of the field being added",
-                },
-                "value": {
-                    "type": "string",
-                    "description": "The value of the field being added",
-                },
-            },
-        },
-        "InvoiceFieldView": {
-            "type": "object",
-            "description": "Describes a custom invoice field",
-            "required": ["uuid", "title", "value"],
-            "properties": {
-                "uuid": {
-                    "type": "string",
-                    "description": "The unique identifier for the invoice field",
-                },
-                "title": {
-                    "type": "string",
-                    "description": "The title of the invoice field",
-                },
-                "value": {
-                    "type": "string",
-                    "description": "The value of the invoice field",
-                },
-            },
-        },
-        "InvoiceFieldListResponse": {
-            "type": "object",
-            "description": "Response containing a list of custom invoice fields",
-            "required": ["fields"],
-            "properties": {
-                "fields": {
-                    "type": "array",
-                    "description": "List of custom invoice fields",
-                    "items": {
-                        "$ref": "#/definitions/InvoiceFieldView",
-                    },
-                },
-            },
-        },
+        "InvoiceFieldListResponse": SHARED_SCHEMAS["InvoiceFieldListResponse"],
+        "InvoiceField": SHARED_SCHEMAS["InvoiceField"],
+        "InvoiceFieldView": SHARED_SCHEMAS["InvoiceFieldView"],
     }
 
     @require_scope(scopes.ORG_ADMIN)

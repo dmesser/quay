@@ -57,10 +57,12 @@ SECURITY_RESPONSE_SCHEMAS = {
             "Vectors": {
                 "type": "string",
                 "description": "CVSS v3 attack vectors string",
+                "x-nullable": True,
             },
             "Score": {
                 "type": "number",
-                "description": "CVSS v3 base score",
+                "description": "CVSS v3 base score (can be a number or null)",
+                "x-nullable": True,
             },
         },
     },
@@ -71,27 +73,33 @@ SECURITY_RESPONSE_SCHEMAS = {
             "UpdatedBy": {
                 "type": "string",
                 "description": "Entity that updated the vulnerability information",
+                "x-nullable": True,
             },
             "RepoName": {
                 "type": "string",
                 "description": "Name of the repository containing the vulnerability",
+                "x-nullable": True,
             },
             "RepoLink": {
                 "type": "string",
                 "description": "Link to the repository",
+                "x-nullable": True,
             },
             "DistroName": {
                 "type": "string",
                 "description": "Distribution name",
+                "x-nullable": True,
             },
             "DistroVersion": {
                 "type": "string",
                 "description": "Distribution version",
+                "x-nullable": True,
             },
             "NVD": {
                 "$ref": "#/definitions/NVD",
             },
         },
+        "required": ["UpdatedBy", "RepoName", "RepoLink", "DistroName", "DistroVersion", "NVD"],
     },
     "NVD": {
         "type": "object",
@@ -101,6 +109,7 @@ SECURITY_RESPONSE_SCHEMAS = {
                 "$ref": "#/definitions/CVSSv3",
             },
         },
+        "required": ["CVSSv3"],
     },
     "Vulnerability": {
         "type": "object",
@@ -110,26 +119,32 @@ SECURITY_RESPONSE_SCHEMAS = {
                 "type": "string",
                 "description": "Severity level of the vulnerability",
                 "enum": ["Unknown", "Negligible", "Low", "Medium", "High", "Critical"],
+                "x-nullable": True,
             },
             "NamespaceName": {
                 "type": "string",
                 "description": "Namespace where the vulnerability was found",
+                "x-nullable": True,
             },
             "Link": {
                 "type": "string",
                 "description": "Link to vulnerability details",
+                "x-nullable": True,
             },
             "FixedBy": {
                 "type": "string",
                 "description": "Version that fixes the vulnerability",
+                "x-nullable": True,
             },
             "Description": {
                 "type": "string",
                 "description": "Description of the vulnerability",
+                "x-nullable": True,
             },
             "Name": {
                 "type": "string",
                 "description": "Name/ID of the vulnerability",
+                "x-nullable": True,
             },
             "Metadata": {
                 "$ref": "#/definitions/VulnerabilityMetadata",
@@ -221,6 +236,7 @@ SECURITY_RESPONSE_SCHEMAS = {
             "IndexedByVersion": {
                 "type": "integer",
                 "description": "Version of the indexer used",
+                "x-nullable": True,
             },
             "Features": {
                 "type": "array",
@@ -250,7 +266,9 @@ SECURITY_RESPONSE_SCHEMAS = {
                 "$ref": "#/definitions/SecurityScanStatus",
             },
             "data": {
-                "$ref": "#/definitions/SecurityInformation",
+                "allOf": [{"$ref": "#/definitions/SecurityInformation"}],
+                "x-nullable": True,
+                "description": "Security information data, null if not available",
             },
         },
         "required": ["status"],

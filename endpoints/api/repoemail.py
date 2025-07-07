@@ -45,15 +45,10 @@ class RepositoryAuthorizedEmail(RepositoryParamResource):
             "properties": {
                 "email": {"type": "string", "description": "The email address"},
                 "confirmed": {"type": "boolean", "description": "Whether the email is confirmed"},
-                "created": {
-                    "type": "string",
-                    "description": "When the authorization was created",
-                    "format": "date-time",
-                },
                 "namespace": {"type": "string", "description": "Repository namespace"},
                 "repository": {"type": "string", "description": "Repository name"},
             },
-            "required": ["email", "confirmed"],
+            "required": ["email", "confirmed", "namespace", "repository"],
         },
     }
 

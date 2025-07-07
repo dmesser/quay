@@ -65,9 +65,106 @@ SEARCH_RESPONSE_SCHEMAS = {
         },
         "required": ["name", "hash", "color", "kind"],
     },
+    "UserEntity": {
+        "type": "object",
+        "description": "A user entity in search results",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The user name",
+            },
+            "kind": {
+                "type": "string",
+                "description": "Always 'user'",
+                "enum": ["user"],
+            },
+            "is_robot": {
+                "type": "boolean",
+                "description": "Whether the user is a robot",
+            },
+            "is_org_member": {
+                "type": "boolean",
+                "description": "Whether the user is a member of the organization (only present when searching within an org context)",
+            },
+            "avatar": {
+                "$ref": "#/definitions/Avatar",
+            },
+        },
+        "required": ["name", "kind", "is_robot", "avatar"],
+    },
+    "TeamEntity": {
+        "type": "object",
+        "description": "A team entity in search results",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The team name",
+            },
+            "kind": {
+                "type": "string",
+                "description": "Always 'team'",
+                "enum": ["team"],
+            },
+            "is_org_member": {
+                "type": "boolean",
+                "description": "Always true for teams",
+            },
+            "avatar": {
+                "$ref": "#/definitions/Avatar",
+            },
+        },
+        "required": ["name", "kind", "is_org_member", "avatar"],
+    },
+    "OrgEntity": {
+        "type": "object",
+        "description": "An organization entity in search results",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The organization name",
+            },
+            "kind": {
+                "type": "string",
+                "description": "Always 'org'",
+                "enum": ["org"],
+            },
+            "is_org_member": {
+                "type": "boolean",
+                "description": "Always true when the org appears in results",
+            },
+            "avatar": {
+                "$ref": "#/definitions/Avatar",
+            },
+        },
+        "required": ["name", "kind", "is_org_member", "avatar"],
+    },
+    "ExternalEntity": {
+        "type": "object",
+        "description": "An external user entity in search results",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The external user name",
+            },
+            "kind": {
+                "type": "string",
+                "description": "Always 'external'",
+                "enum": ["external"],
+            },
+            "title": {
+                "type": "string",
+                "description": "The external user's email or title",
+            },
+            "avatar": {
+                "$ref": "#/definitions/Avatar",
+            },
+        },
+        "required": ["name", "kind", "title", "avatar"],
+    },
     "Entity": {
         "type": "object",
-        "description": "A searchable entity (user, team, org, external user)",
+        "description": "A searchable entity (user, team, org, or external user) - discriminated by 'kind' field",
+        "discriminator": "kind",
         "properties": {
             "name": {
                 "type": "string",
@@ -78,23 +175,23 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "description": "The entity kind",
                 "enum": ["user", "team", "org", "external"],
             },
-            "is_robot": {
-                "type": "boolean",
-                "description": "Whether the entity is a robot (for users)",
-            },
-            "is_org_member": {
-                "type": "boolean",
-                "description": "Whether the entity is an org member",
-            },
-            "title": {
-                "type": "string",
-                "description": "Title/email for external users",
-            },
             "avatar": {
                 "$ref": "#/definitions/Avatar",
             },
+            "is_robot": {
+                "type": "boolean",
+                "description": "Whether the user is a robot (only for user entities)",
+            },
+            "is_org_member": {
+                "type": "boolean",
+                "description": "Whether the entity is an organization member",
+            },
+            "title": {
+                "type": "string",
+                "description": "The external user's email or title (only for external entities)",
+            },
         },
-        "required": ["name", "kind", "avatar"],
+        "required": ["name", "kind"],
     },
     "EntitySearchResults": {
         "type": "object",
@@ -124,7 +221,11 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "enum": ["user", "organization", "robot", "team"],
             },
             "avatar": {
-                "$ref": "#/definitions/Avatar",
+                "allOf": [
+                    {"$ref": "#/definitions/Avatar"},
+                    {"x-nullable": True},
+                ],
+                "description": "Avatar data (null for robots)",
             },
             "name": {
                 "type": "string",
@@ -199,6 +300,7 @@ SEARCH_RESPONSE_SCHEMAS = {
             "description": {
                 "type": "string",
                 "description": "The repository description",
+                "x-nullable": True,
             },
             "is_public": {
                 "type": "boolean",
@@ -213,9 +315,8 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "description": "The repository URL",
             },
             "last_modified": {
-                "type": "string",
-                "description": "Last modified date",
-                "format": "date-time",
+                "type": "number",
+                "description": "Last modified timestamp (seconds since epoch)",
             },
             "stars": {
                 "type": "integer",
@@ -231,11 +332,73 @@ SEARCH_RESPONSE_SCHEMAS = {
             "title",
             "namespace",
             "name",
-            "description",
             "is_public",
             "score",
             "href",
         ],
+    },
+    "SearchResult": {
+        "type": "object",
+        "description": "A generic search result item - discriminated by 'kind' field",
+        "discriminator": "kind",
+        "properties": {
+            "kind": {
+                "type": "string",
+                "description": "The result kind",
+                "enum": ["user", "organization", "robot", "team", "repository", "application"],
+            },
+            "name": {
+                "type": "string",
+                "description": "The result name",
+            },
+            "score": {
+                "type": "number",
+                "description": "The search score",
+            },
+            "href": {
+                "type": "string",
+                "description": "The result URL",
+            },
+            "title": {
+                "type": "string",
+                "description": "The result title",
+            },
+            "avatar": {
+                "$ref": "#/definitions/Avatar",
+            },
+            "short_name": {
+                "type": "string",
+                "description": "Short name (for robots)",
+            },
+            "organization": {
+                "$ref": "#/definitions/SearchEntity",
+            },
+            "namespace": {
+                "$ref": "#/definitions/SearchEntity",
+            },
+            "description": {
+                "type": "string",
+                "description": "The repository description",
+                "x-nullable": True,
+            },
+            "is_public": {
+                "type": "boolean",
+                "description": "Whether the repository is public",
+            },
+            "last_modified": {
+                "type": "number",
+                "description": "Last modified timestamp (seconds since epoch)",
+            },
+            "stars": {
+                "type": "integer",
+                "description": "Number of stars",
+            },
+            "popularity": {
+                "type": "number",
+                "description": "Popularity score",
+            },
+        },
+        "required": ["kind", "name", "score", "href"],
     },
     "SearchResults": {
         "type": "object",
@@ -245,11 +408,7 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "type": "array",
                 "description": "List of search results",
                 "items": {
-                    "oneOf": [
-                        {"$ref": "#/definitions/SearchEntity"},
-                        {"$ref": "#/definitions/SearchTeam"},
-                        {"$ref": "#/definitions/SearchRepository"},
-                    ],
+                    "$ref": "#/definitions/SearchResult",
                 },
             },
         },

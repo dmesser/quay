@@ -67,25 +67,6 @@ def get_trigger(trigger_uuid):
 
 # Response schemas for build trigger endpoints
 TRIGGER_RESPONSE_SCHEMAS = {
-    "UserView": {
-        "type": "object",
-        "description": "Information about a user or robot account",
-        "properties": {
-            "name": {
-                "type": "string",
-                "description": "The username of the user or robot",
-            },
-            "kind": {
-                "type": "string",
-                "description": "The type of account",
-            },
-            "is_robot": {
-                "type": "boolean",
-                "description": "Whether this is a robot account",
-            },
-        },
-        "required": ["name", "kind", "is_robot"],
-    },
     "TriggerView": {
         "type": "object",
         "description": "Information about a build trigger",
@@ -105,10 +86,12 @@ TRIGGER_RESPONSE_SCHEMAS = {
             "build_source": {
                 "type": "string",
                 "description": "The source branch or tag for the build",
+                "x-nullable": True,
             },
             "repository_url": {
                 "type": "string",
                 "description": "The URL of the source repository",
+                "x-nullable": True,
             },
             "config": {
                 "type": "object",
@@ -125,10 +108,26 @@ TRIGGER_RESPONSE_SCHEMAS = {
             "disabled_reason": {
                 "type": "string",
                 "description": "Reason why the trigger is disabled, if applicable",
+                "x-nullable": True,
             },
             "pull_robot": {
-                "$ref": "#/definitions/UserView",
-                "description": "The robot account used for pulling images",
+                "type": "object",
+                "description": "The robot account used for pulling images (only included for admins)",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The username of the robot",
+                    },
+                    "kind": {
+                        "type": "string",
+                        "description": "The type of account",
+                    },
+                    "is_robot": {
+                        "type": "boolean",
+                        "description": "Whether this is a robot account",
+                    },
+                },
+                "required": ["name", "kind", "is_robot"],
             },
         },
         "required": ["id", "service", "is_active", "can_invoke", "enabled"],
@@ -140,9 +139,7 @@ TRIGGER_RESPONSE_SCHEMAS = {
             "triggers": {
                 "type": "array",
                 "description": "List of build triggers",
-                "items": {
-                    "$ref": "#/definitions/TriggerView",
-                },
+                "items": {"allOf": [{"$ref": "#/definitions/TriggerView"}]},
             },
         },
         "required": ["triggers"],
@@ -161,8 +158,7 @@ TRIGGER_RESPONSE_SCHEMAS = {
             },
             "started": {
                 "type": "string",
-                "description": "Start time",
-                "format": "date-time",
+                "description": "Start time (RFC 2822 format)",
             },
             "display_name": {
                 "type": "string",
@@ -194,24 +190,56 @@ TRIGGER_RESPONSE_SCHEMAS = {
             "manual_user": {
                 "type": "string",
                 "description": "Manual user",
+                "x-nullable": True,
             },
             "is_writer": {
                 "type": "boolean",
                 "description": "Whether user can write",
             },
             "trigger": {
-                "$ref": "#/definitions/TriggerView",
+                "type": "object",
+                "description": "The build trigger that started this build",
+                "x-nullable": True,
+                "properties": {
+                    "id": {"type": "string"},
+                    "service": {"type": "string"},
+                    "is_active": {"type": "boolean"},
+                    "build_source": {"type": "string", "x-nullable": True},
+                    "repository_url": {"type": "string", "x-nullable": True},
+                    "config": {"type": "object"},
+                    "can_invoke": {"type": "boolean"},
+                    "enabled": {"type": "boolean"},
+                    "disabled_reason": {"type": "string", "x-nullable": True},
+                },
             },
             "trigger_metadata": {
                 "type": "object",
                 "description": "Trigger metadata",
+                "x-nullable": True,
             },
             "resource_key": {
                 "type": "string",
                 "description": "Resource key",
+                "x-nullable": True,
             },
             "pull_robot": {
-                "$ref": "#/definitions/UserView",
+                "type": "object",
+                "description": "The robot account used for pulling images",
+                "x-nullable": True,
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The username of the robot",
+                    },
+                    "kind": {
+                        "type": "string",
+                        "description": "The type of account",
+                    },
+                    "is_robot": {
+                        "type": "boolean",
+                        "description": "Whether this is a robot account",
+                    },
+                },
             },
             "repository": {
                 "type": "object",
@@ -231,10 +259,11 @@ TRIGGER_RESPONSE_SCHEMAS = {
             "error": {
                 "type": "string",
                 "description": "Error message",
+                "x-nullable": True,
             },
             "archive_url": {
                 "type": "string",
-                "description": "Archive URL",
+                "description": "Archive URL (only included if user has write permissions or READER_BUILD_LOGS is enabled)",
             },
         },
         "required": [
@@ -248,8 +277,6 @@ TRIGGER_RESPONSE_SCHEMAS = {
             "context",
             "tags",
             "is_writer",
-            "trigger",
-            "resource_key",
             "repository",
         ],
     },
@@ -260,9 +287,7 @@ TRIGGER_RESPONSE_SCHEMAS = {
             "builds": {
                 "type": "array",
                 "description": "List of builds",
-                "items": {
-                    "$ref": "#/definitions/BuildStatusView",
-                },
+                "items": {"allOf": [{"$ref": "#/definitions/BuildStatusView"}]},
             },
         },
         "required": ["builds"],
@@ -273,14 +298,23 @@ TRIGGER_RESPONSE_SCHEMAS = {
         "properties": {
             "dockerfile_paths": {
                 "type": "array",
-                "description": "List of Dockerfile paths",
+                "description": "List of Dockerfile paths (only included on success). Note: Paths are normalized by prepending '/', which creates double slashes for Bitbucket paths",
                 "items": {
                     "type": "string",
+                    "pattern": "^/",
+                    "description": "Dockerfile path starting with '/' (Bitbucket paths may have '//' due to normalization bug)",
                 },
             },
             "contextMap": {
                 "type": "object",
-                "description": "Context mapping information",
+                "description": "Context mapping information (only included on success)",
+                "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "description": "Possible context paths for the Dockerfile",
+                    },
+                },
             },
             "status": {
                 "type": "string",
@@ -289,10 +323,10 @@ TRIGGER_RESPONSE_SCHEMAS = {
             },
             "message": {
                 "type": "string",
-                "description": "Error message if status is error",
+                "description": "Error message (only included if status is error)",
             },
         },
-        "required": ["dockerfile_paths", "contextMap", "status"],
+        "required": ["status"],
     },
     "AnalysisResponse": {
         "type": "object",
@@ -301,120 +335,180 @@ TRIGGER_RESPONSE_SCHEMAS = {
             "status": {
                 "type": "string",
                 "description": "Analysis status",
-                "enum": ["analyzed", "error", "notimplemented"],
+                "enum": [
+                    "analyzed",
+                    "error",
+                    "notimplemented",
+                    "warning",
+                    "publicbase",
+                    "requiresrobot",
+                ],
             },
             "message": {
                 "type": "string",
-                "description": "Error message if status is error",
+                "description": "Error or warning message (only included for error/warning status)",
+            },
+            "namespace": {
+                "type": "string",
+                "description": "Image namespace",
+                "x-nullable": True,
+            },
+            "name": {
+                "type": "string",
+                "description": "Image repository name",
+                "x-nullable": True,
             },
             "robots": {
                 "type": "array",
-                "description": "List of available robot accounts",
+                "description": "List of available robot accounts (only included for admins)",
                 "items": {
-                    "$ref": "#/definitions/UserView",
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Robot username",
+                        },
+                        "kind": {
+                            "type": "string",
+                            "description": "Account type",
+                        },
+                        "is_robot": {
+                            "type": "boolean",
+                            "description": "Whether this is a robot account",
+                        },
+                        "can_read": {
+                            "type": "boolean",
+                            "description": "Whether the robot has read access",
+                        },
+                    },
+                    "required": ["name", "kind", "is_robot", "can_read"],
                 },
             },
-            "is_public": {
+            "is_admin": {
                 "type": "boolean",
-                "description": "Whether the repository is public",
+                "description": "Whether the user has admin permissions",
             },
         },
         "required": ["status"],
     },
+    "FieldValueItem": {
+        "type": "object",
+        "description": "A field value item which can be either a string or a ref object",
+        "properties": {
+            "kind": {
+                "type": "string",
+                "enum": ["branch", "tag"],
+                "description": "Type of ref (only present for ref objects)",
+            },
+            "name": {
+                "type": "string",
+                "description": "Name of the branch or tag (for ref objects) or the value itself (for string values)",
+            },
+        },
+        "required": ["name"],
+    },
     "FieldValuesResponse": {
         "type": "object",
-        "description": "Response containing field values",
+        "description": "Response containing field values. The format depends on the field_name and handler type: for branch_name/tag_name fields, values are strings; for refs field, values are objects with kind and name properties.",
         "properties": {
             "values": {
                 "type": "array",
-                "description": "List of field values",
+                "description": "List of field values. Items can be either strings (for branch_name/tag_name fields) or objects with 'kind' and 'name' properties (for refs field).",
                 "items": {
-                    "type": "string",
+                    "type": "object",
+                    "additionalProperties": True,
                 },
             },
         },
         "required": ["values"],
     },
+    "SourceItem": {
+        "type": "object",
+        "description": "Source repository information",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Repository name (GitHub), project path (GitLab), or repository slug (Bitbucket)",
+            },
+            "full_name": {
+                "type": "string",
+                "description": "Full repository name with owner/namespace",
+            },
+            "description": {
+                "type": "string",
+                "description": "Repository/project description (empty string if none)",
+            },
+            "last_updated": {
+                "type": "integer",
+                "description": "Last update timestamp (0 if no push date for GitHub; may be omitted for GitLab if invalid)",
+            },
+            "url": {
+                "type": "string",
+                "description": "Repository/project URL",
+            },
+            "has_admin_permissions": {
+                "type": "boolean",
+                "description": "Whether user has admin permissions (always true for GitHub; based on access level for GitLab; based on read_only flag for Bitbucket)",
+            },
+            "private": {
+                "type": "boolean",
+                "description": "Whether repository/project is private",
+            },
+        },
+        "required": ["name", "full_name", "description", "url", "has_admin_permissions", "private"],
+    },
     "SourcesResponse": {
         "type": "object",
-        "description": "Response containing build sources",
+        "description": "Response containing build sources. The exact fields and their semantics vary by handler type (GitHub, GitLab, Bitbucket).",
         "properties": {
             "sources": {
                 "type": "array",
-                "description": "List of build sources",
-                "items": {
-                    "type": "object",
-                    "description": "Build source information",
-                    "properties": {
-                        "name": {
-                            "type": "string",
-                            "description": "Repository name",
-                        },
-                        "full_name": {
-                            "type": "string",
-                            "description": "Full repository name",
-                        },
-                        "description": {
-                            "type": "string",
-                            "description": "Repository description",
-                        },
-                        "last_updated": {
-                            "type": "integer",
-                            "description": "Last update timestamp",
-                        },
-                        "url": {
-                            "type": "string",
-                            "description": "Repository URL",
-                        },
-                        "has_admin_permissions": {
-                            "type": "boolean",
-                            "description": "Whether user has admin permissions",
-                        },
-                        "private": {
-                            "type": "boolean",
-                            "description": "Whether repository is private",
-                        },
-                    },
-                    "required": [
-                        "name",
-                        "full_name",
-                        "description",
-                        "last_updated",
-                        "url",
-                        "has_admin_permissions",
-                        "private",
-                    ],
-                },
+                "description": "List of source repositories/projects",
+                "items": {"allOf": [{"$ref": "#/definitions/SourceItem"}]},
             },
         },
         "required": ["sources"],
     },
+    "NamespaceItem": {
+        "type": "object",
+        "description": "Namespace information",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "Namespace identifier (username/org for GitHub, numeric ID for GitLab, owner name for Bitbucket)",
+            },
+            "title": {
+                "type": "string",
+                "description": "Display name",
+            },
+            "personal": {
+                "type": "boolean",
+                "description": "True if this is a personal namespace",
+            },
+            "avatar_url": {
+                "type": "string",
+                "description": "Avatar/logo URL",
+                "x-nullable": True,
+            },
+            "url": {
+                "type": "string",
+                "description": "Profile URL (may be empty for GitHub organizations)",
+            },
+            "score": {
+                "type": "integer",
+                "description": "Relevance score (repo count or similar metric)",
+            },
+        },
+        "required": ["id", "title", "personal", "avatar_url", "url", "score"],
+    },
     "NamespacesResponse": {
         "type": "object",
-        "description": "Response containing build source namespaces",
+        "description": "Response containing namespace information. The exact semantics vary by handler type (GitHub, GitLab, Bitbucket).",
         "properties": {
             "namespaces": {
                 "type": "array",
                 "description": "List of namespaces",
-                "items": {
-                    "type": "object",
-                    "description": "Namespace information",
-                    "properties": {
-                        "id": {
-                            "type": "string",
-                            "description": "Namespace ID",
-                        },
-                        "name": {
-                            "type": "string",
-                            "description": "Namespace name",
-                        },
-                        "kind": {
-                            "type": "string",
-                            "description": "Namespace kind",
-                        },
-                    },
-                    "required": ["id", "name", "kind"],
-                },
+                "items": {"allOf": [{"$ref": "#/definitions/NamespaceItem"}]},
             },
         },
         "required": ["namespaces"],
@@ -552,6 +646,15 @@ class BuildTrigger(RepositoryParamResource):
 class BuildTriggerSubdirs(RepositoryParamResource):
     """
     Custom verb for fetching the subdirs which are buildable for a trigger.
+
+    Note: Handler implementations return paths differently:
+    - GitHub: Returns paths like "Dockerfile", "somesubdir/Dockerfile" (no leading slash)
+    - GitLab: Returns just filenames like "Dockerfile" (not full paths)
+    - Bitbucket: Returns paths like "/Dockerfile" (with leading slash)
+    - Custom handler: always returns 404 Not Found (NotImplementedError)
+
+    The endpoint normalizes by prepending "/" to all paths, which causes Bitbucket paths
+    to have double slashes (e.g., "//Dockerfile").
     """
 
     schemas = {
@@ -902,6 +1005,14 @@ FIELD_VALUE_LIMIT = 30
 class BuildTriggerFieldValues(RepositoryParamResource):
     """
     Custom verb to fetch a values list for a particular field name.
+
+    Note: Response format varies based on field_name and handler type:
+    - For GitHub/GitLab/Bitbucket handlers:
+      - field_name="refs": returns array of objects with {"kind": "branch"|"tag", "name": string}
+      - field_name="branch_name": returns array of branch name strings
+      - field_name="tag_name": returns array of tag name strings
+      - other field_name values: returns 404 Not Found
+    - For Custom handler: always returns 404 Not Found (NotImplementedError)
     """
 
     schemas = TRIGGER_RESPONSE_SCHEMAS
@@ -938,6 +1049,12 @@ class BuildTriggerFieldValues(RepositoryParamResource):
 class BuildTriggerSources(RepositoryParamResource):
     """
     Custom verb to fetch the list of build sources for the trigger config.
+
+    Note: Response format varies by handler type:
+    - GitHub: has_admin_permissions is always true; last_updated is 0 if no push date
+    - GitLab: last_updated may be omitted if invalid; has_admin_permissions based on access level
+    - Bitbucket: has_admin_permissions based on read_only flag
+    - Custom handler: always returns 404 Not Found (NotImplementedError)
     """
 
     schemas = {
@@ -990,6 +1107,12 @@ class BuildTriggerSources(RepositoryParamResource):
 class BuildTriggerSourceNamespaces(RepositoryParamResource):
     """
     Custom verb to fetch the list of namespaces (orgs, projects, etc) for the trigger config.
+
+    Note: Response format varies by handler type:
+    - GitHub: url is empty for organizations; score is private repo count for personal namespace, 0 for orgs
+    - GitLab: id is numeric string; avatar_url may be null; score increments with namespace occurrences
+    - Bitbucket: url is always https://bitbucket.org/{owner}; score is repository count
+    - Custom handler: always returns 404 Not Found (NotImplementedError)
     """
 
     schemas = TRIGGER_RESPONSE_SCHEMAS

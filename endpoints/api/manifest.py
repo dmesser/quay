@@ -157,6 +157,7 @@ class RepositoryManifest(RepositoryParamResource):
                 "compressed_size": {
                     "type": "integer",
                     "description": "The compressed size of the layer in bytes",
+                    "x-nullable": True,
                 },
                 "is_remote": {
                     "type": "boolean",
@@ -166,21 +167,23 @@ class RepositoryManifest(RepositoryParamResource):
                     "type": "array",
                     "description": "URLs where the layer can be downloaded",
                     "items": {"type": "string"},
+                    "x-nullable": True,
                 },
                 "command": {
-                    "oneOf": [
-                        {"type": "string"},
-                        {"type": "array", "items": {"type": "string"}},
-                    ],
+                    "type": "array",
+                    "items": {"type": "string"},
                     "description": "The command used to create this layer",
+                    "x-nullable": True,
                 },
                 "comment": {
                     "type": "string",
                     "description": "Comment associated with the layer",
+                    "x-nullable": True,
                 },
                 "author": {
                     "type": "string",
                     "description": "The author of the layer",
+                    "x-nullable": True,
                 },
                 "blob_digest": {
                     "type": "string",
@@ -188,7 +191,8 @@ class RepositoryManifest(RepositoryParamResource):
                 },
                 "created_datetime": {
                     "type": "string",
-                    "description": "ISO 8601 timestamp when the layer was created",
+                    "description": "RFC 2822 timestamp when the layer was created (can be null if not available)",
+                    "x-nullable": True,
                 },
             },
         },
@@ -218,21 +222,23 @@ class RepositoryManifest(RepositoryParamResource):
                 "config_media_type": {
                     "type": "string",
                     "description": "The media type of the manifest configuration",
+                    "x-nullable": True,
                 },
                 "layers_compressed_size": {
                     "type": "integer",
-                    "description": "The total compressed size of all layers in bytes",
+                    "description": "The total compressed size of all layers in bytes (0 for manifest lists)",
                 },
                 "layers": {
                     "type": "array",
-                    "description": "List of layers in the manifest",
+                    "description": "List of layers in the manifest (null for manifest lists)",
                     "items": {
                         "$ref": "#/definitions/LayerInfo",
                     },
+                    "x-nullable": True,
                 },
                 "modelcard": {
                     "type": "string",
-                    "description": "Model card markdown content if available",
+                    "description": "Model card markdown content (only present when include_modelcard=true)",
                 },
             },
         },
@@ -303,9 +309,10 @@ class RepositoryManifestLabels(RepositoryParamResource):
                     "description": "The value for the label",
                 },
                 "media_type": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "The media type for this label",
-                    "enum": ALLOWED_LABEL_MEDIA_TYPES + [None],
+                    "enum": ["text/plain", "application/json"],
+                    "x-nullable": True,
                 },
             },
         },
@@ -333,6 +340,7 @@ class RepositoryManifestLabels(RepositoryParamResource):
                 "media_type": {
                     "type": "string",
                     "description": "The media type of the label value",
+                    "x-nullable": True,
                 },
             },
         },
@@ -356,15 +364,12 @@ class RepositoryManifestLabels(RepositoryParamResource):
             "required": ["label"],
             "properties": {
                 "label": {
-                    "$ref": "#/definitions/LabelInfo",
+                    "allOf": [
+                        {"$ref": "#/definitions/LabelInfo"},
+                    ],
                     "description": "The created label",
                 },
             },
-        },
-        "DeleteLabelResponse": {
-            "type": "string",
-            "description": "Empty response indicating successful label deletion",
-            "example": "",
         },
     }
 
@@ -500,7 +505,6 @@ class ManageRepositoryManifestLabel(RepositoryParamResource):
     @disallow_for_app_repositories
     @disallow_for_non_normal_repositories
     @disallow_for_user_namespace
-    @define_json_response("DeleteLabelResponse")
     def delete(self, namespace_name, repository_name, manifestref, labelid):
         """
         Deletes an existing label from a manifest.

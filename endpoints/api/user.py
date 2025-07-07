@@ -307,24 +307,29 @@ class User(ApiResource):
                     "description": "The user's username",
                 },
                 "invoice_email_address": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "Custom email address for receiving invoices",
+                    "x-nullable": True,
                 },
                 "given_name": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "The optional entered given name for the user",
+                    "x-nullable": True,
                 },
                 "family_name": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "The optional entered family name for the user",
+                    "x-nullable": True,
                 },
                 "company": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "The optional entered company for the user",
+                    "x-nullable": True,
                 },
                 "location": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "The optional entered location for the user",
+                    "x-nullable": True,
                 },
             },
         },
@@ -497,12 +502,14 @@ class User(ApiResource):
                     "description": "Whether the user desires to receive an invoice email",
                 },
                 "invoice_email_address": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "Custom email address for receiving invoices",
+                    "x-nullable": True,
                 },
                 "tag_expiration_s": {
-                    "type": ["integer", "null"],
+                    "type": "integer",
                     "description": "The number of seconds for tag expiration",
+                    "x-nullable": True,
                 },
                 "prompts": {
                     "type": "array",
@@ -512,20 +519,24 @@ class User(ApiResource):
                     },
                 },
                 "company": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "The user's company",
+                    "x-nullable": True,
                 },
                 "family_name": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "The user's family name",
+                    "x-nullable": True,
                 },
                 "given_name": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "The user's given name",
+                    "x-nullable": True,
                 },
                 "location": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "The user's location",
+                    "x-nullable": True,
                 },
                 "is_free_account": {
                     "type": "boolean",
@@ -545,6 +556,32 @@ class User(ApiResource):
                 "quota_report": {
                     "type": "object",
                     "description": "Quota usage report",
+                    "properties": {
+                        "quota_bytes": {
+                            "type": "integer",
+                            "description": "Current quota usage in bytes",
+                        },
+                        "configured_quota": {
+                            "type": "integer",
+                            "description": "Configured quota limit in bytes",
+                        },
+                        "running_backfill": {
+                            "type": "string",
+                            "description": "Backfill status (deprecated, use backfill_status)",
+                            "enum": ["waiting", "running", "complete"],
+                        },
+                        "backfill_status": {
+                            "type": "string",
+                            "description": "Current backfill status",
+                            "enum": ["waiting", "running", "complete"],
+                        },
+                    },
+                    "required": [
+                        "quota_bytes",
+                        "configured_quota",
+                        "running_backfill",
+                        "backfill_status",
+                    ],
                 },
                 "super_user": {
                     "type": "boolean",
@@ -559,6 +596,28 @@ class User(ApiResource):
                 "awaiting_verification": {
                     "type": "boolean",
                     "description": "Whether email verification is required",
+                },
+            },
+        },
+        "SigninResponse": {
+            "type": "object",
+            "description": "Response from signin operations",
+            "properties": {
+                "success": {
+                    "type": "boolean",
+                    "description": "Whether the signin was successful",
+                },
+                "needsEmailVerification": {
+                    "type": "boolean",
+                    "description": "Whether email verification is required",
+                },
+                "invalidCredentials": {
+                    "type": "boolean",
+                    "description": "Whether the credentials were invalid",
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Error message if signin failed",
                 },
             },
         },
@@ -1007,28 +1066,6 @@ class ConvertToOrganization(ApiResource):
                 },
             },
         },
-        "SigninResponse": {
-            "type": "object",
-            "description": "Response from signin operations",
-            "properties": {
-                "success": {
-                    "type": "boolean",
-                    "description": "Whether the signin was successful",
-                },
-                "needsEmailVerification": {
-                    "type": "boolean",
-                    "description": "Whether email verification is required",
-                },
-                "invalidCredentials": {
-                    "type": "boolean",
-                    "description": "Whether the credentials were invalid",
-                },
-                "message": {
-                    "type": "string",
-                    "description": "Error message if signin failed",
-                },
-            },
-        },
     }
 
     @require_user_admin()
@@ -1452,8 +1489,9 @@ class UserNotificationList(ApiResource):
                     "description": "The notification UUID",
                 },
                 "organization": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "The organization name if the notification is for an organization",
+                    "x-nullable": True,
                 },
                 "kind": {
                     "type": "string",
@@ -1461,7 +1499,8 @@ class UserNotificationList(ApiResource):
                 },
                 "created": {
                     "type": "string",
-                    "description": "When the notification was created",
+                    "description": "When the notification was created (RFC 2822 format)",
+                    "format": "date-time",
                 },
                 "metadata": {
                     "type": "object",
@@ -1915,8 +1954,9 @@ class StarredRepositoryList(ApiResource):
                     "description": "The name of the repository",
                 },
                 "description": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "The description of the repository",
+                    "x-nullable": True,
                 },
                 "is_public": {
                     "type": "boolean",

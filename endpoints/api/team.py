@@ -222,7 +222,7 @@ TEAM_RESPONSE_SCHEMAS = {
             },
             "new_team": {
                 "type": "boolean",
-                "description": "Whether this is a newly created team",
+                "description": "Whether this is a newly created team (only present in creation responses)",
             },
         },
         "required": ["name", "description", "can_view", "role", "avatar"],
@@ -233,7 +233,7 @@ TEAM_RESPONSE_SCHEMAS = {
         "properties": {
             "name": {
                 "type": "string",
-                "description": "The username of the member",
+                "description": "The username of the member (required for kind='user', optional for kind='invite')",
             },
             "kind": {
                 "type": "string",
@@ -242,7 +242,7 @@ TEAM_RESPONSE_SCHEMAS = {
             },
             "is_robot": {
                 "type": "boolean",
-                "description": "Whether the member is a robot account",
+                "description": "Whether the member is a robot account (only present for kind='user')",
             },
             "avatar": {
                 "$ref": "#/definitions/Avatar",
@@ -253,10 +253,10 @@ TEAM_RESPONSE_SCHEMAS = {
             },
             "email": {
                 "type": "string",
-                "description": "Email address (only for invite kind)",
+                "description": "Email address (only present for kind='invite' when invite is email-based)",
             },
         },
-        "required": ["name", "kind", "avatar", "invited"],
+        "required": ["kind", "avatar", "invited"],
     },
     "TeamSyncInfo": {
         "type": "object",
@@ -268,12 +268,12 @@ TEAM_RESPONSE_SCHEMAS = {
             },
             "last_updated": {
                 "type": "string",
-                "description": "Last sync update time",
+                "description": "Last sync update time (only present for superusers or when NONSUPERUSER_TEAM_SYNCING_SETUP is enabled)",
                 "format": "date-time",
             },
             "config": {
                 "type": "object",
-                "description": "Sync configuration",
+                "description": "Sync configuration (only present for superusers or when NONSUPERUSER_TEAM_SYNCING_SETUP is enabled)",
             },
         },
         "required": ["service"],
@@ -305,7 +305,16 @@ TEAM_RESPONSE_SCHEMAS = {
                         "type": "string",
                         "description": "The service name",
                     },
+                    "base_dn": {
+                        "type": "string",
+                        "description": "Base DN for LDAP service (only present for LDAP)",
+                    },
+                    "issuer_domain": {
+                        "type": "string",
+                        "description": "Issuer domain for OIDC service (only present for OIDC)",
+                    },
                 },
+                "required": ["service"],
             },
             "synced": {
                 "$ref": "#/definitions/TeamSyncInfo",

@@ -92,13 +92,13 @@ ROBOT_RESPONSE_SCHEMAS = {
             },
             "created": {
                 "type": "string",
-                "description": "The date the robot was created",
-                "format": "date-time",
+                "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null",
+                "x-nullable": True,
             },
             "last_accessed": {
                 "type": "string",
-                "description": "The date the robot was last accessed",
-                "format": "date-time",
+                "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null",
+                "x-nullable": True,
             },
             "description": {
                 "type": "string",
@@ -106,14 +106,14 @@ ROBOT_RESPONSE_SCHEMAS = {
             },
             "token": {
                 "type": "string",
-                "description": "The robot's authentication token",
+                "description": "The robot's authentication token (only included when explicitly requested)",
             },
             "unstructured_metadata": {
                 "type": "object",
-                "description": "Unstructured metadata for the robot",
+                "description": "Unstructured metadata for the robot (only included when explicitly requested)",
             },
         },
-        "required": ["name", "created", "last_accessed", "description"],
+        "required": ["name", "description"],
     },
     "RobotWithPermissions": {
         "type": "object",
@@ -125,30 +125,19 @@ ROBOT_RESPONSE_SCHEMAS = {
             },
             "created": {
                 "type": "string",
-                "description": "The date the robot was created",
-                "format": "date-time",
+                "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null",
+                "x-nullable": True,
             },
             "last_accessed": {
                 "type": "string",
-                "description": "The date the robot was last accessed",
-                "format": "date-time",
+                "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null",
+                "x-nullable": True,
             },
             "teams": {
                 "type": "array",
                 "description": "Teams the robot belongs to",
                 "items": {
-                    "type": "object",
-                    "properties": {
-                        "name": {
-                            "type": "string",
-                            "description": "The team name",
-                        },
-                        "avatar": {
-                            "type": "object",
-                            "description": "The team's avatar information",
-                        },
-                    },
-                    "required": ["name", "avatar"],
+                    "$ref": "#/definitions/Team",
                 },
             },
             "repositories": {
@@ -164,10 +153,25 @@ ROBOT_RESPONSE_SCHEMAS = {
             },
             "token": {
                 "type": "string",
-                "description": "The robot's authentication token",
+                "description": "The robot's authentication token (only included when explicitly requested)",
             },
         },
-        "required": ["name", "created", "last_accessed", "teams", "repositories", "description"],
+        "required": ["name", "teams", "repositories", "description"],
+    },
+    "Team": {
+        "type": "object",
+        "description": "A team that a robot belongs to",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The team name",
+            },
+            "avatar": {
+                "type": "object",
+                "description": "The team's avatar information",
+            },
+        },
+        "required": ["name", "avatar"],
     },
     "RobotList": {
         "type": "object",
@@ -223,6 +227,24 @@ ROBOT_RESPONSE_SCHEMAS = {
             },
         },
         "required": ["permissions"],
+    },
+    "RobotFederationConfig": {
+        "type": "array",
+        "description": "Federation configuration for the robot",
+        "items": {
+            "type": "object",
+            "properties": {
+                "issuer": {
+                    "type": "string",
+                    "description": "The issuer of the token",
+                },
+                "subject": {
+                    "type": "string",
+                    "description": "The subject of the token",
+                },
+            },
+            "required": ["issuer", "subject"],
+        },
     },
     "ErrorResponse": {
         "type": "object",
@@ -607,24 +629,7 @@ class OrgRobotFederation(ApiResource):
 
     schemas = {
         "CreateRobotFederation": CREATE_ROBOT_FEDERATION_SCHEMA,
-        "RobotFederationConfig": {
-            "type": "array",
-            "description": "Federation configuration for the robot",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "issuer": {
-                        "type": "string",
-                        "description": "The issuer of the token",
-                    },
-                    "subject": {
-                        "type": "string",
-                        "description": "The subject of the token",
-                    },
-                },
-                "required": ["issuer", "subject"],
-            },
-        },
+        **ROBOT_RESPONSE_SCHEMAS,
     }
 
     @require_scope(scopes.ORG_ADMIN)

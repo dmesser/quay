@@ -27,40 +27,6 @@ class GlobalUserMessages(ApiResource):
     """
 
     schemas = {
-        "GetMessage": {
-            "id": "GetMessage",
-            "type": "object",
-            "description": "Messages that a super user has saved in the past",
-            "properties": {
-                "message": {
-                    "type": "array",
-                    "description": "A list of messages",
-                    "itemType": {
-                        "type": "object",
-                        "properties": {
-                            "uuid": {
-                                "type": "string",
-                                "description": "The message id",
-                            },
-                            "content": {
-                                "type": "string",
-                                "description": "The actual message",
-                            },
-                            "media_type": {
-                                "type": "string",
-                                "description": "The media type of the message",
-                                "enum": ["text/plain", "text/markdown"],
-                            },
-                            "severity": {
-                                "type": "string",
-                                "description": "The severity of the message",
-                                "enum": ["info", "warning", "error"],
-                            },
-                        },
-                    },
-                },
-            },
-        },
         "CreateMessage": {
             "id": "CreateMessage",
             "type": "object",
@@ -134,12 +100,12 @@ class GlobalUserMessages(ApiResource):
         },
         "CreateMessageResponse": {
             "type": "string",
-            "description": "Empty response indicating successful message creation",
+            "description": "Empty response indicating successful message creation (returns empty string)",
             "example": "",
         },
         "DeleteMessageResponse": {
             "type": "string",
-            "description": "Empty response indicating successful message deletion",
+            "description": "Empty response indicating successful message deletion (returns empty string)",
             "example": "",
         },
     }

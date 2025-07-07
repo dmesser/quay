@@ -21,69 +21,14 @@ from endpoints.api.signing_models_pre_oci import pre_oci_model as model
 
 # Response schemas for signing endpoints
 SIGNING_RESPONSE_SCHEMAS = {
-    "TargetHashes": {
-        "type": "object",
-        "description": "Hash information for a target",
-        "properties": {
-            "sha256": {
-                "type": "string",
-                "description": "SHA256 hash of the target",
-            },
-        },
-        "required": ["sha256"],
-    },
-    "Target": {
-        "type": "object",
-        "description": "A signed target with hash and size information",
-        "properties": {
-            "hashes": {
-                "$ref": "#/definitions/TargetHashes",
-            },
-            "length": {
-                "type": "integer",
-                "description": "Size of the target in bytes",
-            },
-        },
-        "required": ["hashes", "length"],
-    },
-    "Targets": {
-        "type": "object",
-        "description": "Collection of targets indexed by tag name",
-        "additionalProperties": {
-            "$ref": "#/definitions/Target",
-        },
-    },
-    "Delegation": {
-        "type": "object",
-        "description": "A delegation with targets and expiration",
-        "properties": {
-            "targets": {
-                "$ref": "#/definitions/Targets",
-            },
-            "expiration": {
-                "type": "string",
-                "description": "Expiration date of the delegation",
-                "format": "date-time",
-            },
-        },
-        "required": ["targets", "expiration"],
-    },
-    "Delegations": {
-        "type": "object",
-        "description": "Collection of delegations indexed by delegation name",
-        "additionalProperties": {
-            "oneOf": [
-                {"$ref": "#/definitions/Delegation"},
-                {"type": "null"},
-            ],
-        },
-    },
     "SignaturesResponse": {
         "type": "object",
-        "description": "Response containing all delegations for a repository",
+        "description": "Response containing delegation names for a repository",
         "properties": {
             "delegations": {
-                "$ref": "#/definitions/Delegations",
+                "type": "array",
+                "description": "List of delegation names",
+                "items": {"type": "string", "description": "Name of a delegation role"},
             },
         },
         "required": ["delegations"],
@@ -114,4 +59,11 @@ class RepositorySignatures(RepositoryParamResource):
         if not model.is_trust_enabled(namespace, repository):
             raise NotFound()
 
-        return {"delegations": tuf_metadata_api.get_all_tags_with_expiration(namespace, repository)}
+        signed = tuf_metadata_api.get_all_tags_with_expiration(namespace, repository)
+        delegations = signed.get("delegations")
+        if delegations and delegations.get("roles"):
+            delegation_names = [role.get("name") for role in delegations.get("roles")]
+        else:
+            delegation_names = []
+
+        return {"delegations": delegation_names}

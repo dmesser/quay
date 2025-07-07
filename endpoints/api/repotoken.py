@@ -16,6 +16,25 @@ from endpoints.api import (
 
 logger = logging.getLogger(__name__)
 
+# Shared schema definitions
+DEPRECATION_RESPONSE_SCHEMA = {
+    "DeprecationResponse": {
+        "type": "object",
+        "description": "Deprecation message for repository token endpoints",
+        "properties": {
+            "message": {
+                "type": "string",
+                "description": "Deprecation message indicating the endpoint is no longer supported",
+                "enum": [
+                    "Handling of access tokens is no longer supported",
+                    "Creation of access tokens is no longer supported",
+                ],
+            },
+        },
+        "required": ["message"],
+    },
+}
+
 
 @resource("/v1/repository/<apirepopath:repository>/tokens/")
 @path_param("repository", "The full path of the repository. e.g. namespace/name")
@@ -38,21 +57,7 @@ class RepositoryTokenList(RepositoryParamResource):
                 },
             },
         },
-        "DeprecationResponse": {
-            "type": "object",
-            "description": "Deprecation message for repository token endpoints",
-            "properties": {
-                "message": {
-                    "type": "string",
-                    "description": "Deprecation message indicating the endpoint is no longer supported",
-                    "enum": [
-                        "Handling of access tokens is no longer supported",
-                        "Creation of access tokens is no longer supported",
-                    ],
-                },
-            },
-            "required": ["message"],
-        },
+        **DEPRECATION_RESPONSE_SCHEMA,
     }
 
     @require_repo_admin(allow_for_superuser=True)
@@ -106,21 +111,7 @@ class RepositoryToken(RepositoryParamResource):
                 },
             },
         },
-        "DeprecationResponse": {
-            "type": "object",
-            "description": "Deprecation message for repository token endpoints",
-            "properties": {
-                "message": {
-                    "type": "string",
-                    "description": "Deprecation message indicating the endpoint is no longer supported",
-                    "enum": [
-                        "Handling of access tokens is no longer supported",
-                        "Creation of access tokens is no longer supported",
-                    ],
-                },
-            },
-            "required": ["message"],
-        },
+        **DEPRECATION_RESPONSE_SCHEMA,
     }
 
     @require_repo_admin(allow_for_superuser=True)

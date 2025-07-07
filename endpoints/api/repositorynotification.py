@@ -76,11 +76,11 @@ class RepositoryNotificationList(RepositoryParamResource):
             "description": "Repository notification information",
             "properties": {
                 "uuid": {"type": "string", "description": "Unique identifier for the notification"},
-                "event_name": {
+                "event": {
                     "type": "string",
                     "description": "Event that triggers this notification",
                 },
-                "method_name": {
+                "method": {
                     "type": "string",
                     "description": "Method used for notification delivery",
                 },
@@ -93,28 +93,19 @@ class RepositoryNotificationList(RepositoryParamResource):
                     "description": "Configuration for the notification event",
                 },
                 "title": {
-                    "type": ["string", "null"],
+                    "type": "string",
+                    "x-nullable": True,
                     "description": "Human-readable title for the notification",
                 },
                 "number_of_failures": {
                     "type": "integer",
                     "description": "Number of consecutive failures",
                 },
-                "created": {
-                    "type": "string",
-                    "description": "When the notification was created",
-                    "format": "date-time",
-                },
-                "updated": {
-                    "type": "string",
-                    "description": "When the notification was last updated",
-                    "format": "date-time",
-                },
             },
             "required": [
                 "uuid",
-                "event_name",
-                "method_name",
+                "event",
+                "method",
                 "config",
                 "event_config",
                 "number_of_failures",

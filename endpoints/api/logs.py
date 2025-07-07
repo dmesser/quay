@@ -121,6 +121,107 @@ def _get_aggregate_logs(
     return {"aggregated": [log.to_dict() for log in aggregated_logs]}
 
 
+# Common schema definitions
+AVATAR_SCHEMA = {
+    "type": "object",
+    "description": "The avatar of the entity",
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "The name of the entity represented by the avatar",
+        },
+        "hash": {
+            "type": "string",
+            "description": "The hash of the avatar",
+        },
+        "color": {
+            "type": "string",
+            "description": "The color of the avatar",
+        },
+        "kind": {
+            "type": "string",
+            "description": "The kind of the avatar",
+        },
+    },
+}
+
+LOG_ENTRY_SCHEMA = {
+    "type": "object",
+    "description": "Describes a single log entry",
+    "properties": {
+        "kind": {
+            "type": "string",
+            "description": "The type of action logged",
+        },
+        "datetime": {
+            "type": "string",
+            "description": "RFC 2822 timestamp when the action occurred",
+            "format": "rfc2822",
+        },
+        "performer": {
+            "type": "object",
+            "x-nullable": True,
+            "description": "Information about the user who performed the action (optional)",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The username of the performer",
+                },
+                "kind": {
+                    "type": "string",
+                    "description": "Always 'user' (even for robots - this is a known issue)",
+                },
+                "is_robot": {
+                    "type": "string",
+                    "x-nullable": True,
+                    "description": "Whether the performer is a robot account (can be null for non-robots or a string for robots)",
+                },
+                "avatar": {"$ref": "#/definitions/Avatar"},
+            },
+        },
+        "namespace": {
+            "type": "object",
+            "description": "Information about the namespace that this log entry applies to (optional, only present in organization/user logs)",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name of the namespace",
+                },
+                "kind": {
+                    "type": "string",
+                    "description": "The kind of the namespace ('org' or 'user')",
+                },
+                "avatar": {"$ref": "#/definitions/Avatar"},
+            },
+        },
+        "metadata": {
+            "type": "object",
+            "description": "Additional metadata about the action",
+        },
+        "ip": {
+            "type": "string",
+            "x-nullable": True,
+            "description": "The IP address from which the action was performed",
+        },
+    },
+}
+
+EXPORT_LOGS_SCHEMA = {
+    "type": "object",
+    "description": "Configuration for an export logs operation",
+    "properties": {
+        "callback_url": {
+            "type": "string",
+            "description": "The callback URL to invoke with a link to the exported logs",
+        },
+        "callback_email": {
+            "type": "string",
+            "description": "The e-mail address at which to e-mail a link to the exported logs",
+        },
+    },
+}
+
+
 @resource("/v1/repository/<apirepopath:repository>/logs")
 @path_param("repository", "The full path of the repository. e.g. namespace/name")
 class RepositoryLogs(RepositoryParamResource):
@@ -129,76 +230,26 @@ class RepositoryLogs(RepositoryParamResource):
     """
 
     schemas = {
-        "LogEntry": {
-            "type": "object",
-            "description": "Describes a single log entry",
-            "properties": {
-                "kind": {
-                    "type": "string",
-                    "description": "The type of action logged",
-                },
-                "datetime": {
-                    "type": "string",
-                    "description": "ISO 8601 timestamp when the action occurred",
-                },
-                "performer": {
-                    "type": "object",
-                    "description": "Information about the user who performed the action",
-                    "properties": {
-                        "name": {
-                            "type": "string",
-                            "description": "The username of the performer",
-                        },
-                        "kind": {
-                            "type": "string",
-                            "description": "The type of performer (e.g., 'user', 'robot')",
-                        },
-                        "is_robot": {
-                            "type": "boolean",
-                            "description": "Whether the performer is a robot account",
-                        },
-                        "avatar": {
-                            "type": "string",
-                            "description": "URL to the performer's avatar",
-                        },
-                    },
-                },
-                "repository": {
-                    "type": "object",
-                    "description": "Information about the repository involved",
-                    "properties": {
-                        "name": {
-                            "type": "string",
-                            "description": "The name of the repository",
-                        },
-                        "namespace": {
-                            "type": "string",
-                            "description": "The namespace of the repository",
-                        },
-                    },
-                },
-                "metadata": {
-                    "type": "object",
-                    "description": "Additional metadata about the action",
-                },
-                "ip": {
-                    "type": "string",
-                    "description": "The IP address from which the action was performed",
-                },
-            },
-        },
+        "Avatar": AVATAR_SCHEMA,
+        "LogEntry": LOG_ENTRY_SCHEMA,
         "LogsResponse": {
             "type": "object",
             "description": "Response containing a list of logs",
             "required": ["start_time", "end_time", "logs"],
             "properties": {
+                "next_page": {
+                    "type": "string",
+                    "description": "Token to retrieve the next page of logs (optional, only present when there are more results)",
+                },
                 "start_time": {
                     "type": "string",
-                    "description": "ISO 8601 timestamp for the start of the log period",
+                    "description": "RFC 2822 timestamp for the start of the log period",
+                    "format": "rfc2822",
                 },
                 "end_time": {
                     "type": "string",
-                    "description": "ISO 8601 timestamp for the end of the log period",
+                    "description": "RFC 2822 timestamp for the end of the log period",
+                    "format": "rfc2822",
                 },
                 "logs": {
                     "type": "array",
@@ -206,63 +257,6 @@ class RepositoryLogs(RepositoryParamResource):
                     "items": {
                         "$ref": "#/definitions/LogEntry",
                     },
-                },
-            },
-        },
-        "AggregatedLogEntry": {
-            "type": "object",
-            "description": "Describes an aggregated log entry",
-            "properties": {
-                "kind": {
-                    "type": "string",
-                    "description": "The type of action logged",
-                },
-                "count": {
-                    "type": "integer",
-                    "description": "The number of times this action occurred",
-                },
-                "datetime": {
-                    "type": "string",
-                    "description": "ISO 8601 timestamp for the aggregated period",
-                },
-            },
-        },
-        "AggregatedLogsResponse": {
-            "type": "object",
-            "description": "Response containing aggregated log counts",
-            "required": ["aggregated"],
-            "properties": {
-                "aggregated": {
-                    "type": "array",
-                    "description": "List of aggregated log entries",
-                    "items": {
-                        "$ref": "#/definitions/AggregatedLogEntry",
-                    },
-                },
-            },
-        },
-        "ExportLogsRequest": {
-            "type": "object",
-            "description": "Configuration for an export logs operation",
-            "properties": {
-                "callback_url": {
-                    "type": "string",
-                    "description": "The callback URL to invoke with a link to the exported logs",
-                },
-                "callback_email": {
-                    "type": "string",
-                    "description": "The e-mail address at which to e-mail a link to the exported logs",
-                },
-            },
-        },
-        "ExportLogsResponse": {
-            "type": "object",
-            "description": "Response containing export information",
-            "required": ["export_id"],
-            "properties": {
-                "export_id": {
-                    "type": "string",
-                    "description": "The unique identifier for the export operation",
                 },
             },
         },
@@ -299,6 +293,12 @@ class UserLogs(ApiResource):
     Resource for fetching logs for the current user.
     """
 
+    schemas = {
+        "Avatar": AVATAR_SCHEMA,
+        "LogEntry": LOG_ENTRY_SCHEMA,
+        "LogsResponse": RepositoryLogs.schemas["LogsResponse"],
+    }
+
     @require_user_admin()
     @nickname("listUserLogs")
     @parse_args()
@@ -333,6 +333,8 @@ class OrgLogs(ApiResource):
     """
     Resource for fetching logs for the entire organization.
     """
+
+    schemas = UserLogs.schemas
 
     @nickname("listOrgLogs")
     @parse_args()
@@ -371,6 +373,42 @@ class RepositoryAggregateLogs(RepositoryParamResource):
     Resource for fetching aggregated logs for the specific repository.
     """
 
+    schemas = {
+        "AggregatedLogEntry": {
+            "type": "object",
+            "description": "Describes an aggregated log entry",
+            "properties": {
+                "kind": {
+                    "type": "string",
+                    "description": "The type of action logged",
+                },
+                "count": {
+                    "type": "integer",
+                    "description": "The number of times this action occurred",
+                },
+                "datetime": {
+                    "type": "string",
+                    "description": "RFC 2822 timestamp for the aggregated period",
+                    "format": "rfc2822",
+                },
+            },
+        },
+        "AggregatedLogsResponse": {
+            "type": "object",
+            "description": "Response containing aggregated log counts",
+            "required": ["aggregated"],
+            "properties": {
+                "aggregated": {
+                    "type": "array",
+                    "description": "List of aggregated log entries",
+                    "items": {
+                        "$ref": "#/definitions/AggregatedLogEntry",
+                    },
+                },
+            },
+        },
+    }
+
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("getAggregateRepoLogs")
     @parse_args()
@@ -395,6 +433,8 @@ class UserAggregateLogs(ApiResource):
     """
     Resource for fetching aggregated logs for the current user.
     """
+
+    schemas = RepositoryAggregateLogs.schemas
 
     @require_user_admin()
     @nickname("getAggregateUserLogs")
@@ -430,6 +470,8 @@ class OrgAggregateLogs(ApiResource):
     Resource for fetching aggregate logs for the entire organization.
     """
 
+    schemas = UserAggregateLogs.schemas
+
     @nickname("getAggregateOrgLogs")
     @parse_args()
     @query_param("starttime", 'Earliest time for logs. Format: "%m/%d/%Y" in UTC.', type=str)
@@ -452,22 +494,6 @@ class OrgAggregateLogs(ApiResource):
             )
 
         raise Unauthorized()
-
-
-EXPORT_LOGS_SCHEMA = {
-    "type": "object",
-    "description": "Configuration for an export logs operation",
-    "properties": {
-        "callback_url": {
-            "type": "string",
-            "description": "The callback URL to invoke with a link to the exported logs",
-        },
-        "callback_email": {
-            "type": "string",
-            "description": "The e-mail address at which to e-mail a link to the exported logs",
-        },
-    },
-}
 
 
 def _queue_logs_export(start_time, end_time, options, namespace_name, repository_name=None):
@@ -546,7 +572,20 @@ class ExportRepositoryLogs(RepositoryParamResource):
     Resource for exporting the logs for the specific repository.
     """
 
-    schemas = {"ExportLogs": EXPORT_LOGS_SCHEMA}
+    schemas = {
+        "ExportLogs": EXPORT_LOGS_SCHEMA,
+        "ExportLogsResponse": {
+            "type": "object",
+            "description": "Response containing export information",
+            "required": ["export_id"],
+            "properties": {
+                "export_id": {
+                    "type": "string",
+                    "description": "The unique identifier for the export operation",
+                },
+            },
+        },
+    }
 
     @require_repo_admin(allow_for_superuser=True)
     @nickname("exportRepoLogs")
@@ -587,7 +626,10 @@ class ExportUserLogs(ApiResource):
     Resource for exporting the logs for the current user repository.
     """
 
-    schemas = {"ExportLogs": EXPORT_LOGS_SCHEMA}
+    schemas = {
+        "ExportLogs": EXPORT_LOGS_SCHEMA,
+        "ExportLogsResponse": ExportRepositoryLogs.schemas["ExportLogsResponse"],
+    }
 
     @require_user_admin()
     @nickname("exportUserLogs")
@@ -627,7 +669,7 @@ class ExportOrgLogs(ApiResource):
     Resource for exporting the logs for an entire organization.
     """
 
-    schemas = {"ExportLogs": EXPORT_LOGS_SCHEMA}
+    schemas = ExportUserLogs.schemas
 
     @nickname("exportOrgLogs")
     @parse_args()

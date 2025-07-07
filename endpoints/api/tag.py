@@ -49,11 +49,11 @@ TAG_RESPONSE_SCHEMAS = {
             },
             "start_ts": {
                 "type": "integer",
-                "description": "The timestamp when the tag was created",
+                "description": "The timestamp when the tag was created (seconds since epoch)",
             },
             "end_ts": {
                 "type": "integer",
-                "description": "The timestamp when the tag expires",
+                "description": "The timestamp when the tag expires (seconds since epoch)",
             },
             "manifest_digest": {
                 "type": "string",
@@ -69,13 +69,11 @@ TAG_RESPONSE_SCHEMAS = {
             },
             "last_modified": {
                 "type": "string",
-                "description": "The last modified date of the tag",
-                "format": "date-time",
+                "description": "The last modified date of the tag in RFC 2822 format",
             },
             "expiration": {
                 "type": "string",
-                "description": "The expiration date of the tag",
-                "format": "date-time",
+                "description": "The expiration date of the tag in RFC 2822 format",
             },
         },
         "required": ["name", "reversion", "manifest_digest", "is_manifest_list", "size"],
@@ -106,6 +104,40 @@ TAG_RESPONSE_SCHEMAS = {
         "type": "object",
         "description": "Empty response for tag restoration",
         "properties": {},
+    },
+    "ChangeTag": {
+        "type": "object",
+        "description": "Makes changes to a specific tag",
+        "properties": {
+            "manifest_digest": {
+                "type": "string",
+                "x-nullable": True,
+                "description": "(If specified) The manifest digest to which the tag should point",
+            },
+            "expiration": {
+                "type": "number",
+                "x-nullable": True,
+                "description": "(If specified) The expiration timestamp for the tag (seconds since epoch)",
+            },
+        },
+    },
+    "ExpireTag": {
+        "type": "object",
+        "description": "Removes tag from the time machine window",
+        "properties": {
+            "manifest_digest": {
+                "type": "string",
+                "description": "Required if is_alive set to false. If specified, the manifest digest that should be used. Ignored when setting alive to true.",
+            },
+            "include_submanifests": {
+                "type": "boolean",
+                "description": "If set to true, expire the sub-manifests as well",
+            },
+            "is_alive": {
+                "type": "boolean",
+                "description": "If true, set the expiry of the matching alive tag outside the time machine window. If false set the expiry of any expired tags with the same tag and manifest outside the time machine window.",
+            },
+        },
     },
 }
 
@@ -144,7 +176,10 @@ class ListRepositoryTags(RepositoryParamResource):
     Resource for listing full repository tag history, alive *and dead*.
     """
 
-    schemas = TAG_RESPONSE_SCHEMAS
+    schemas = {
+        "Tag": TAG_RESPONSE_SCHEMAS["Tag"],
+        "TagListResponse": TAG_RESPONSE_SCHEMAS["TagListResponse"],
+    }
 
     @require_repo_read(allow_for_superuser=True)
     @disallow_for_app_repositories
@@ -203,21 +238,7 @@ class RepositoryTag(RepositoryParamResource):
     """
 
     schemas = {
-        "ChangeTag": {
-            "type": "object",
-            "description": "Makes changes to a specific tag",
-            "properties": {
-                "manifest_digest": {
-                    "type": ["string", "null"],
-                    "description": "(If specified) The manifest digest to which the tag should point",
-                },
-                "expiration": {
-                    "type": ["number", "null"],
-                    "description": "(If specified) The expiration for the image",
-                },
-            },
-        },
-        **TAG_RESPONSE_SCHEMAS,
+        "ChangeTag": TAG_RESPONSE_SCHEMAS["ChangeTag"],
     }
 
     @require_repo_write(allow_for_superuser=True)
@@ -363,7 +384,7 @@ class RestoreTag(RepositoryParamResource):
                 },
             },
         },
-        **TAG_RESPONSE_SCHEMAS,
+        "RestoreTagResponse": TAG_RESPONSE_SCHEMAS["RestoreTagResponse"],
     }
 
     @require_repo_write(allow_for_superuser=True)
@@ -428,24 +449,7 @@ class TagTimeMachineDelete(RepositoryParamResource):
     """
 
     schemas = {
-        "ExpireTag": {
-            "type": "object",
-            "description": "Removes tag from the time machine window",
-            "properties": {
-                "manifest_digest": {
-                    "type": "string",
-                    "description": "Required if is_alive set to false. If specified, the manifest digest that should be used. Ignored when setting alive to true.",
-                },
-                "include_submanifests": {
-                    "type": "boolean",
-                    "description": "If set to true, expire the sub-manifests as well",
-                },
-                "is_alive": {
-                    "type": "boolean",
-                    "description": "If true, set the expiry of the matching alive tag outside the time machine window. If false set the expiry of any expired tags with the same tag and manifest outside the time machine window.",
-                },
-            },
-        },
+        "ExpireTag": TAG_RESPONSE_SCHEMAS["ExpireTag"],
     }
 
     @require_repo_write(allow_for_superuser=True)

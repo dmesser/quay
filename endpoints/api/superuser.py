@@ -104,8 +104,8 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "datetime": {
                 "type": "string",
-                "description": "Date and time of the log entry",
-                "format": "date-time",
+                "description": "Date and time of the log entry (RFC 2822 format)",
+                "example": "Mon, 01 Jan 2024 00:00:00 GMT",
             },
         },
         "required": ["kind", "count", "datetime"],
@@ -142,11 +142,12 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "datetime": {
                 "type": "string",
-                "description": "Date and time",
-                "format": "date-time",
+                "description": "Date and time (RFC 2822 format)",
+                "example": "Mon, 01 Jan 2024 00:00:00 GMT",
             },
             "performer": {
                 "type": "object",
+                "x-nullable": True,
                 "description": "User who performed the action",
                 "properties": {
                     "kind": {
@@ -168,6 +169,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "namespace": {
                 "type": "object",
+                "x-nullable": True,
                 "description": "Namespace information",
                 "properties": {
                     "kind": {
@@ -193,13 +195,13 @@ SUPERUSER_RESPONSE_SCHEMAS = {
         "properties": {
             "start_time": {
                 "type": "string",
-                "description": "Start time for the log query",
-                "format": "date-time",
+                "description": "Start time for the log query (RFC 2822 format)",
+                "example": "Mon, 01 Jan 2024 00:00:00 GMT",
             },
             "end_time": {
                 "type": "string",
-                "description": "End time for the log query",
-                "format": "date-time",
+                "description": "End time for the log query (RFC 2822 format)",
+                "example": "Mon, 01 Jan 2024 00:00:00 GMT",
             },
             "logs": {
                 "type": "array",
@@ -207,6 +209,11 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "items": {
                     "$ref": "#/definitions/LogEntry",
                 },
+            },
+            "next_page": {
+                "type": "string",
+                "x-nullable": True,
+                "description": "Encrypted page token for the next page",
             },
         },
         "required": ["start_time", "end_time", "logs"],
@@ -260,18 +267,21 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "encrypted_password": {
                 "type": "string",
-                "description": "Encrypted password (only in certain responses)",
+                "x-nullable": True,
+                "description": "Encrypted password (only in create/update responses)",
             },
             "quotas": {
                 "type": "array",
-                "description": "User quotas",
+                "x-nullable": True,
+                "description": "User quotas (only when quota features are enabled)",
                 "items": {
-                    "type": "object",
+                    "$ref": "#/definitions/Quota",
                 },
             },
             "quota_report": {
                 "type": "object",
-                "description": "Quota report information",
+                "x-nullable": True,
+                "description": "Quota report information (only when quota features are enabled)",
             },
         },
         "required": [
@@ -295,6 +305,11 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "items": {
                     "$ref": "#/definitions/User",
                 },
+            },
+            "next_page": {
+                "type": "string",
+                "x-nullable": True,
+                "description": "Encrypted page token for the next page",
             },
         },
         "required": ["users"],
@@ -320,7 +335,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "description": "The encrypted password",
             },
         },
-        "required": ["username", "email", "password", "encrypted_password"],
+        "required": ["username", "password", "encrypted_password"],
     },
     "Organization": {
         "type": "object",
@@ -339,14 +354,16 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "quotas": {
                 "type": "array",
-                "description": "Organization quotas",
+                "x-nullable": True,
+                "description": "Organization quotas (only when quota features are enabled)",
                 "items": {
-                    "type": "object",
+                    "$ref": "#/definitions/Quota",
                 },
             },
             "quota_report": {
                 "type": "object",
-                "description": "Quota report information",
+                "x-nullable": True,
+                "description": "Quota report information (only when quota features are enabled)",
             },
         },
         "required": ["name", "email", "avatar"],
@@ -362,6 +379,11 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                     "$ref": "#/definitions/Organization",
                 },
             },
+            "next_page": {
+                "type": "string",
+                "x-nullable": True,
+                "description": "Encrypted page token for the next page",
+            },
         },
         "required": ["organizations"],
     },
@@ -375,7 +397,8 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "last_ran": {
                 "type": "integer",
-                "description": "Last calculation timestamp",
+                "x-nullable": True,
+                "description": "Last calculation timestamp (milliseconds since epoch)",
             },
             "queued": {
                 "type": "boolean",
@@ -393,19 +416,56 @@ SUPERUSER_RESPONSE_SCHEMAS = {
         "description": "A quota definition",
         "properties": {
             "id": {
-                "type": "string",
+                "type": "integer",
+                "x-nullable": True,
                 "description": "Quota ID",
             },
             "limit_bytes": {
                 "type": "integer",
                 "description": "Limit in bytes",
             },
+            "limit": {
+                "type": "string",
+                "description": "Human readable quota limit (e.g., '1.0 GiB')",
+            },
+            "default_config": {
+                "type": "boolean",
+                "description": "Whether this is using the default system configuration",
+            },
             "limits": {
-                "type": "object",
+                "type": "array",
                 "description": "Quota limits",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "integer",
+                            "description": "Limit ID",
+                        },
+                        "type": {
+                            "type": "string",
+                            "description": "Limit type",
+                        },
+                        "limit_percent": {
+                            "type": "integer",
+                            "description": "Limit percentage",
+                        },
+                    },
+                },
+            },
+            "default_config_exists": {
+                "type": "boolean",
+                "description": "Whether a default system quota configuration exists",
             },
         },
-        "required": ["id", "limit_bytes", "limits"],
+        "required": [
+            "id",
+            "limit_bytes",
+            "limit",
+            "default_config",
+            "limits",
+            "default_config_exists",
+        ],
     },
     "QuotasResponse": {
         "type": "array",
@@ -419,7 +479,8 @@ SUPERUSER_RESPONSE_SCHEMAS = {
         "description": "Service key approval information",
         "properties": {
             "approver": {
-                "$ref": "#/definitions/User",
+                "allOf": [{"$ref": "#/definitions/User"}],
+                "x-nullable": True,
             },
             "approval_type": {
                 "type": "string",
@@ -427,8 +488,8 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "approved_date": {
                 "type": "string",
-                "description": "Approval date",
-                "format": "date-time",
+                "description": "Approval date (RFC 2822 format)",
+                "example": "Mon, 01 Jan 2024 00:00:00 GMT",
             },
             "notes": {
                 "type": "string",
@@ -463,20 +524,18 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "created_date": {
                 "type": "string",
-                "description": "Creation date",
-                "format": "date-time",
+                "description": "Creation date (RFC 2822 format)",
+                "example": "Mon, 01 Jan 2024 00:00:00 GMT",
             },
             "expiration_date": {
                 "type": "string",
-                "description": "Expiration date",
-                "format": "date-time",
-            },
-            "rotation_duration": {
-                "type": "string",
-                "description": "Rotation duration",
+                "x-nullable": True,
+                "description": "Expiration date (RFC 2822 format)",
+                "example": "Mon, 01 Jan 2024 00:00:00 GMT",
             },
             "approval": {
-                "$ref": "#/definitions/ServiceKeyApproval",
+                "allOf": [{"$ref": "#/definitions/ServiceKeyApproval"}],
+                "x-nullable": True,
             },
         },
         "required": [
@@ -487,7 +546,6 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             "metadata",
             "created_date",
             "expiration_date",
-            "rotation_duration",
         ],
     },
     "ServiceKeysResponse": {
@@ -549,10 +607,12 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "build_source": {
                 "type": "string",
+                "x-nullable": True,
                 "description": "Build source",
             },
             "repository_url": {
                 "type": "string",
+                "x-nullable": True,
                 "description": "Repository URL",
             },
             "config": {
@@ -564,7 +624,8 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "description": "Whether can invoke",
             },
             "pull_robot": {
-                "$ref": "#/definitions/User",
+                "allOf": [{"$ref": "#/definitions/User"}],
+                "x-nullable": True,
             },
         },
         "required": ["id", "service", "is_active", "config", "can_invoke"],
@@ -583,8 +644,9 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "started": {
                 "type": "string",
-                "description": "Start time",
-                "format": "date-time",
+                "x-nullable": True,
+                "description": "Start time (RFC 2822 format)",
+                "example": "Mon, 01 Jan 2024 00:00:00 GMT",
             },
             "display_name": {
                 "type": "string",
@@ -600,7 +662,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "dockerfile_path": {
                 "type": "string",
-                "description": "Dockerfile path",
+                "description": "Subdirectory containing Dockerfile",
             },
             "context": {
                 "type": "string",
@@ -615,6 +677,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "manual_user": {
                 "type": "string",
+                "x-nullable": True,
                 "description": "Manual user",
             },
             "is_writer": {
@@ -622,18 +685,22 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "description": "Whether user can write",
             },
             "trigger": {
-                "$ref": "#/definitions/BuildTrigger",
+                "allOf": [{"$ref": "#/definitions/BuildTrigger"}],
+                "x-nullable": True,
             },
             "trigger_metadata": {
                 "type": "object",
+                "x-nullable": True,
                 "description": "Trigger metadata",
             },
             "resource_key": {
                 "type": "string",
+                "x-nullable": True,
                 "description": "Resource key",
             },
             "pull_robot": {
-                "$ref": "#/definitions/User",
+                "allOf": [{"$ref": "#/definitions/User"}],
+                "x-nullable": True,
             },
             "repository": {
                 "type": "object",
@@ -652,10 +719,12 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "error": {
                 "type": "string",
+                "x-nullable": True,
                 "description": "Error message",
             },
             "archive_url": {
                 "type": "string",
+                "x-nullable": True,
                 "description": "Archive URL",
             },
         },
@@ -677,15 +746,26 @@ SUPERUSER_RESPONSE_SCHEMAS = {
     },
     "BuildLogsResponse": {
         "type": "object",
-        "description": "Response containing build logs",
+        "description": "Response containing build logs or URL to logs",
         "properties": {
-            "logs": {
+            "logs_url": {
                 "type": "string",
-                "description": "Build logs content",
+                "description": "URL to archived build logs (when logs are archived)",
             },
-            "log_url": {
-                "type": "string",
-                "description": "URL to build logs",
+            "start": {
+                "type": "integer",
+                "description": "Starting log index (when returning inline logs)",
+            },
+            "total": {
+                "type": "integer",
+                "description": "Total number of logs (when returning inline logs)",
+            },
+            "logs": {
+                "type": "array",
+                "description": "Log entries (when returning inline logs)",
+                "items": {
+                    "type": "object",
+                },
             },
         },
     },
@@ -986,28 +1066,18 @@ class SuperUserUserQuotaList(ApiResource):
     schemas = {
         "NewNamespaceQuota": {
             "type": "object",
-            "description": "Description of a new organization quota",
-            "oneOf": [
-                {
-                    "required": ["limit_bytes"],
-                    "properties": {
-                        "limit_bytes": {
-                            "type": "integer",
-                            "description": "Number of bytes the organization is allowed",
-                        },
-                    },
+            "description": "Description of a new organization quota. Provide either limit_bytes OR limit (not both)",
+            "properties": {
+                "limit_bytes": {
+                    "type": "integer",
+                    "description": "Number of bytes the organization is allowed",
                 },
-                {
-                    "required": ["limit"],
-                    "properties": {
-                        "limit": {
-                            "type": "string",
-                            "description": "Human readable storage capacity of the organization",
-                            "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
-                        },
-                    },
+                "limit": {
+                    "type": "string",
+                    "description": "Human readable storage capacity of the organization",
+                    "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
                 },
-            ],
+            },
         },
         **SUPERUSER_RESPONSE_SCHEMAS,
     }
@@ -1076,37 +1146,19 @@ class SuperUserUserQuota(ApiResource):
     schemas = {
         "UpdateNamespaceQuota": {
             "type": "object",
-            "description": "Description of a new organization quota",
-            "oneOf": [
-                {
-                    "properties": {
-                        "limit_bytes": {
-                            "type": "integer",
-                            "description": "Number of bytes the organization is allowed",
-                        },
-                    },
-                    "required": ["limit_bytes"],
-                    "additionalProperties": False,
+            "description": "Description of a new organization quota. Provide either limit_bytes OR limit (not both)",
+            "properties": {
+                "limit_bytes": {
+                    "type": "integer",
+                    "description": "Number of bytes the organization is allowed",
                 },
-                {
-                    "properties": {
-                        "limit": {
-                            "type": "string",
-                            "description": "Human readable storage capacity of the organization",
-                            "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
-                        },
-                    },
-                    "required": ["limit"],
-                    "additionalProperties": False,
+                "limit": {
+                    "type": "string",
+                    "description": "Human readable storage capacity of the organization",
+                    "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
                 },
-                {
-                    "properties": {
-                        "limit_bytes": {"not": {}},
-                        "limit": {"not": {}},
-                    },
-                    "additionalProperties": False,
-                },
-            ],
+            },
+            "additionalProperties": False,
         },
         **SUPERUSER_RESPONSE_SCHEMAS,
     }
@@ -1642,8 +1694,9 @@ class SuperUserServiceKeyManagement(ApiResource):
                     "description": "If specified, the extra notes for the key",
                 },
                 "expiration": {
+                    "type": "integer",
+                    "x-nullable": True,
                     "description": "The expiration date as a unix timestamp",
-                    "anyOf": [{"type": "number"}, {"type": "null"}],
                 },
             },
         },
@@ -1770,8 +1823,9 @@ class SuperUserServiceKey(ApiResource):
                     "description": "The key/value pairs of this key's metadata",
                 },
                 "expiration": {
+                    "type": "integer",
+                    "x-nullable": True,
                     "description": "The expiration date as a unix timestamp",
-                    "anyOf": [{"type": "number"}, {"type": "null"}],
                 },
             },
         },

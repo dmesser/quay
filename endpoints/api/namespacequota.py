@@ -72,28 +72,18 @@ class OrganizationQuotaList(ApiResource):
     schemas = {
         "NewOrgQuota": {
             "type": "object",
-            "description": "Description of a new organization quota",
-            "oneOf": [
-                {
-                    "required": ["limit_bytes"],
-                    "properties": {
-                        "limit_bytes": {
-                            "type": "integer",
-                            "description": "Number of bytes the organization is allowed",
-                        },
-                    },
+            "description": "Description of a new organization quota. Must specify either limit_bytes or limit.",
+            "properties": {
+                "limit_bytes": {
+                    "type": "integer",
+                    "description": "Number of bytes the organization is allowed",
                 },
-                {
-                    "required": ["limit"],
-                    "properties": {
-                        "limit": {
-                            "type": "string",
-                            "description": "Human readable storage capacity of the organization",
-                            "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
-                        },
-                    },
+                "limit": {
+                    "type": "string",
+                    "description": "Human readable storage capacity of the organization",
+                    "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
                 },
-            ],
+            },
         },
         "QuotaLimit": {
             "type": "object",
@@ -123,6 +113,7 @@ class OrganizationQuotaList(ApiResource):
             "properties": {
                 "id": {
                     "type": "integer",
+                    "x-nullable": True,
                     "description": "Unique identifier for the quota",
                 },
                 "limit_bytes": {
@@ -241,37 +232,19 @@ class OrganizationQuota(ApiResource):
     schemas = {
         "UpdateOrgQuota": {
             "type": "object",
-            "description": "Description of a new organization quota",
-            "oneOf": [
-                {
-                    "properties": {
-                        "limit_bytes": {
-                            "type": "integer",
-                            "description": "Number of bytes the organization is allowed",
-                        },
-                    },
-                    "required": ["limit_bytes"],
-                    "additionalProperties": False,
+            "description": "Update organization quota. Can specify either limit_bytes or limit (but not both).",
+            "properties": {
+                "limit_bytes": {
+                    "type": "integer",
+                    "description": "Number of bytes the organization is allowed",
                 },
-                {
-                    "properties": {
-                        "limit": {
-                            "type": "string",
-                            "description": "Human readable storage capacity of the organization",
-                            "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
-                        },
-                    },
-                    "required": ["limit"],
-                    "additionalProperties": False,
+                "limit": {
+                    "type": "string",
+                    "description": "Human readable storage capacity of the organization",
+                    "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
                 },
-                {
-                    "properties": {
-                        "limit_bytes": {"not": {}},
-                        "limit": {"not": {}},
-                    },
-                    "additionalProperties": False,
-                },
-            ],
+            },
+            "additionalProperties": False,
         },
     }
 
@@ -550,7 +523,7 @@ class UserQuotaLimitList(ApiResource):
 class UserQuotaLimit(ApiResource):
     @require_user_admin()
     @nickname("getUserQuotaLimit")
-    @define_json_response("QuotaView")
+    @define_json_response("QuotaLimit")
     def get(self, quota_id, limit_id):
         parent = get_authenticated_user()
         quota = get_quota(parent.username, quota_id)
@@ -558,4 +531,4 @@ class UserQuotaLimit(ApiResource):
         if quota_limit is None:
             raise NotFound()
 
-        return quota_view(quota)
+        return limit_view(quota_limit)

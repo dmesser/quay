@@ -25,6 +25,9 @@ from endpoints.exception import NotFound
 from util.audit import track_and_log, wrap_repository
 from util.names import parse_robot_username
 
+logger = logging.getLogger(__name__)
+
+
 common_properties = {
     "is_enabled": {
         "type": "boolean",
@@ -42,6 +45,22 @@ common_properties = {
     "sync_start_date": {
         "type": "string",
         "description": "Determines the next time this repository is ready for synchronization.",
+        "format": "ISO8601",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+    },
+    "sync_expiration_date": {
+        "type": ["string", "null"],
+        "description": "The time at which the synchronization will expire.",
+        "format": "ISO8601",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+    },
+    "sync_retries_remaining": {
+        "type": "integer",
+        "description": "The number of retries remaining for the synchronization.",
+    },
+    "sync_status": {
+        "type": "string",
+        "description": "The status of the synchronization.",
     },
     "sync_interval": {
         "type": "integer",
@@ -49,7 +68,7 @@ common_properties = {
         "description": "Number of seconds after next_start_date to begin synchronizing.",
     },
     "robot_username": {
-        "type": "string",
+        "type": ["string", "null"],
         "description": "Username of robot which will be used for image pushes.",
     },
     "root_rule": {
@@ -113,6 +132,42 @@ common_properties = {
     },
 }
 
+# Common error response schemas shared across endpoints
+common_schemas = {
+    "NoContentResponse": {
+        "description": "Empty response with 204 No Content status code",
+    },
+    "NotFoundErrorResponse": {
+        "type": "object",
+        "description": "Error response for not found resources",
+        "properties": {
+            "detail": {"type": "string", "description": "Error detail message"},
+            "error_message": {"type": "string", "description": "Error message (deprecated)"},
+            "error_type": {"type": "string", "description": "Error type identifier (deprecated)"},
+            "title": {"type": "string", "description": "Error type identifier"},
+            "type": {"type": "string", "description": "URL reference for error type"},
+            "status": {"type": "integer", "description": "HTTP status code"},
+        },
+        "required": ["detail", "title", "type", "status"],
+    },
+    "BadRequestErrorResponse": {
+        "type": "object",
+        "description": "Error response for bad request",
+        "properties": {
+            "detail": {"type": "string", "description": "Error detail message"},
+        },
+        "required": ["detail"],
+    },
+    "ConflictErrorResponse": {
+        "type": "object",
+        "description": "Error response for conflict",
+        "properties": {
+            "detail": {"type": "string", "description": "Error detail message"},
+        },
+        "required": ["detail"],
+    },
+}
+
 
 @resource("/v1/repository/<apirepopath:repository>/mirror/sync-now")
 @path_param("repository", "The full path of the repository. e.g. namespace/name")
@@ -123,23 +178,13 @@ class RepoMirrorSyncNowResource(RepositoryParamResource):
     """
 
     schemas = {
-        "EmptyResponse": {
-            "type": "string",
-            "description": "Empty response indicating success",
-            "example": "",
-        },
-        "ErrorDetailResponse": {
-            "type": "object",
-            "description": "Error response with detail message",
-            "properties": {
-                "detail": {"type": "string", "description": "Error detail message"},
-            },
-        },
+        "NoContentResponse": common_schemas["NoContentResponse"],
+        "NotFoundErrorResponse": common_schemas["NotFoundErrorResponse"],
     }
 
     @require_repo_admin(allow_for_superuser=True)
     @nickname("syncNow")
-    @define_json_response("EmptyResponse")
+    @define_json_response("NoContentResponse")
     def post(self, namespace_name, repository_name):
         """
         Update the sync_status for a given Repository's mirroring configuration.
@@ -172,11 +217,14 @@ class RepoMirrorSyncCancelResource(RepositoryParamResource):
     A resource for managing RepoMirrorConfig.sync_status.
     """
 
-    schemas = RepoMirrorSyncNowResource.schemas
+    schemas = {
+        "NoContentResponse": common_schemas["NoContentResponse"],
+        "NotFoundErrorResponse": common_schemas["NotFoundErrorResponse"],
+    }
 
     @require_repo_admin(allow_for_superuser=True)
     @nickname("syncCancel")
-    @define_json_response("EmptyResponse")
+    @define_json_response("NoContentResponse")
     def post(self, namespace_name, repository_name):
         """
         Update the sync_status for a given Repository's mirroring configuration.
@@ -232,7 +280,6 @@ class RepoMirrorResource(RepositoryParamResource):
             "type": "object",
             "required": [
                 "is_enabled",
-                "mirror_type",
                 "external_reference",
                 "external_registry_username",
                 "external_registry_config",
@@ -245,20 +292,30 @@ class RepoMirrorResource(RepositoryParamResource):
                 "root_rule",
                 "robot_username",
             ],
-            "properties": common_properties,
+            "properties": dict(
+                common_properties,
+                **{
+                    "mirror_type": {
+                        "type": "string",
+                        "description": "The type of mirroring.",
+                        "enum": ["PULL"],
+                    },
+                    "external_registry_username": {
+                        "type": ["string", "null"],
+                        "description": "Username used to authenticate with external registry. May contain '(invalid. please re-enter)' if decryption fails.",
+                    },
+                    "sync_status": {
+                        "type": "string",
+                        "description": "The status of the synchronization.",
+                        "enum": ["CANCEL", "FAIL", "NEVER_RUN", "SUCCESS", "SYNCING", "SYNC_NOW"],
+                    },
+                },
+            ),
         },
-        "EmptyResponse": {
-            "type": "string",
-            "description": "Empty response indicating success",
-            "example": "",
-        },
-        "ErrorDetailResponse": {
-            "type": "object",
-            "description": "Error response with detail message",
-            "properties": {
-                "detail": {"type": "string", "description": "Error detail message"},
-            },
-        },
+        "NoContentResponse": common_schemas["NoContentResponse"],
+        "NotFoundErrorResponse": common_schemas["NotFoundErrorResponse"],
+        "BadRequestErrorResponse": common_schemas["BadRequestErrorResponse"],
+        "ConflictErrorResponse": common_schemas["ConflictErrorResponse"],
     }
 
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
@@ -313,7 +370,7 @@ class RepoMirrorResource(RepositoryParamResource):
     @require_repo_admin(allow_for_superuser=True)
     @nickname("createRepoMirrorConfig")
     @validate_json_request("CreateMirrorConfig")
-    @define_json_response("EmptyResponse")
+    @define_json_response("NoContentResponse")
     def post(self, namespace_name, repository_name):
         """
         Create a RepoMirrorConfig for a given Repository.
@@ -372,7 +429,7 @@ class RepoMirrorResource(RepositoryParamResource):
     @require_repo_admin(allow_for_superuser=True)
     @validate_json_request("UpdateMirrorConfig")
     @nickname("changeRepoMirrorConfig")
-    @define_json_response("EmptyResponse")
+    @define_json_response("NoContentResponse")
     def put(self, namespace_name, repository_name):
         """
         Allow users to modifying the repository's mirroring configuration.

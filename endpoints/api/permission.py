@@ -23,6 +23,117 @@ from endpoints.exception import NotFound
 
 logger = logging.getLogger(__name__)
 
+# Consolidated schema definitions to avoid duplication
+PERMISSION_SCHEMAS = {
+    "Avatar": {
+        "type": "object",
+        "description": "Avatar information for a user or team.",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Name associated with the avatar",
+            },
+            "hash": {
+                "type": "string",
+                "description": "Avatar hash value",
+            },
+            "color": {
+                "type": "string",
+                "description": "Color associated with the avatar",
+            },
+            "kind": {
+                "type": "string",
+                "description": "Kind of entity (user, robot, team, org)",
+            },
+        },
+        "required": ["name", "hash", "color", "kind"],
+    },
+    "TeamPermission": {
+        "type": "object",
+        "description": "A team permission object.",
+        "properties": {
+            "role": {
+                "type": "string",
+                "enum": ["read", "write", "admin"],
+                "description": "Role for the team",
+            },
+            "name": {
+                "type": "string",
+                "description": "Name of the team",
+            },
+            "avatar": {
+                "allOf": [{"$ref": "#/definitions/Avatar"}],
+                "description": "Avatar information for the team",
+            },
+        },
+        "required": ["role", "name", "avatar"],
+    },
+    "UserPermission": {
+        "type": "object",
+        "description": "A user permission object.",
+        "properties": {
+            "role": {
+                "type": "string",
+                "enum": ["read", "write", "admin"],
+                "description": "Role for the user",
+            },
+            "name": {
+                "type": "string",
+                "description": "Username",
+            },
+            "is_robot": {
+                "type": "boolean",
+                "description": "Whether the user is a robot account",
+            },
+            "avatar": {
+                "allOf": [{"$ref": "#/definitions/Avatar"}],
+                "description": "Avatar information for the user",
+            },
+            "is_org_member": {
+                "type": "boolean",
+                "description": "Whether the user is a member of the organization (only present for repositories in organizations)",
+            },
+        },
+        "required": ["role", "name", "is_robot", "avatar"],
+    },
+    "PermissionRole": {
+        "type": "object",
+        "description": "A permission role object.",
+        "properties": {
+            "role": {
+                "type": "string",
+                "enum": ["read", "write", "admin"],
+                "description": "Role for the user or team",
+            },
+        },
+        "required": ["role"],
+    },
+    "TeamPermissionRequest": {
+        "type": "object",
+        "description": "Request body for setting team permissions.",
+        "properties": {
+            "role": {
+                "type": "string",
+                "enum": ["read", "write", "admin"],
+                "description": "Role to use for the team",
+            },
+        },
+        "required": ["role"],
+    },
+    "UserPermissionRequest": {
+        "type": "object",
+        "description": "Request body for setting user permissions.",
+        "properties": {
+            "role": {
+                "type": "string",
+                "enum": ["read", "write", "admin"],
+                "description": "Role to use for the user",
+            },
+        },
+        "required": ["role"],
+    },
+}
+
 
 @resource("/v1/repository/<apirepopath:repository>/permissions/team/")
 @path_param("repository", "The full path of the repository. e.g. namespace/name")
@@ -32,18 +143,7 @@ class RepositoryTeamPermissionList(RepositoryParamResource):
     """
 
     schemas = {
-        "TeamPermission": {
-            "type": "object",
-            "description": "A team permission object.",
-            "properties": {
-                "role": {
-                    "type": "string",
-                    "enum": ["read", "write", "admin"],
-                    "description": "Role for the team",
-                },
-            },
-            "required": ["role"],
-        },
+        **PERMISSION_SCHEMAS,
         "TeamPermissionsDict": {
             "type": "object",
             "description": "Dictionary of team permissions keyed by team name.",
@@ -79,18 +179,7 @@ class RepositoryUserPermissionList(RepositoryParamResource):
     """
 
     schemas = {
-        "UserPermission": {
-            "type": "object",
-            "description": "A user permission object.",
-            "properties": {
-                "role": {
-                    "type": "string",
-                    "enum": ["read", "write", "admin"],
-                    "description": "Role for the user",
-                },
-            },
-            "required": ["role"],
-        },
+        **PERMISSION_SCHEMAS,
         "UserPermissionsDict": {
             "type": "object",
             "description": "Dictionary of user permissions keyed by username.",
@@ -125,18 +214,7 @@ class RepositoryUserTransitivePermission(RepositoryParamResource):
     """
 
     schemas = {
-        "PermissionRole": {
-            "type": "object",
-            "description": "A permission role object.",
-            "properties": {
-                "role": {
-                    "type": "string",
-                    "enum": ["read", "write", "admin"],
-                    "description": "Role for the user or team",
-                },
-            },
-            "required": ["role"],
-        },
+        **PERMISSION_SCHEMAS,
         "TransitivePermissionsList": {
             "type": "object",
             "description": "List of permission roles for a user.",
@@ -174,26 +252,7 @@ class RepositoryUserPermission(RepositoryParamResource):
     Resource for managing individual user permissions.
     """
 
-    schemas = {
-        "UserPermission": {
-            "type": "object",
-            "description": "Description of a user permission.",
-            "required": [
-                "role",
-            ],
-            "properties": {
-                "role": {
-                    "type": "string",
-                    "description": "Role to use for the user",
-                    "enum": [
-                        "read",
-                        "write",
-                        "admin",
-                    ],
-                },
-            },
-        },
-    }
+    schemas = PERMISSION_SCHEMAS
 
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("getUserPermissions")
@@ -210,7 +269,7 @@ class RepositoryUserPermission(RepositoryParamResource):
 
     @require_repo_admin(allow_for_superuser=True)
     @nickname("changeUserPermissions")
-    @validate_json_request("UserPermission")
+    @validate_json_request("UserPermissionRequest")
     @define_json_response("UserPermission")
     def put(self, namespace_name, repository_name, username):  # Also needs to respond to post
         """
@@ -271,26 +330,7 @@ class RepositoryTeamPermission(RepositoryParamResource):
     Resource for managing individual team permissions.
     """
 
-    schemas = {
-        "TeamPermission": {
-            "type": "object",
-            "description": "Description of a team permission.",
-            "required": [
-                "role",
-            ],
-            "properties": {
-                "role": {
-                    "type": "string",
-                    "description": "Role to use for the team",
-                    "enum": [
-                        "read",
-                        "write",
-                        "admin",
-                    ],
-                },
-            },
-        },
-    }
+    schemas = PERMISSION_SCHEMAS
 
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("getTeamPermissions")
@@ -307,7 +347,7 @@ class RepositoryTeamPermission(RepositoryParamResource):
 
     @require_repo_admin(allow_for_superuser=True)
     @nickname("changeTeamPermissions")
-    @validate_json_request("TeamPermission")
+    @validate_json_request("TeamPermissionRequest")
     @define_json_response("TeamPermission")
     def put(self, namespace_name, repository_name, teamname):
         """

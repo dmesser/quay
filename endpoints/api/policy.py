@@ -50,6 +50,7 @@ class OrgAutoPrunePolicies(ApiResource):
                 "method": {
                     "type": "string",
                     "description": "The method to use for pruning tags (number_of_tags, creation_date)",
+                    "enum": ["number_of_tags", "creation_date"],
                 },
                 "value": {
                     "type": ["integer", "string"],
@@ -70,18 +71,27 @@ class OrgAutoPrunePolicies(ApiResource):
             "description": "A view of an auto-prune policy.",
             "properties": {
                 "uuid": {"type": "string", "description": "Unique identifier for the policy"},
-                "method": {"type": "string", "description": "Prune method"},
+                "method": {
+                    "type": "string",
+                    "description": "Prune method",
+                    "enum": ["number_of_tags", "creation_date"],
+                },
                 "value": {
                     "type": ["integer", "string"],
                     "description": "Prune value (number or time delta)",
                 },
-                "tag_pattern": {"type": ["string", "null"], "description": "Tag pattern to match"},
-                "tag_pattern_matches": {
+                "tagPattern": {
+                    "type": "string",
+                    "description": "Tag pattern to match",
+                    "x-nullable": True,
+                },
+                "tagPatternMatches": {
                     "type": "boolean",
                     "description": "Whether to match the tag pattern",
+                    "x-nullable": True,
                 },
             },
-            "required": ["uuid", "method", "value", "tag_pattern", "tag_pattern_matches"],
+            "required": ["uuid", "method", "value"],
         },
         "AutoPrunePolicyList": {
             "type": "object",

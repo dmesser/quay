@@ -118,9 +118,65 @@ class RepositoryList(ApiResource):
                     "description": "Markdown encoded description for the repository",
                 },
                 "repo_kind": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "The kind of repository",
-                    "enum": ["image", "application", None],
+                    "enum": ["image", "application"],
+                    "x-nullable": True,
+                },
+            },
+        },
+        "RepoUpdate": {
+            "type": "object",
+            "description": "Fields which can be updated in a repository.",
+            "required": [
+                "description",
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "description": "Markdown encoded description for the repository",
+                },
+            },
+        },
+        "ChangeVisibility": {
+            "type": "object",
+            "description": "Change the visibility for the repository.",
+            "required": [
+                "visibility",
+            ],
+            "properties": {
+                "visibility": {
+                    "type": "string",
+                    "description": "Visibility which the repository will start with",
+                    "enum": [
+                        "public",
+                        "private",
+                    ],
+                },
+            },
+        },
+        "ChangeRepoTrust": {
+            "type": "object",
+            "description": "Change the trust settings for the repository.",
+            "required": [
+                "trust_enabled",
+            ],
+            "properties": {
+                "trust_enabled": {
+                    "type": "boolean",
+                    "description": "Whether or not signing is enabled for the repository.",
+                },
+            },
+        },
+        "ChangeRepoState": {
+            "type": "object",
+            "description": "Change the state of the repository.",
+            "required": ["state"],
+            "properties": {
+                "state": {
+                    "type": "string",
+                    "description": "Determines whether pushes are allowed.",
+                    "enum": ["NORMAL", "READ_ONLY", "MIRROR"],
                 },
             },
         },
@@ -134,6 +190,27 @@ class RepositoryList(ApiResource):
             },
             "required": ["namespace", "name", "kind"],
         },
+        "Tag": {
+            "type": "object",
+            "description": "Repository tag information",
+            "properties": {
+                "name": {"type": "string", "description": "Tag name"},
+                "size": {"type": "integer", "description": "Aggregate size of image layers"},
+                "last_modified": {
+                    "type": "string",
+                    "description": "Last modified date in RFC 2822 format",
+                },
+                "expiration": {
+                    "type": "string",
+                    "description": "Expiration date in RFC 2822 format",
+                },
+                "manifest_digest": {
+                    "type": "string",
+                    "description": "Manifest digest",
+                },
+            },
+            "required": ["name", "size"],
+        },
         "RepositoryStats": {
             "type": "object",
             "description": "Repository statistics for a specific date",
@@ -143,6 +220,22 @@ class RepositoryList(ApiResource):
             },
             "required": ["date", "count"],
         },
+        "QuotaReport": {
+            "type": "object",
+            "description": "Repository quota information",
+            "properties": {
+                "quota_bytes": {
+                    "type": "integer",
+                    "description": "Current repository size in bytes",
+                },
+                "configured_quota": {
+                    "type": "integer",
+                    "description": "Configured quota limit in bytes",
+                    "x-nullable": True,
+                },
+            },
+            "required": ["quota_bytes", "configured_quota"],
+        },
         "RepositoryView": {
             "type": "object",
             "description": "Repository information",
@@ -150,39 +243,113 @@ class RepositoryList(ApiResource):
                 "namespace": {"type": "string", "description": "Repository namespace"},
                 "name": {"type": "string", "description": "Repository name"},
                 "description": {"type": "string", "description": "Repository description"},
-                "visibility": {
-                    "type": "string",
-                    "description": "Repository visibility",
-                    "enum": ["public", "private"],
+                "is_public": {"type": "boolean", "description": "Whether repository is public"},
+                "is_organization": {
+                    "type": "boolean",
+                    "description": "Whether namespace is an organization",
                 },
-                "kind": {"type": "string", "description": "Repository kind"},
-                "state": {"type": "string", "description": "Repository state"},
+                "is_starred": {
+                    "type": "boolean",
+                    "description": "Whether user has starred this repository",
+                },
+                "kind": {"type": "string", "description": "Repository kind (image or application)"},
+                "state": {
+                    "type": "string",
+                    "description": "Repository state",
+                    "enum": ["NORMAL", "READ_ONLY", "MIRROR", "MARKED_FOR_DELETION"],
+                    "x-nullable": True,
+                },
+                "status_token": {
+                    "type": "string",
+                    "description": "Token for build status badge (empty for public repos)",
+                },
+                "trust_enabled": {
+                    "type": "boolean",
+                    "description": "Whether content trust is enabled",
+                },
+                "tag_expiration_s": {
+                    "type": "integer",
+                    "description": "Tag expiration in seconds",
+                    "x-nullable": True,
+                },
+                "is_free_account": {
+                    "type": "boolean",
+                    "description": "Whether namespace is on free tier",
+                },
                 "can_write": {"type": "boolean", "description": "Whether user can write to repo"},
                 "can_admin": {"type": "boolean", "description": "Whether user can admin repo"},
                 "stats": {
                     "type": "array",
                     "items": {"$ref": "#/definitions/RepositoryStats"},
-                    "description": "Repository statistics (if requested)",
+                    "description": "Repository statistics (only if includeStats=true)",
                 },
                 "tags": {
-                    "type": "array",
-                    "items": {"type": "object"},
-                    "description": "Repository tags (if requested)",
+                    "type": "object",
+                    "description": "Map of tag names to tag information (only if includeTags=true)",
+                    "additionalProperties": {"$ref": "#/definitions/Tag"},
                 },
                 "quota_report": {
-                    "type": ["object", "null"],
-                    "description": "Quota information (if enabled)",
+                    "allOf": [{"$ref": "#/definitions/QuotaReport"}],
+                    "description": "Quota information (only if QUOTA_MANAGEMENT feature is enabled)",
                 },
             },
             "required": [
                 "namespace",
                 "name",
                 "description",
-                "visibility",
+                "is_public",
+                "is_organization",
+                "is_starred",
                 "kind",
                 "state",
+                "status_token",
+                "trust_enabled",
+                "tag_expiration_s",
+                "is_free_account",
                 "can_write",
                 "can_admin",
+            ],
+        },
+        "RepositoryBaseView": {
+            "type": "object",
+            "description": "Basic repository information for list views",
+            "properties": {
+                "namespace": {"type": "string", "description": "Repository namespace"},
+                "name": {"type": "string", "description": "Repository name"},
+                "description": {"type": "string", "description": "Repository description"},
+                "is_public": {"type": "boolean", "description": "Whether repository is public"},
+                "is_starred": {
+                    "type": "boolean",
+                    "description": "Whether user has starred this repository (only if starred query param is used)",
+                },
+                "kind": {"type": "string", "description": "Repository kind (image or application)"},
+                "state": {
+                    "type": "string",
+                    "description": "Repository state",
+                    "enum": ["NORMAL", "READ_ONLY", "MIRROR", "MARKED_FOR_DELETION"],
+                    "x-nullable": True,
+                },
+                "last_modified": {
+                    "type": "string",
+                    "description": "Last modified timestamp (only if last_modified=true)",
+                    "x-nullable": True,
+                },
+                "popularity": {
+                    "type": "number",
+                    "description": "Repository popularity score (only if popularity=true)",
+                },
+                "quota_report": {
+                    "allOf": [{"$ref": "#/definitions/QuotaReport"}],
+                    "description": "Quota information (only if QUOTA_MANAGEMENT feature is enabled)",
+                },
+            },
+            "required": [
+                "namespace",
+                "name",
+                "description",
+                "is_public",
+                "kind",
+                "state",
             ],
         },
         "RepositoryListResponse": {
@@ -191,7 +358,11 @@ class RepositoryList(ApiResource):
             "properties": {
                 "repositories": {
                     "type": "array",
-                    "items": {"$ref": "#/definitions/RepositoryView"},
+                    "items": {"$ref": "#/definitions/RepositoryBaseView"},
+                },
+                "next_page": {
+                    "type": "string",
+                    "description": "Encrypted page token for next page of results",
                 },
             },
             "required": ["repositories"],
@@ -356,21 +527,7 @@ class Repository(RepositoryParamResource):
     Operations for managing a specific repository.
     """
 
-    schemas = {
-        "RepoUpdate": {
-            "type": "object",
-            "description": "Fields which can be updated in a repository.",
-            "required": [
-                "description",
-            ],
-            "properties": {
-                "description": {
-                    "type": "string",
-                    "description": "Markdown encoded description for the repository",
-                },
-            },
-        }
-    }
+    schemas = RepositoryList.schemas
 
     @parse_args()
     @query_param(
@@ -473,25 +630,7 @@ class RepositoryVisibility(RepositoryParamResource):
     Custom verb for changing the visibility of the repository.
     """
 
-    schemas = {
-        "ChangeVisibility": {
-            "type": "object",
-            "description": "Change the visibility for the repository.",
-            "required": [
-                "visibility",
-            ],
-            "properties": {
-                "visibility": {
-                    "type": "string",
-                    "description": "Visibility which the repository will start with",
-                    "enum": [
-                        "public",
-                        "private",
-                    ],
-                },
-            },
-        }
-    }
+    schemas = RepositoryList.schemas
 
     @require_repo_admin(allow_for_superuser=True)
     @nickname("changeRepoVisibility")
@@ -524,21 +663,7 @@ class RepositoryTrust(RepositoryParamResource):
     Custom verb for changing the trust settings of the repository.
     """
 
-    schemas = {
-        "ChangeRepoTrust": {
-            "type": "object",
-            "description": "Change the trust settings for the repository.",
-            "required": [
-                "trust_enabled",
-            ],
-            "properties": {
-                "trust_enabled": {
-                    "type": "boolean",
-                    "description": "Whether or not signing is enabled for the repository.",
-                },
-            },
-        }
-    }
+    schemas = RepositoryList.schemas
 
     @show_if(features.SIGNING)
     @require_repo_admin(allow_for_superuser=True)
@@ -577,20 +702,7 @@ class RepositoryStateResource(RepositoryParamResource):
     Custom verb for changing the state of the repository.
     """
 
-    schemas = {
-        "ChangeRepoState": {
-            "type": "object",
-            "description": "Change the state of the repository.",
-            "required": ["state"],
-            "properties": {
-                "state": {
-                    "type": "string",
-                    "description": "Determines whether pushes are allowed.",
-                    "enum": ["NORMAL", "READ_ONLY", "MIRROR"],
-                },
-            },
-        }
-    }
+    schemas = RepositoryList.schemas
 
     @require_repo_admin(allow_for_superuser=True)
     @nickname("changeRepoState")
@@ -599,6 +711,10 @@ class RepositoryStateResource(RepositoryParamResource):
     def put(self, namespace, repository):
         """
         Change the state of a repository.
+
+        Returns:
+            200: Success response with {"success": true}
+            400: Error response with {"detail": "error message"} when state is invalid or not allowed
         """
         if not model.repo_exists(namespace, repository):
             raise NotFound()

@@ -138,6 +138,21 @@ class PermissionPrototypeList(ApiResource):
                 },
             },
         },
+        "AvatarData": {
+            "type": "object",
+            "description": "Avatar information for a user or team",
+            "properties": {
+                "name": {"type": "string", "description": "Name used to generate the avatar"},
+                "hash": {"type": "string", "description": "Hash value for gravatar lookup"},
+                "color": {"type": "string", "description": "Background color for the avatar"},
+                "kind": {
+                    "type": "string",
+                    "description": "Type of entity",
+                    "enum": ["user", "robot", "team"],
+                },
+            },
+            "required": ["name", "hash", "color", "kind"],
+        },
         "PrototypeUserView": {
             "type": "object",
             "description": "A user in a prototype permission",
@@ -149,49 +164,49 @@ class PermissionPrototypeList(ApiResource):
                     "type": "boolean",
                     "description": "Whether user is an org member",
                 },
-                "avatar": {"type": "object", "description": "Avatar data"},
+                "avatar": {"$ref": "#/definitions/AvatarData"},
             },
             "required": ["name", "is_robot", "kind", "is_org_member", "avatar"],
         },
+        "PrototypeTeamView": {
+            "type": "object",
+            "description": "A team in a prototype permission",
+            "properties": {
+                "name": {"type": "string", "description": "Team name"},
+                "kind": {"type": "string", "description": "Type (always 'team')", "enum": ["team"]},
+                "avatar": {"$ref": "#/definitions/AvatarData"},
+            },
+            "required": ["name", "kind", "avatar"],
+        },
         "PrototypeDelegateView": {
             "type": "object",
-            "description": "A delegate (user or team) in a prototype permission",
-            "oneOf": [
-                {
-                    "properties": {
-                        "name": {"type": "string", "description": "Username"},
-                        "kind": {"type": "string", "description": "Type (user)", "enum": ["user"]},
-                        "is_robot": {
-                            "type": "boolean",
-                            "description": "Whether this is a robot user",
-                        },
-                        "is_org_member": {
-                            "type": "boolean",
-                            "description": "Whether user is an org member",
-                        },
-                        "avatar": {"type": "object", "description": "Avatar data"},
-                    },
-                    "required": ["name", "kind", "is_robot", "is_org_member", "avatar"],
+            "description": "A delegate that can be either a user or a team",
+            "properties": {
+                "name": {"type": "string", "description": "Username or team name"},
+                "kind": {
+                    "type": "string",
+                    "description": "Type of delegate",
+                    "enum": ["user", "team"],
                 },
-                {
-                    "properties": {
-                        "name": {"type": "string", "description": "Team name"},
-                        "kind": {"type": "string", "description": "Type (team)", "enum": ["team"]},
-                        "avatar": {"type": "object", "description": "Avatar data"},
-                    },
-                    "required": ["name", "kind", "avatar"],
+                "is_robot": {
+                    "type": "boolean",
+                    "description": "Whether this is a robot user (only for user kind)",
                 },
-            ],
+                "is_org_member": {
+                    "type": "boolean",
+                    "description": "Whether user is an org member (only for user kind)",
+                },
+                "avatar": {"$ref": "#/definitions/AvatarData"},
+            },
+            "required": ["name", "kind", "avatar"],
         },
         "PrototypeView": {
             "type": "object",
             "description": "A permission prototype",
             "properties": {
                 "activating_user": {
-                    "oneOf": [
-                        {"$ref": "#/definitions/PrototypeUserView"},
-                        {"type": "null"},
-                    ],
+                    "$ref": "#/definitions/PrototypeUserView",
+                    "x-nullable": True,
                     "description": "User who activates this prototype (can be null)",
                 },
                 "delegate": {
@@ -203,9 +218,12 @@ class PermissionPrototypeList(ApiResource):
                     "description": "Role to apply",
                     "enum": ["read", "write", "admin"],
                 },
-                "id": {"type": "string", "description": "Unique identifier for the prototype"},
+                "id": {
+                    "type": "string",
+                    "description": "Unique identifier (UUID) for the prototype",
+                },
             },
-            "required": ["delegate", "role", "id"],
+            "required": ["activating_user", "delegate", "role", "id"],
         },
         "PrototypeList": {
             "type": "object",
@@ -217,6 +235,24 @@ class PermissionPrototypeList(ApiResource):
                 },
             },
             "required": ["prototypes"],
+        },
+        "PrototypeUpdate": {
+            "type": "object",
+            "description": "Description of a the new prototype role",
+            "required": [
+                "role",
+            ],
+            "properties": {
+                "role": {
+                    "type": "string",
+                    "description": "Role that should be applied to the permission",
+                    "enum": [
+                        "read",
+                        "write",
+                        "admin",
+                    ],
+                },
+            },
         },
     }
 
@@ -317,27 +353,6 @@ class PermissionPrototype(ApiResource):
     """
     Resource for managinging individual permission prototypes.
     """
-
-    schemas = {
-        "PrototypeUpdate": {
-            "type": "object",
-            "description": "Description of a the new prototype role",
-            "required": [
-                "role",
-            ],
-            "properties": {
-                "role": {
-                    "type": "string",
-                    "description": "Role that should be applied to the permission",
-                    "enum": [
-                        "read",
-                        "write",
-                        "admin",
-                    ],
-                },
-            },
-        },
-    }
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("deleteOrganizationPrototypePermission")

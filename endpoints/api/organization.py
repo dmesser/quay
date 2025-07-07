@@ -52,6 +52,154 @@ from util.request import get_request_ip
 
 logger = logging.getLogger(__name__)
 
+# Common reusable schema definitions
+COMMON_SCHEMAS = {
+    "Avatar": {
+        "type": "object",
+        "description": "Avatar information for a user, team, or organization",
+        "properties": {
+            "name": {"type": "string", "description": "Name associated with the avatar"},
+            "hash": {"type": "string", "description": "Avatar hash (gravatar or similar)"},
+            "color": {"type": "string", "description": "Background color for the avatar"},
+            "kind": {
+                "type": "string",
+                "description": "Type of entity",
+                "enum": ["user", "robot", "team", "org"],
+            },
+        },
+        "required": ["name", "hash", "color", "kind"],
+    },
+    "TeamView": {
+        "type": "object",
+        "description": "Team information within an organization",
+        "properties": {
+            "name": {"type": "string", "description": "Team name"},
+            "description": {"type": "string", "description": "Team description"},
+            "role": {
+                "type": "string",
+                "description": "Team role (e.g., 'admin', 'member', 'creator')",
+            },
+            "avatar": {"$ref": "#/definitions/Avatar"},
+            "can_view": {
+                "type": "boolean",
+                "description": "Whether the current user can view this team",
+            },
+            "repo_count": {
+                "type": "integer",
+                "description": "Number of repositories this team has access to",
+            },
+            "member_count": {"type": "integer", "description": "Number of members in this team"},
+            "is_synced": {
+                "type": "boolean",
+                "description": "Whether this team is synced from an external source",
+            },
+        },
+        "required": [
+            "name",
+            "description",
+            "role",
+            "avatar",
+            "can_view",
+            "repo_count",
+            "member_count",
+            "is_synced",
+        ],
+    },
+    "QuotaLimit": {
+        "type": "object",
+        "description": "Quota limit threshold configuration",
+        "properties": {
+            "id": {"type": "integer", "description": "Limit ID"},
+            "type": {
+                "type": "string",
+                "description": "Quota type name (e.g., 'warning', 'reject')",
+            },
+            "limit_percent": {
+                "type": "number",
+                "description": "Percentage of quota limit that triggers this threshold",
+            },
+        },
+        "required": ["id", "type", "limit_percent"],
+    },
+    "QuotaView": {
+        "type": "object",
+        "description": "Namespace quota configuration",
+        "properties": {
+            "id": {"type": "integer", "description": "Quota ID"},
+            "limit_bytes": {"type": "integer", "description": "Quota limit in bytes"},
+            "limits": {
+                "type": "array",
+                "items": {"$ref": "#/definitions/QuotaLimit"},
+                "description": "List of quota limit thresholds",
+            },
+        },
+        "required": ["id", "limit_bytes", "limits"],
+    },
+    "QuotaReport": {
+        "type": "object",
+        "description": "Current quota usage report",
+        "properties": {
+            "quota_bytes": {"type": "integer", "description": "Current storage usage in bytes"},
+            "configured_quota": {
+                "type": "integer",
+                "description": "Configured quota limit in bytes, or null if using system default",
+                "x-nullable": True,
+            },
+            "running_backfill": {
+                "type": "string",
+                "description": "Status of quota calculation",
+                "enum": ["waiting", "running", "complete"],
+            },
+            "backfill_status": {
+                "type": "string",
+                "description": "Status of quota calculation (duplicate of running_backfill)",
+                "enum": ["waiting", "running", "complete"],
+            },
+        },
+        "required": ["quota_bytes", "configured_quota", "running_backfill", "backfill_status"],
+    },
+    "AppView": {
+        "type": "object",
+        "description": "OAuth application details",
+        "properties": {
+            "name": {"type": "string", "description": "Application name"},
+            "description": {"type": "string", "description": "Application description"},
+            "application_uri": {"type": "string", "description": "Application homepage URI"},
+            "client_id": {"type": "string", "description": "OAuth client ID"},
+            "client_secret": {
+                "type": "string",
+                "description": "OAuth client secret (only visible to organization admins)",
+                "x-nullable": True,
+            },
+            "redirect_uri": {
+                "type": "string",
+                "description": "OAuth redirect URI (only visible to organization admins)",
+                "x-nullable": True,
+            },
+            "avatar_email": {
+                "type": "string",
+                "description": "Email address for avatar (only visible to organization admins)",
+                "x-nullable": True,
+            },
+        },
+        "required": [
+            "name",
+            "description",
+            "application_uri",
+            "client_id",
+            "client_secret",
+            "redirect_uri",
+            "avatar_email",
+        ],
+    },
+    "ErrorResponse": {
+        "type": "object",
+        "description": "Error response format",
+        "properties": {"message": {"type": "string", "description": "Error message"}},
+        "required": ["message"],
+    },
+}
+
 
 def quota_view(quota):
     quota_limits = list(model.namespacequota.get_namespace_quota_limit_list(quota))
@@ -148,6 +296,7 @@ class OrganizationList(ApiResource):
             "description": "Success message for organization creation",
             "enum": ["Created"],
         },
+        **COMMON_SCHEMAS,
     }
 
     @require_user_admin(disallow_for_restricted_users=features.RESTRICTED_USERS)
@@ -237,8 +386,9 @@ class Organization(ApiResource):
                     "description": "Whether the organization desires to receive emails for invoices",
                 },
                 "invoice_email_address": {
-                    "type": ["string", "null"],
+                    "type": "string",
                     "description": "The email address at which to receive invoices",
+                    "x-nullable": True,
                 },
                 "tag_expiration_s": {
                     "type": "integer",
@@ -250,41 +400,56 @@ class Organization(ApiResource):
         "OrganizationView": {
             "type": "object",
             "description": "Detailed organization information",
+            "required": ["name", "avatar", "is_admin", "is_member"],
             "properties": {
                 "name": {"type": "string", "description": "Organization name"},
-                "email": {"type": "string", "description": "Organization email"},
-                "avatar": {"type": "object", "description": "Avatar data"},
+                "email": {
+                    "type": "string",
+                    "description": "Organization email (empty string if not admin)",
+                },
+                "avatar": {"$ref": "#/definitions/Avatar"},
                 "is_admin": {"type": "boolean", "description": "Is the user an admin of the org"},
                 "is_member": {"type": "boolean", "description": "Is the user a member of the org"},
                 "teams": {
                     "type": "object",
-                    "description": "Teams in the organization, keyed by team name",
-                    "additionalProperties": {"type": "object"},
+                    "description": "Teams in the organization, keyed by team name (only present if user is a member)",
+                    "additionalProperties": {"$ref": "#/definitions/TeamView"},
                 },
                 "ordered_teams": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Ordered list of team names",
+                    "description": "Ordered list of team names (only present if user is a member)",
                 },
-                "invoice_email": {"type": "boolean", "description": "Wants invoice emails"},
+                "invoice_email": {
+                    "type": "boolean",
+                    "description": "Whether org wants invoice emails (only present if user is admin)",
+                },
                 "invoice_email_address": {
-                    "type": ["string", "null"],
-                    "description": "Invoice email address",
+                    "type": "string",
+                    "description": "Invoice email address (only present if user is admin)",
+                    "x-nullable": True,
                 },
-                "tag_expiration_s": {"type": "integer", "description": "Tag expiration in seconds"},
-                "is_free_account": {"type": "boolean", "description": "Is a free account"},
+                "tag_expiration_s": {
+                    "type": "integer",
+                    "description": "Tag expiration in seconds (only present if user is admin)",
+                },
+                "is_free_account": {
+                    "type": "boolean",
+                    "description": "Whether this is a free account (only present if user is admin)",
+                },
                 "quotas": {
                     "type": "array",
-                    "items": {"type": "object"},
-                    "description": "List of quotas for the org",
+                    "items": {"$ref": "#/definitions/QuotaView"},
+                    "description": "List of quotas for the org (only present if user is admin/member and quota features enabled)",
                 },
                 "quota_report": {
-                    "type": ["object", "null"],
-                    "description": "Quota report object or null",
+                    "allOf": [{"$ref": "#/definitions/QuotaReport"}],
+                    "description": "Quota usage report (only present if user is admin/member and quota features enabled)",
+                    "x-nullable": True,
                 },
             },
-            "required": ["name", "email", "avatar", "is_admin", "is_member"],
         },
+        **COMMON_SCHEMAS,
     }
 
     @nickname("getOrganization")
@@ -308,6 +473,7 @@ class Organization(ApiResource):
     @require_scope(scopes.ORG_ADMIN)
     @nickname("changeOrganizationDetails")
     @validate_json_request("UpdateOrg")
+    @define_json_response("OrganizationView")
     def put(self, orgname):
         """
         Change the details for the specified organization.
@@ -417,11 +583,12 @@ class OrgPrivateRepositories(ApiResource):
                 "privateCount": {
                     "type": "integer",
                     "description": "Current private repo count",
-                    "nullable": True,
+                    "x-nullable": True,
                 },
             },
             "required": ["privateAllowed"],
         },
+        **COMMON_SCHEMAS,
     }
 
     @require_scope(scopes.ORG_ADMIN)
@@ -488,9 +655,13 @@ class OrganizationCollaboratorList(ApiResource):
             "type": "object",
             "description": "A collaborator user",
             "properties": {
-                "kind": {"type": "string", "description": "Type of collaborator (user)"},
+                "kind": {
+                    "type": "string",
+                    "description": "Type of collaborator (user)",
+                    "enum": ["user"],
+                },
                 "name": {"type": "string", "description": "Username"},
-                "avatar": {"type": "object", "description": "Avatar data"},
+                "avatar": {"$ref": "#/definitions/Avatar"},
                 "repositories": {
                     "type": "array",
                     "items": {"type": "string"},
@@ -510,6 +681,7 @@ class OrganizationCollaboratorList(ApiResource):
             },
             "required": ["collaborators"],
         },
+        **COMMON_SCHEMAS,
     }
 
     @require_scope(scopes.ORG_ADMIN)
@@ -567,7 +739,7 @@ class OrganizationMemberList(ApiResource):
             "description": "Reference to a team",
             "properties": {
                 "name": {"type": "string", "description": "Team name"},
-                "avatar": {"type": "object", "description": "Team avatar data"},
+                "avatar": {"$ref": "#/definitions/Avatar"},
             },
             "required": ["name", "avatar"],
         },
@@ -576,8 +748,8 @@ class OrganizationMemberList(ApiResource):
             "description": "A member of the organization",
             "properties": {
                 "name": {"type": "string", "description": "Username"},
-                "kind": {"type": "string", "description": "Type (user)"},
-                "avatar": {"type": "object", "description": "Avatar data"},
+                "kind": {"type": "string", "description": "Type (user)", "enum": ["user"]},
+                "avatar": {"$ref": "#/definitions/Avatar"},
                 "teams": {
                     "type": "array",
                     "items": {"$ref": "#/definitions/TeamRef"},
@@ -602,6 +774,7 @@ class OrganizationMemberList(ApiResource):
             },
             "required": ["members"],
         },
+        **COMMON_SCHEMAS,
     }
 
     @require_scope(scopes.ORG_ADMIN)
@@ -668,8 +841,12 @@ class OrganizationMember(ApiResource):
             "description": "Detailed member information",
             "properties": {
                 "name": {"type": "string", "description": "Username"},
-                "kind": {"type": "string", "description": "Type (user or robot)"},
-                "avatar": {"type": "object", "description": "Avatar data"},
+                "kind": {
+                    "type": "string",
+                    "description": "Type (user or robot)",
+                    "enum": ["user", "robot"],
+                },
+                "avatar": {"$ref": "#/definitions/Avatar"},
                 "teams": {
                     "type": "array",
                     "items": {"$ref": "#/definitions/TeamRef"},
@@ -683,6 +860,7 @@ class OrganizationMember(ApiResource):
             },
             "required": ["name", "kind", "avatar", "teams", "repositories"],
         },
+        **COMMON_SCHEMAS,
     }
 
     @require_scope(scopes.ORG_ADMIN)
@@ -770,13 +948,14 @@ class ApplicationInformation(ApiResource):
             "description": "Public information about a registered application.",
             "properties": {
                 "name": {"type": "string", "description": "Application name"},
-                "description": {"type": "string", "description": "Description"},
+                "description": {"type": "string", "description": "Application description"},
                 "uri": {"type": "string", "description": "Application URI"},
-                "avatar": {"type": "object", "description": "Avatar data"},
-                "organization": {"type": "object", "description": "Organization info"},
+                "avatar": {"$ref": "#/definitions/Avatar"},
+                "organization": {"$ref": "#/definitions/OrganizationView"},
             },
             "required": ["name", "description", "uri", "avatar", "organization"],
         },
+        **COMMON_SCHEMAS,
     }
 
     @nickname("getApplicationInformation")
@@ -824,28 +1003,29 @@ def app_view(application):
 @path_param("orgname", "The name of the organization")
 class OrganizationApplications(ApiResource):
     schemas = {
-        "AppView": {
+        "NewApp": {
             "type": "object",
-            "description": "Application details for an organization.",
+            "description": "Description of a new application.",
+            "required": ["name"],
             "properties": {
-                "name": {"type": "string", "description": "Application name"},
-                "description": {"type": "string", "description": "Description"},
-                "application_uri": {"type": "string", "description": "Homepage URI"},
-                "client_id": {"type": "string", "description": "OAuth client ID"},
-                "client_secret": {
-                    "type": ["string", "null"],
-                    "description": "Client secret (admin only)",
+                "name": {"type": "string", "description": "The name of the application"},
+                "application_uri": {
+                    "type": "string",
+                    "description": "The URI for the application's homepage",
                 },
                 "redirect_uri": {
-                    "type": ["string", "null"],
-                    "description": "Redirect URI (admin only)",
+                    "type": "string",
+                    "description": "The URI for the application's OAuth redirect",
+                },
+                "description": {
+                    "type": "string",
+                    "description": "The human-readable description for the application",
                 },
                 "avatar_email": {
-                    "type": ["string", "null"],
-                    "description": "Avatar email (admin only)",
+                    "type": "string",
+                    "description": "The e-mail address of the avatar to use for the application",
                 },
             },
-            "required": ["name", "description", "application_uri", "client_id"],
         },
         "ApplicationsList": {
             "type": "object",
@@ -858,6 +1038,7 @@ class OrganizationApplications(ApiResource):
             },
             "required": ["applications"],
         },
+        **COMMON_SCHEMAS,
     }
 
     @require_scope(scopes.ORG_ADMIN)
@@ -943,29 +1124,7 @@ class OrganizationApplicationResource(ApiResource):
                 },
             },
         },
-        "AppView": {
-            "type": "object",
-            "description": "Application details for an organization.",
-            "properties": {
-                "name": {"type": "string", "description": "Application name"},
-                "description": {"type": "string", "description": "Description"},
-                "application_uri": {"type": "string", "description": "Homepage URI"},
-                "client_id": {"type": "string", "description": "OAuth client ID"},
-                "client_secret": {
-                    "type": ["string", "null"],
-                    "description": "Client secret (admin only)",
-                },
-                "redirect_uri": {
-                    "type": ["string", "null"],
-                    "description": "Redirect URI (admin only)",
-                },
-                "avatar_email": {
-                    "type": ["string", "null"],
-                    "description": "Avatar email (admin only)",
-                },
-            },
-            "required": ["name", "description", "application_uri", "client_id"],
-        },
+        **COMMON_SCHEMAS,
     }
 
     @require_scope(scopes.ORG_ADMIN)
@@ -1058,31 +1217,7 @@ class OrganizationApplicationResource(ApiResource):
 @path_param("client_id", "The OAuth client ID")
 @internal_only
 class OrganizationApplicationResetClientSecret(ApiResource):
-    schemas = {
-        "AppView": {
-            "type": "object",
-            "description": "Application details for an organization.",
-            "properties": {
-                "name": {"type": "string", "description": "Application name"},
-                "description": {"type": "string", "description": "Description"},
-                "application_uri": {"type": "string", "description": "Homepage URI"},
-                "client_id": {"type": "string", "description": "OAuth client ID"},
-                "client_secret": {
-                    "type": ["string", "null"],
-                    "description": "Client secret (admin only)",
-                },
-                "redirect_uri": {
-                    "type": ["string", "null"],
-                    "description": "Redirect URI (admin only)",
-                },
-                "avatar_email": {
-                    "type": ["string", "null"],
-                    "description": "Avatar email (admin only)",
-                },
-            },
-            "required": ["name", "description", "application_uri", "client_id"],
-        },
-    }
+    schemas = {**COMMON_SCHEMAS}
 
     @nickname("resetOrganizationApplicationClientSecret")
     @define_json_response("AppView")
@@ -1115,8 +1250,8 @@ class OrganizationApplicationResetClientSecret(ApiResource):
 def proxy_cache_view(proxy_cache_config):
     return {
         "upstream_registry": proxy_cache_config.upstream_registry if proxy_cache_config else "",
-        "expiration_s": proxy_cache_config.expiration_s if proxy_cache_config else "",
-        "insecure": proxy_cache_config.insecure if proxy_cache_config else "",
+        "expiration_s": proxy_cache_config.expiration_s if proxy_cache_config else None,
+        "insecure": proxy_cache_config.insecure if proxy_cache_config else None,
     }
 
 
@@ -1125,18 +1260,38 @@ def proxy_cache_view(proxy_cache_config):
 @show_if(features.PROXY_CACHE)
 class OrganizationProxyCacheConfig(ApiResource):
     schemas = {
+        "NewProxyCacheConfig": {
+            "type": "object",
+            "description": "Proxy cache configuration for an organization.",
+            "properties": {
+                "upstream_registry": {"type": "string", "description": "Upstream registry name"},
+                "expiration_s": {
+                    "type": "integer",
+                    "description": "Expiration in seconds",
+                },
+                "insecure": {
+                    "type": "boolean",
+                    "description": "Is the registry insecure?",
+                },
+                "username": {"type": "string", "description": "Username for the upstream registry"},
+                "password": {"type": "string", "description": "Password for the upstream registry"},
+            },
+            "required": ["upstream_registry"],
+        },
         "ProxyCacheConfig": {
             "type": "object",
             "description": "Proxy cache configuration for an organization.",
             "properties": {
                 "upstream_registry": {"type": "string", "description": "Upstream registry name"},
                 "expiration_s": {
-                    "type": ["string", "null"],
+                    "type": "integer",
                     "description": "Expiration in seconds",
+                    "x-nullable": True,
                 },
                 "insecure": {
-                    "type": ["boolean", "null"],
+                    "type": "boolean",
                     "description": "Is the registry insecure?",
+                    "x-nullable": True,
                 },
             },
             "required": ["upstream_registry", "expiration_s", "insecure"],
@@ -1151,6 +1306,7 @@ class OrganizationProxyCacheConfig(ApiResource):
             "description": "Success message for proxy cache deletion",
             "enum": ["Deleted"],
         },
+        **COMMON_SCHEMAS,
     }
 
     @nickname("getProxyCacheConfig")
@@ -1242,11 +1398,30 @@ class OrganizationProxyCacheConfig(ApiResource):
 @show_if(features.PROXY_CACHE)
 class ProxyCacheConfigValidation(ApiResource):
     schemas = {
+        "NewProxyCacheConfig": {
+            "type": "object",
+            "description": "Proxy cache configuration for an organization.",
+            "properties": {
+                "upstream_registry": {"type": "string", "description": "Upstream registry name"},
+                "expiration_s": {
+                    "type": "integer",
+                    "description": "Expiration in seconds",
+                },
+                "insecure": {
+                    "type": "boolean",
+                    "description": "Is the registry insecure?",
+                },
+                "username": {"type": "string", "description": "Username for the upstream registry"},
+                "password": {"type": "string", "description": "Password for the upstream registry"},
+            },
+            "required": ["upstream_registry"],
+        },
         "ValidateProxyCacheResponse": {
             "type": "string",
             "description": "Validation result for proxy cache config",
             "enum": ["Valid", "Anonymous"],
         },
+        **COMMON_SCHEMAS,
     }
 
     @nickname("validateProxyCacheConfig")
