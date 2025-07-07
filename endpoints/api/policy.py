@@ -33,6 +33,81 @@ from endpoints.exception import InvalidRequest, NotFound, Unauthorized
 logger = logging.getLogger(__name__)
 
 
+# Define schemas at module level to avoid runtime issues when AUTO_PRUNE is disabled
+AUTO_PRUNE_SCHEMAS = {
+    "AutoPrunePolicyConfig": {
+        "type": "object",
+        "description": "The policy configuration that is to be applied to the organization",
+        "required": ["method", "value"],
+        "properties": {
+            "method": {
+                "type": "string",
+                "description": "The method to use for pruning tags (number_of_tags, creation_date)",
+                "enum": ["number_of_tags", "creation_date"],
+            },
+            "value": {
+                "type": "string",
+                "description": "The value to use for the pruning method (number of tags e.g. 10, time delta e.g. 7d (7 days))",
+            },
+            "tagPattern": {
+                "type": "string",
+                "description": "Tags only matching this pattern will be pruned",
+            },
+            "tagPatternMatches": {
+                "type": "boolean",
+                "description": "Determine whether pruned tags should or should not match the tagPattern",
+            },
+        },
+    },
+    "AutoPrunePolicyView": {
+        "type": "object",
+        "description": "A view of an auto-prune policy.",
+        "properties": {
+            "uuid": {"type": "string", "description": "Unique identifier for the policy"},
+            "method": {
+                "type": "string",
+                "description": "Prune method",
+                "enum": ["number_of_tags", "creation_date"],
+            },
+            "value": {
+                "type": "string",
+                "description": "Prune value (number or time delta)",
+            },
+            "tagPattern": {
+                "type": "string",
+                "description": "Tag pattern to match",
+                "x-nullable": True,
+            },
+            "tagPatternMatches": {
+                "type": "boolean",
+                "description": "Whether to match the tag pattern",
+                "x-nullable": True,
+            },
+        },
+        "required": ["uuid", "method", "value"],
+    },
+    "AutoPrunePolicyList": {
+        "type": "object",
+        "description": "List of auto-prune policies.",
+        "properties": {
+            "policies": {
+                "type": "array",
+                "items": {"$ref": "#/definitions/AutoPrunePolicyView"},
+            },
+        },
+        "required": ["policies"],
+    },
+    "AutoPrunePolicyUUID": {
+        "type": "object",
+        "description": "UUID of an auto-prune policy.",
+        "properties": {
+            "uuid": {"type": "string", "description": "Unique identifier for the policy"},
+        },
+        "required": ["uuid"],
+    },
+}
+
+
 @resource("/v1/organization/<orgname>/autoprunepolicy/")
 @path_param("orgname", "The name of the organization")
 @show_if(features.AUTO_PRUNE)
@@ -41,78 +116,7 @@ class OrgAutoPrunePolicies(ApiResource):
     Resource for listing and creating organization auto-prune policies
     """
 
-    schemas = {
-        "AutoPrunePolicyConfig": {
-            "type": "object",
-            "description": "The policy configuration that is to be applied to the organization",
-            "required": ["method", "value"],
-            "properties": {
-                "method": {
-                    "type": "string",
-                    "description": "The method to use for pruning tags (number_of_tags, creation_date)",
-                    "enum": ["number_of_tags", "creation_date"],
-                },
-                "value": {
-                    "type": ["integer", "string"],
-                    "description": "The value to use for the pruning method (number of tags e.g. 10, time delta e.g. 7d (7 days))",
-                },
-                "tagPattern": {
-                    "type": "string",
-                    "description": "Tags only matching this pattern will be pruned",
-                },
-                "tagPatternMatches": {
-                    "type": "boolean",
-                    "description": "Determine whether pruned tags should or should not match the tagPattern",
-                },
-            },
-        },
-        "AutoPrunePolicyView": {
-            "type": "object",
-            "description": "A view of an auto-prune policy.",
-            "properties": {
-                "uuid": {"type": "string", "description": "Unique identifier for the policy"},
-                "method": {
-                    "type": "string",
-                    "description": "Prune method",
-                    "enum": ["number_of_tags", "creation_date"],
-                },
-                "value": {
-                    "type": ["integer", "string"],
-                    "description": "Prune value (number or time delta)",
-                },
-                "tagPattern": {
-                    "type": "string",
-                    "description": "Tag pattern to match",
-                    "x-nullable": True,
-                },
-                "tagPatternMatches": {
-                    "type": "boolean",
-                    "description": "Whether to match the tag pattern",
-                    "x-nullable": True,
-                },
-            },
-            "required": ["uuid", "method", "value"],
-        },
-        "AutoPrunePolicyList": {
-            "type": "object",
-            "description": "List of auto-prune policies.",
-            "properties": {
-                "policies": {
-                    "type": "array",
-                    "items": {"$ref": "#/definitions/AutoPrunePolicyView"},
-                },
-            },
-            "required": ["policies"],
-        },
-        "AutoPrunePolicyUUID": {
-            "type": "object",
-            "description": "UUID of an auto-prune policy.",
-            "properties": {
-                "uuid": {"type": "string", "description": "Unique identifier for the policy"},
-            },
-            "required": ["uuid"],
-        },
-    }
+    schemas = AUTO_PRUNE_SCHEMAS
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("listOrganizationAutoPrunePolicies")
@@ -198,7 +202,7 @@ class OrgAutoPrunePolicy(ApiResource):
     Resource for fetching, updating, and deleting specific organization auto-prune policies
     """
 
-    schemas = OrgAutoPrunePolicies.schemas
+    schemas = AUTO_PRUNE_SCHEMAS
 
     @require_scope(scopes.ORG_ADMIN)
     @nickname("getOrganizationAutoPrunePolicy")
@@ -315,7 +319,7 @@ class RepositoryAutoPrunePolicies(RepositoryParamResource):
     Resource for listing and creating repository auto-prune policies
     """
 
-    schemas = OrgAutoPrunePolicies.schemas
+    schemas = AUTO_PRUNE_SCHEMAS
 
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("listRepositoryAutoPrunePolicies")
@@ -413,7 +417,7 @@ class RepositoryAutoPrunePolicy(RepositoryParamResource):
     Resource for fetching, updating, and deleting repository specific auto-prune policies
     """
 
-    schemas = OrgAutoPrunePolicies.schemas
+    schemas = AUTO_PRUNE_SCHEMAS
 
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("getRepositoryAutoPrunePolicy")
@@ -538,7 +542,7 @@ class UserAutoPrunePolicies(ApiResource):
     Resource for listing and creating organization auto-prune policies
     """
 
-    schemas = OrgAutoPrunePolicies.schemas
+    schemas = AUTO_PRUNE_SCHEMAS
 
     @require_user_admin()
     @nickname("listUserAutoPrunePolicies")
@@ -615,7 +619,7 @@ class UserAutoPrunePolicy(ApiResource):
     Resource for fetching, updating, and deleting specific user auto-prune policies
     """
 
-    schemas = OrgAutoPrunePolicies.schemas
+    schemas = AUTO_PRUNE_SCHEMAS
 
     @require_user_admin()
     @nickname("getUserAutoPrunePolicy")
