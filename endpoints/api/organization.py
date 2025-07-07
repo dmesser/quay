@@ -1217,7 +1217,7 @@ class OrganizationApplicationResource(ApiResource):
 @path_param("client_id", "The OAuth client ID")
 @internal_only
 class OrganizationApplicationResetClientSecret(ApiResource):
-    schemas = {**COMMON_SCHEMAS}
+    schemas = COMMON_SCHEMAS
 
     @nickname("resetOrganizationApplicationClientSecret")
     @define_json_response("AppView")

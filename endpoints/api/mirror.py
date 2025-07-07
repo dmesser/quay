@@ -133,7 +133,7 @@ common_properties = {
 }
 
 # Common error response schemas shared across endpoints
-common_schemas = {
+COMMON_SCHEMAS = {
     "NoContentResponse": {
         "description": "Empty response with 204 No Content status code",
     },
@@ -178,8 +178,8 @@ class RepoMirrorSyncNowResource(RepositoryParamResource):
     """
 
     schemas = {
-        "NoContentResponse": common_schemas["NoContentResponse"],
-        "NotFoundErrorResponse": common_schemas["NotFoundErrorResponse"],
+        "NoContentResponse": COMMON_SCHEMAS["NoContentResponse"],
+        "NotFoundErrorResponse": COMMON_SCHEMAS["NotFoundErrorResponse"],
     }
 
     @require_repo_admin(allow_for_superuser=True)
@@ -218,8 +218,8 @@ class RepoMirrorSyncCancelResource(RepositoryParamResource):
     """
 
     schemas = {
-        "NoContentResponse": common_schemas["NoContentResponse"],
-        "NotFoundErrorResponse": common_schemas["NotFoundErrorResponse"],
+        "NoContentResponse": COMMON_SCHEMAS["NoContentResponse"],
+        "NotFoundErrorResponse": COMMON_SCHEMAS["NotFoundErrorResponse"],
     }
 
     @require_repo_admin(allow_for_superuser=True)
@@ -312,10 +312,10 @@ class RepoMirrorResource(RepositoryParamResource):
                 },
             ),
         },
-        "NoContentResponse": common_schemas["NoContentResponse"],
-        "NotFoundErrorResponse": common_schemas["NotFoundErrorResponse"],
-        "BadRequestErrorResponse": common_schemas["BadRequestErrorResponse"],
-        "ConflictErrorResponse": common_schemas["ConflictErrorResponse"],
+        "NoContentResponse": COMMON_SCHEMAS["NoContentResponse"],
+        "NotFoundErrorResponse": COMMON_SCHEMAS["NotFoundErrorResponse"],
+        "BadRequestErrorResponse": COMMON_SCHEMAS["BadRequestErrorResponse"],
+        "ConflictErrorResponse": COMMON_SCHEMAS["ConflictErrorResponse"],
     }
 
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
