@@ -159,7 +159,7 @@ LOG_ENTRY_SCHEMA = {
             "format": "rfc2822",
         },
         "performer": {
-            "type": "object",
+            "type": ["object", "null"],
             "x-nullable": True,
             "description": "Information about the user who performed the action (optional)",
             "properties": {
@@ -172,7 +172,7 @@ LOG_ENTRY_SCHEMA = {
                     "description": "Always 'user' (even for robots - this is a known issue)",
                 },
                 "is_robot": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "x-nullable": True,
                     "description": "Whether the performer is a robot account (can be null for non-robots or a string for robots)",
                 },
@@ -199,7 +199,7 @@ LOG_ENTRY_SCHEMA = {
             "description": "Additional metadata about the action",
         },
         "ip": {
-            "type": "string",
+            "type": ["string", "null"],
             "x-nullable": True,
             "description": "The IP address from which the action was performed",
         },

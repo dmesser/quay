@@ -110,12 +110,12 @@ TAG_RESPONSE_SCHEMAS = {
         "description": "Makes changes to a specific tag",
         "properties": {
             "manifest_digest": {
-                "type": "string",
+                "type": ["string", "null"],
                 "x-nullable": True,
                 "description": "(If specified) The manifest digest to which the tag should point",
             },
             "expiration": {
-                "type": "number",
+                "type": ["number", "null"],
                 "x-nullable": True,
                 "description": "(If specified) The expiration timestamp for the tag (seconds since epoch)",
             },

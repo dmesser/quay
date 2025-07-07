@@ -91,12 +91,12 @@ ROBOT_RESPONSE_SCHEMAS = {
                 "description": "The robot's username",
             },
             "created": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null",
                 "x-nullable": True,
             },
             "last_accessed": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null",
                 "x-nullable": True,
             },
@@ -124,12 +124,12 @@ ROBOT_RESPONSE_SCHEMAS = {
                 "description": "The robot's username",
             },
             "created": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null",
                 "x-nullable": True,
             },
             "last_accessed": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null",
                 "x-nullable": True,
             },

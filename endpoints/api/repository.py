@@ -118,7 +118,7 @@ class RepositoryList(ApiResource):
                     "description": "Markdown encoded description for the repository",
                 },
                 "repo_kind": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The kind of repository",
                     "enum": ["image", "application"],
                     "x-nullable": True,
@@ -229,7 +229,7 @@ class RepositoryList(ApiResource):
                     "description": "Current repository size in bytes",
                 },
                 "configured_quota": {
-                    "type": "integer",
+                    "type": ["integer", "null"],
                     "description": "Configured quota limit in bytes",
                     "x-nullable": True,
                 },
@@ -254,7 +254,7 @@ class RepositoryList(ApiResource):
                 },
                 "kind": {"type": "string", "description": "Repository kind (image or application)"},
                 "state": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "Repository state",
                     "enum": ["NORMAL", "READ_ONLY", "MIRROR", "MARKED_FOR_DELETION"],
                     "x-nullable": True,
@@ -268,7 +268,7 @@ class RepositoryList(ApiResource):
                     "description": "Whether content trust is enabled",
                 },
                 "tag_expiration_s": {
-                    "type": "integer",
+                    "type": ["integer", "null"],
                     "description": "Tag expiration in seconds",
                     "x-nullable": True,
                 },
@@ -324,13 +324,13 @@ class RepositoryList(ApiResource):
                 },
                 "kind": {"type": "string", "description": "Repository kind (image or application)"},
                 "state": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "Repository state",
                     "enum": ["NORMAL", "READ_ONLY", "MIRROR", "MARKED_FOR_DELETION"],
                     "x-nullable": True,
                 },
                 "last_modified": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "Last modified timestamp (only if last_modified=true)",
                     "x-nullable": True,
                 },

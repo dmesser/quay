@@ -84,12 +84,12 @@ TRIGGER_RESPONSE_SCHEMAS = {
                 "description": "Whether the trigger is currently active",
             },
             "build_source": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "The source branch or tag for the build",
                 "x-nullable": True,
             },
             "repository_url": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "The URL of the source repository",
                 "x-nullable": True,
             },
@@ -106,7 +106,7 @@ TRIGGER_RESPONSE_SCHEMAS = {
                 "description": "Whether the trigger is enabled",
             },
             "disabled_reason": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Reason why the trigger is disabled, if applicable",
                 "x-nullable": True,
             },
@@ -188,7 +188,7 @@ TRIGGER_RESPONSE_SCHEMAS = {
                 },
             },
             "manual_user": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Manual user",
                 "x-nullable": True,
             },
@@ -197,33 +197,33 @@ TRIGGER_RESPONSE_SCHEMAS = {
                 "description": "Whether user can write",
             },
             "trigger": {
-                "type": "object",
+                "type": ["object", "null"],
                 "description": "The build trigger that started this build",
                 "x-nullable": True,
                 "properties": {
                     "id": {"type": "string"},
                     "service": {"type": "string"},
                     "is_active": {"type": "boolean"},
-                    "build_source": {"type": "string", "x-nullable": True},
-                    "repository_url": {"type": "string", "x-nullable": True},
+                    "build_source": {"type": ["string", "null"], "x-nullable": True},
+                    "repository_url": {"type": ["string", "null"], "x-nullable": True},
                     "config": {"type": "object"},
                     "can_invoke": {"type": "boolean"},
                     "enabled": {"type": "boolean"},
-                    "disabled_reason": {"type": "string", "x-nullable": True},
+                    "disabled_reason": {"type": ["string", "null"], "x-nullable": True},
                 },
             },
             "trigger_metadata": {
-                "type": "object",
+                "type": ["object", "null"],
                 "description": "Trigger metadata",
                 "x-nullable": True,
             },
             "resource_key": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Resource key",
                 "x-nullable": True,
             },
             "pull_robot": {
-                "type": "object",
+                "type": ["object", "null"],
                 "description": "The robot account used for pulling images",
                 "x-nullable": True,
                 "properties": {
@@ -257,7 +257,7 @@ TRIGGER_RESPONSE_SCHEMAS = {
                 "required": ["namespace", "name"],
             },
             "error": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Error message",
                 "x-nullable": True,
             },
@@ -349,12 +349,12 @@ TRIGGER_RESPONSE_SCHEMAS = {
                 "description": "Error or warning message (only included for error/warning status)",
             },
             "namespace": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Image namespace",
                 "x-nullable": True,
             },
             "name": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Image repository name",
                 "x-nullable": True,
             },
@@ -486,7 +486,7 @@ TRIGGER_RESPONSE_SCHEMAS = {
                 "description": "True if this is a personal namespace",
             },
             "avatar_url": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Avatar/logo URL",
                 "x-nullable": True,
             },

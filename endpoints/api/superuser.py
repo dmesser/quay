@@ -146,7 +146,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "example": "Mon, 01 Jan 2024 00:00:00 GMT",
             },
             "performer": {
-                "type": "object",
+                "type": ["object", "null"],
                 "x-nullable": True,
                 "description": "User who performed the action",
                 "properties": {
@@ -168,7 +168,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 },
             },
             "namespace": {
-                "type": "object",
+                "type": ["object", "null"],
                 "x-nullable": True,
                 "description": "Namespace information",
                 "properties": {
@@ -211,7 +211,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 },
             },
             "next_page": {
-                "type": "string",
+                "type": ["string", "null"],
                 "x-nullable": True,
                 "description": "Encrypted page token for the next page",
             },
@@ -266,12 +266,12 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "description": "Whether the user is enabled",
             },
             "encrypted_password": {
-                "type": "string",
+                "type": ["string", "null"],
                 "x-nullable": True,
                 "description": "Encrypted password (only in create/update responses)",
             },
             "quotas": {
-                "type": "array",
+                "type": ["array", "null"],
                 "x-nullable": True,
                 "description": "User quotas (only when quota features are enabled)",
                 "items": {
@@ -279,7 +279,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 },
             },
             "quota_report": {
-                "type": "object",
+                "type": ["object", "null"],
                 "x-nullable": True,
                 "description": "Quota report information (only when quota features are enabled)",
             },
@@ -307,7 +307,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 },
             },
             "next_page": {
-                "type": "string",
+                "type": ["string", "null"],
                 "x-nullable": True,
                 "description": "Encrypted page token for the next page",
             },
@@ -353,7 +353,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "$ref": "#/definitions/Avatar",
             },
             "quotas": {
-                "type": "array",
+                "type": ["array", "null"],
                 "x-nullable": True,
                 "description": "Organization quotas (only when quota features are enabled)",
                 "items": {
@@ -361,7 +361,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 },
             },
             "quota_report": {
-                "type": "object",
+                "type": ["object", "null"],
                 "x-nullable": True,
                 "description": "Quota report information (only when quota features are enabled)",
             },
@@ -380,7 +380,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 },
             },
             "next_page": {
-                "type": "string",
+                "type": ["string", "null"],
                 "x-nullable": True,
                 "description": "Encrypted page token for the next page",
             },
@@ -396,7 +396,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "description": "Size in bytes",
             },
             "last_ran": {
-                "type": "integer",
+                "type": ["integer", "null"],
                 "x-nullable": True,
                 "description": "Last calculation timestamp (milliseconds since epoch)",
             },
@@ -416,7 +416,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
         "description": "A quota definition",
         "properties": {
             "id": {
-                "type": "integer",
+                "type": ["integer", "null"],
                 "x-nullable": True,
                 "description": "Quota ID",
             },
@@ -479,7 +479,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
         "description": "Service key approval information",
         "properties": {
             "approver": {
-                "allOf": [{"$ref": "#/definitions/User"}],
+                "oneOf": [{"$ref": "#/definitions/User"}, {"type": "null"}],
                 "x-nullable": True,
             },
             "approval_type": {
@@ -528,13 +528,13 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "example": "Mon, 01 Jan 2024 00:00:00 GMT",
             },
             "expiration_date": {
-                "type": "string",
+                "type": ["string", "null"],
                 "x-nullable": True,
                 "description": "Expiration date (RFC 2822 format)",
                 "example": "Mon, 01 Jan 2024 00:00:00 GMT",
             },
             "approval": {
-                "allOf": [{"$ref": "#/definitions/ServiceKeyApproval"}],
+                "oneOf": [{"$ref": "#/definitions/ServiceKeyApproval"}, {"type": "null"}],
                 "x-nullable": True,
             },
         },
@@ -606,12 +606,12 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "description": "Whether trigger is active",
             },
             "build_source": {
-                "type": "string",
+                "type": ["string", "null"],
                 "x-nullable": True,
                 "description": "Build source",
             },
             "repository_url": {
-                "type": "string",
+                "type": ["string", "null"],
                 "x-nullable": True,
                 "description": "Repository URL",
             },
@@ -624,7 +624,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "description": "Whether can invoke",
             },
             "pull_robot": {
-                "allOf": [{"$ref": "#/definitions/User"}],
+                "oneOf": [{"$ref": "#/definitions/User"}, {"type": "null"}],
                 "x-nullable": True,
             },
         },
@@ -643,7 +643,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "description": "Build phase",
             },
             "started": {
-                "type": "string",
+                "type": ["string", "null"],
                 "x-nullable": True,
                 "description": "Start time (RFC 2822 format)",
                 "example": "Mon, 01 Jan 2024 00:00:00 GMT",
@@ -676,7 +676,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 },
             },
             "manual_user": {
-                "type": "string",
+                "type": ["string", "null"],
                 "x-nullable": True,
                 "description": "Manual user",
             },
@@ -685,21 +685,21 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "description": "Whether user can write",
             },
             "trigger": {
-                "allOf": [{"$ref": "#/definitions/BuildTrigger"}],
+                "oneOf": [{"$ref": "#/definitions/BuildTrigger"}, {"type": "null"}],
                 "x-nullable": True,
             },
             "trigger_metadata": {
-                "type": "object",
+                "type": ["object", "null"],
                 "x-nullable": True,
                 "description": "Trigger metadata",
             },
             "resource_key": {
-                "type": "string",
+                "type": ["string", "null"],
                 "x-nullable": True,
                 "description": "Resource key",
             },
             "pull_robot": {
-                "allOf": [{"$ref": "#/definitions/User"}],
+                "oneOf": [{"$ref": "#/definitions/User"}, {"type": "null"}],
                 "x-nullable": True,
             },
             "repository": {
@@ -718,12 +718,12 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "required": ["namespace", "name"],
             },
             "error": {
-                "type": "string",
+                "type": ["string", "null"],
                 "x-nullable": True,
                 "description": "Error message",
             },
             "archive_url": {
-                "type": "string",
+                "type": ["string", "null"],
                 "x-nullable": True,
                 "description": "Archive URL",
             },
@@ -1694,7 +1694,7 @@ class SuperUserServiceKeyManagement(ApiResource):
                     "description": "If specified, the extra notes for the key",
                 },
                 "expiration": {
-                    "type": "integer",
+                    "type": ["integer", "null"],
                     "x-nullable": True,
                     "description": "The expiration date as a unix timestamp",
                 },
@@ -1823,7 +1823,7 @@ class SuperUserServiceKey(ApiResource):
                     "description": "The key/value pairs of this key's metadata",
                 },
                 "expiration": {
-                    "type": "integer",
+                    "type": ["integer", "null"],
                     "x-nullable": True,
                     "description": "The expiration date as a unix timestamp",
                 },

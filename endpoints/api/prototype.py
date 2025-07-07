@@ -205,7 +205,7 @@ class PermissionPrototypeList(ApiResource):
             "description": "A permission prototype",
             "properties": {
                 "activating_user": {
-                    "$ref": "#/definitions/PrototypeUserView",
+                    "oneOf": [{"$ref": "#/definitions/PrototypeUserView"}, {"type": "null"}],
                     "x-nullable": True,
                     "description": "User who activates this prototype (can be null)",
                 },

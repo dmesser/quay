@@ -37,10 +37,12 @@ common_properties = {
     "external_registry_username": {
         "type": ["string", "null"],
         "description": "Username used to authenticate with external registry.",
+        "x-nullable": True,
     },
     "external_registry_password": {
         "type": ["string", "null"],
         "description": "Password used to authenticate with external registry.",
+        "x-nullable": True,
     },
     "sync_start_date": {
         "type": "string",
@@ -53,6 +55,7 @@ common_properties = {
         "description": "The time at which the synchronization will expire.",
         "format": "ISO8601",
         "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+        "x-nullable": True,
     },
     "sync_retries_remaining": {
         "type": "integer",
@@ -70,6 +73,7 @@ common_properties = {
     "robot_username": {
         "type": ["string", "null"],
         "description": "Username of robot which will be used for image pushes.",
+        "x-nullable": True,
     },
     "root_rule": {
         "type": "object",
@@ -112,14 +116,17 @@ common_properties = {
                     "https_proxy": {
                         "type": ["string", "null"],
                         "description": "Value for HTTPS_PROXY environment variable during sync.",
+                        "x-nullable": True,
                     },
                     "http_proxy": {
                         "type": ["string", "null"],
                         "description": "Value for HTTP_PROXY environment variable during sync.",
+                        "x-nullable": True,
                     },
                     "no_proxy": {
                         "type": ["string", "null"],
                         "description": "Value for NO_PROXY environment variable during sync.",
+                        "x-nullable": True,
                     },
                 },
             },
@@ -303,6 +310,7 @@ class RepoMirrorResource(RepositoryParamResource):
                     "external_registry_username": {
                         "type": ["string", "null"],
                         "description": "Username used to authenticate with external registry. May contain '(invalid. please re-enter)' if decryption fails.",
+                        "x-nullable": True,
                     },
                     "sync_status": {
                         "type": "string",

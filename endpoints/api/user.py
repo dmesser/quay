@@ -307,27 +307,27 @@ class User(ApiResource):
                     "description": "The user's username",
                 },
                 "invoice_email_address": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "Custom email address for receiving invoices",
                     "x-nullable": True,
                 },
                 "given_name": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The optional entered given name for the user",
                     "x-nullable": True,
                 },
                 "family_name": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The optional entered family name for the user",
                     "x-nullable": True,
                 },
                 "company": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The optional entered company for the user",
                     "x-nullable": True,
                 },
                 "location": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The optional entered location for the user",
                     "x-nullable": True,
                 },
@@ -502,12 +502,12 @@ class User(ApiResource):
                     "description": "Whether the user desires to receive an invoice email",
                 },
                 "invoice_email_address": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "Custom email address for receiving invoices",
                     "x-nullable": True,
                 },
                 "tag_expiration_s": {
-                    "type": "integer",
+                    "type": ["integer", "null"],
                     "description": "The number of seconds for tag expiration",
                     "x-nullable": True,
                 },
@@ -519,22 +519,22 @@ class User(ApiResource):
                     },
                 },
                 "company": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The user's company",
                     "x-nullable": True,
                 },
                 "family_name": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The user's family name",
                     "x-nullable": True,
                 },
                 "given_name": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The user's given name",
                     "x-nullable": True,
                 },
                 "location": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The user's location",
                     "x-nullable": True,
                 },
@@ -1489,7 +1489,7 @@ class UserNotificationList(ApiResource):
                     "description": "The notification UUID",
                 },
                 "organization": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The organization name if the notification is for an organization",
                     "x-nullable": True,
                 },
@@ -1954,7 +1954,7 @@ class StarredRepositoryList(ApiResource):
                     "description": "The name of the repository",
                 },
                 "description": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The description of the repository",
                     "x-nullable": True,
                 },

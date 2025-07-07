@@ -55,12 +55,12 @@ SECURITY_RESPONSE_SCHEMAS = {
         "description": "CVSS v3 scoring information",
         "properties": {
             "Vectors": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "CVSS v3 attack vectors string",
                 "x-nullable": True,
             },
             "Score": {
-                "type": "number",
+                "type": ["number", "null"],
                 "description": "CVSS v3 base score (can be a number or null)",
                 "x-nullable": True,
             },
@@ -71,27 +71,27 @@ SECURITY_RESPONSE_SCHEMAS = {
         "description": "Metadata for a vulnerability",
         "properties": {
             "UpdatedBy": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Entity that updated the vulnerability information",
                 "x-nullable": True,
             },
             "RepoName": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Name of the repository containing the vulnerability",
                 "x-nullable": True,
             },
             "RepoLink": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Link to the repository",
                 "x-nullable": True,
             },
             "DistroName": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Distribution name",
                 "x-nullable": True,
             },
             "DistroVersion": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Distribution version",
                 "x-nullable": True,
             },
@@ -116,33 +116,33 @@ SECURITY_RESPONSE_SCHEMAS = {
         "description": "A security vulnerability",
         "properties": {
             "Severity": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Severity level of the vulnerability",
                 "enum": ["Unknown", "Negligible", "Low", "Medium", "High", "Critical"],
                 "x-nullable": True,
             },
             "NamespaceName": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Namespace where the vulnerability was found",
                 "x-nullable": True,
             },
             "Link": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Link to vulnerability details",
                 "x-nullable": True,
             },
             "FixedBy": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Version that fixes the vulnerability",
                 "x-nullable": True,
             },
             "Description": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Description of the vulnerability",
                 "x-nullable": True,
             },
             "Name": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Name/ID of the vulnerability",
                 "x-nullable": True,
             },
@@ -234,7 +234,7 @@ SECURITY_RESPONSE_SCHEMAS = {
                 "description": "Namespace of the layer",
             },
             "IndexedByVersion": {
-                "type": "integer",
+                "type": ["integer", "null"],
                 "description": "Version of the indexer used",
                 "x-nullable": True,
             },
@@ -266,7 +266,7 @@ SECURITY_RESPONSE_SCHEMAS = {
                 "$ref": "#/definitions/SecurityScanStatus",
             },
             "data": {
-                "allOf": [{"$ref": "#/definitions/SecurityInformation"}],
+                "oneOf": [{"$ref": "#/definitions/SecurityInformation"}, {"type": "null"}],
                 "x-nullable": True,
                 "description": "Security information data, null if not available",
             },

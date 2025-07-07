@@ -141,7 +141,7 @@ COMMON_SCHEMAS = {
         "properties": {
             "quota_bytes": {"type": "integer", "description": "Current storage usage in bytes"},
             "configured_quota": {
-                "type": "integer",
+                "type": ["integer", "null"],
                 "description": "Configured quota limit in bytes, or null if using system default",
                 "x-nullable": True,
             },
@@ -167,17 +167,17 @@ COMMON_SCHEMAS = {
             "application_uri": {"type": "string", "description": "Application homepage URI"},
             "client_id": {"type": "string", "description": "OAuth client ID"},
             "client_secret": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "OAuth client secret (only visible to organization admins)",
                 "x-nullable": True,
             },
             "redirect_uri": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "OAuth redirect URI (only visible to organization admins)",
                 "x-nullable": True,
             },
             "avatar_email": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Email address for avatar (only visible to organization admins)",
                 "x-nullable": True,
             },
@@ -386,7 +386,7 @@ class Organization(ApiResource):
                     "description": "Whether the organization desires to receive emails for invoices",
                 },
                 "invoice_email_address": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The email address at which to receive invoices",
                     "x-nullable": True,
                 },
@@ -425,7 +425,7 @@ class Organization(ApiResource):
                     "description": "Whether org wants invoice emails (only present if user is admin)",
                 },
                 "invoice_email_address": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "Invoice email address (only present if user is admin)",
                     "x-nullable": True,
                 },
@@ -581,7 +581,7 @@ class OrgPrivateRepositories(ApiResource):
                     "description": "Is private repo creation allowed?",
                 },
                 "privateCount": {
-                    "type": "integer",
+                    "type": ["integer", "null"],
                     "description": "Current private repo count",
                     "x-nullable": True,
                 },
@@ -1284,12 +1284,12 @@ class OrganizationProxyCacheConfig(ApiResource):
             "properties": {
                 "upstream_registry": {"type": "string", "description": "Upstream registry name"},
                 "expiration_s": {
-                    "type": "integer",
+                    "type": ["integer", "null"],
                     "description": "Expiration in seconds",
                     "x-nullable": True,
                 },
                 "insecure": {
-                    "type": "boolean",
+                    "type": ["boolean", "null"],
                     "description": "Is the registry insecure?",
                     "x-nullable": True,
                 },

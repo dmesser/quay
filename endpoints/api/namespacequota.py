@@ -112,7 +112,7 @@ class OrganizationQuotaList(ApiResource):
             "description": "Complete quota information including limits",
             "properties": {
                 "id": {
-                    "type": "integer",
+                    "type": ["integer", "null"],
                     "x-nullable": True,
                     "description": "Unique identifier for the quota",
                 },

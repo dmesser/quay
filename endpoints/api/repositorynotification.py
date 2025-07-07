@@ -93,7 +93,7 @@ class RepositoryNotificationList(RepositoryParamResource):
                     "description": "Configuration for the notification event",
                 },
                 "title": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "x-nullable": True,
                     "description": "Human-readable title for the notification",
                 },

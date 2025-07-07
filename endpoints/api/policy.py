@@ -74,12 +74,12 @@ AUTO_PRUNE_SCHEMAS = {
                 "description": "Prune value (number or time delta)",
             },
             "tagPattern": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Tag pattern to match",
                 "x-nullable": True,
             },
             "tagPatternMatches": {
-                "type": "boolean",
+                "type": ["boolean", "null"],
                 "description": "Whether to match the tag pattern",
                 "x-nullable": True,
             },

@@ -155,44 +155,38 @@ class RepositoryManifest(RepositoryParamResource):
                     "description": "The index of the layer in the manifest",
                 },
                 "compressed_size": {
-                    "type": "integer",
+                    "type": ["integer", "null"],
                     "description": "The compressed size of the layer in bytes",
-                    "x-nullable": True,
                 },
                 "is_remote": {
                     "type": "boolean",
                     "description": "Whether the layer is stored remotely",
                 },
                 "urls": {
-                    "type": "array",
+                    "type": ["array", "null"],
                     "description": "URLs where the layer can be downloaded",
                     "items": {"type": "string"},
-                    "x-nullable": True,
                 },
                 "command": {
-                    "type": "array",
+                    "type": ["array", "null"],
                     "items": {"type": "string"},
                     "description": "The command used to create this layer",
-                    "x-nullable": True,
                 },
                 "comment": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "Comment associated with the layer",
-                    "x-nullable": True,
                 },
                 "author": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The author of the layer",
-                    "x-nullable": True,
                 },
                 "blob_digest": {
                     "type": "string",
                     "description": "The digest of the layer blob",
                 },
                 "created_datetime": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "RFC 2822 timestamp when the layer was created (can be null if not available)",
-                    "x-nullable": True,
                 },
             },
         },
@@ -220,21 +214,19 @@ class RepositoryManifest(RepositoryParamResource):
                     "description": "The raw manifest data as a JSON string",
                 },
                 "config_media_type": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The media type of the manifest configuration",
-                    "x-nullable": True,
                 },
                 "layers_compressed_size": {
                     "type": "integer",
                     "description": "The total compressed size of all layers in bytes (0 for manifest lists)",
                 },
                 "layers": {
-                    "type": "array",
+                    "type": ["array", "null"],
                     "description": "List of layers in the manifest (null for manifest lists)",
                     "items": {
                         "$ref": "#/definitions/LayerInfo",
                     },
-                    "x-nullable": True,
                 },
                 "modelcard": {
                     "type": "string",
@@ -309,10 +301,9 @@ class RepositoryManifestLabels(RepositoryParamResource):
                     "description": "The value for the label",
                 },
                 "media_type": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The media type for this label",
                     "enum": ["text/plain", "application/json"],
-                    "x-nullable": True,
                 },
             },
         },
@@ -338,9 +329,8 @@ class RepositoryManifestLabels(RepositoryParamResource):
                     "description": "The source type of the label (e.g., 'api', 'manifest')",
                 },
                 "media_type": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The media type of the label value",
-                    "x-nullable": True,
                 },
             },
         },

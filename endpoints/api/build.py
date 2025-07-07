@@ -275,12 +275,12 @@ class RepositoryBuildList(RepositoryParamResource):
                     "description": "Whether the trigger is currently active",
                 },
                 "build_source": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The source branch or tag for the build (visible based on permissions)",
                     "x-nullable": True,
                 },
                 "repository_url": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The URL of the source repository (visible based on permissions)",
                     "x-nullable": True,
                 },
@@ -297,7 +297,7 @@ class RepositoryBuildList(RepositoryParamResource):
                     "description": "Whether the trigger is enabled",
                 },
                 "disabled_reason": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "Reason why the trigger is disabled, if applicable",
                     "x-nullable": True,
                 },
@@ -382,7 +382,7 @@ class RepositoryBuildList(RepositoryParamResource):
                     "items": {"type": "string"},
                 },
                 "manual_user": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The username of the user who manually triggered the build",
                     "x-nullable": True,
                 },
@@ -391,20 +391,21 @@ class RepositoryBuildList(RepositoryParamResource):
                     "description": "Whether the current user has write permissions to the repository",
                 },
                 "trigger": {
-                    "allOf": [
+                    "oneOf": [
                         {"$ref": "#/definitions/TriggerView"},
+                        {"type": "null"},
                     ],
                     "description": "The build trigger that started this build",
                     "x-nullable": True,
                 },
                 "trigger_metadata": {
-                    "type": "object",
+                    "type": ["object", "null"],
                     "description": "Metadata from the build trigger (visible based on permissions)",
                     "x-nullable": True,
                     "additionalProperties": True,
                 },
                 "resource_key": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The resource key for the build",
                     "x-nullable": True,
                 },
@@ -423,7 +424,7 @@ class RepositoryBuildList(RepositoryParamResource):
                     "x-nullable": True,
                 },
                 "error": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "Error message if the build failed",
                     "x-nullable": True,
                 },
@@ -479,7 +480,7 @@ class RepositoryBuildList(RepositoryParamResource):
                     "description": "The log message",
                 },
                 "type": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The type of log entry (e.g., 'phase', 'command', 'error', or null for regular output)",
                     "enum": ["phase", "command", "error"],
                     "x-nullable": True,
@@ -532,20 +533,20 @@ class RepositoryBuildList(RepositoryParamResource):
         },
         "BuildLogsUnionResponse": {
             "type": "object",
-            "description": "Response containing either build logs OR a URL to archived logs. If logs are archived, only 'logs_url' will be present. If logs are active, 'start', 'total', and 'logs' will be present.",
+            "description": "Response containing either build logs or a URL to archived logs",
             "properties": {
                 "start": {
-                    "type": "integer",
+                    "type": ["integer", "null"],
                     "description": "The starting index of the logs returned",
                     "x-nullable": True,
                 },
                 "total": {
-                    "type": "integer",
+                    "type": ["integer", "null"],
                     "description": "The total number of log entries available",
                     "x-nullable": True,
                 },
                 "logs": {
-                    "type": "array",
+                    "type": ["array", "null"],
                     "description": "List of log entries",
                     "items": {
                         "$ref": "#/definitions/LogEntry",
@@ -553,7 +554,7 @@ class RepositoryBuildList(RepositoryParamResource):
                     "x-nullable": True,
                 },
                 "logs_url": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The URL to download the archived build logs",
                     "x-nullable": True,
                 },

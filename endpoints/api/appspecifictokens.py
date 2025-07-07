@@ -92,7 +92,7 @@ class AppTokens(ApiResource):
                     "description": "The user-defined title for the token",
                 },
                 "last_accessed": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null if not set.",
                     "x-nullable": True,
                 },
@@ -101,7 +101,7 @@ class AppTokens(ApiResource):
                     "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000)",
                 },
                 "expiration": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null if not set.",
                     "x-nullable": True,
                 },
@@ -122,7 +122,7 @@ class AppTokens(ApiResource):
                     "description": "The user-defined title for the token",
                 },
                 "last_accessed": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null if not set.",
                     "x-nullable": True,
                 },
@@ -131,7 +131,7 @@ class AppTokens(ApiResource):
                     "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000)",
                 },
                 "expiration": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "RFC 2822 formatted date string (e.g., Fri, 09 Nov 2001 01:08:47 -0000), or null if not set.",
                     "x-nullable": True,
                 },
@@ -154,8 +154,9 @@ class AppTokens(ApiResource):
                     },
                 },
                 "only_expiring": {
-                    "type": "boolean",
+                    "type": ["boolean", "null"],
                     "description": "Whether the response only includes tokens that are expiring soon",
+                    "x-nullable": True,
                 },
             },
         },
@@ -226,6 +227,8 @@ class AppToken(ApiResource):
     """
     Provides operations on an app specific token.
     """
+
+    schemas = AppTokens.schemas
 
     @require_user_admin()
     @require_fresh_login

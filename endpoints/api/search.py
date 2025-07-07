@@ -221,10 +221,8 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "enum": ["user", "organization", "robot", "team"],
             },
             "avatar": {
-                "allOf": [
-                    {"$ref": "#/definitions/Avatar"},
-                    {"x-nullable": True},
-                ],
+                "oneOf": [{"$ref": "#/definitions/Avatar"}, {"type": "null"}],
+                "x-nullable": True,
                 "description": "Avatar data (null for robots)",
             },
             "name": {
@@ -298,7 +296,7 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "description": "The repository name",
             },
             "description": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "The repository description",
                 "x-nullable": True,
             },
@@ -377,7 +375,7 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "$ref": "#/definitions/SearchEntity",
             },
             "description": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "The repository description",
                 "x-nullable": True,
             },
