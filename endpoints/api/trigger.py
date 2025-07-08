@@ -345,8 +345,9 @@ TRIGGER_RESPONSE_SCHEMAS = {
                 ],
             },
             "message": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Error or warning message (only included for error/warning status)",
+                "x-nullable": True,
             },
             "namespace": {
                 "type": ["string", "null"],
@@ -415,7 +416,7 @@ TRIGGER_RESPONSE_SCHEMAS = {
                 "type": "array",
                 "description": "List of field values. Items can be either strings (for branch_name/tag_name fields) or objects with 'kind' and 'name' properties (for refs field).",
                 "items": {
-                    "type": "object",
+                    "type": ["string", "object", "integer"],
                     "additionalProperties": True,
                 },
             },
@@ -427,35 +428,41 @@ TRIGGER_RESPONSE_SCHEMAS = {
         "description": "Source repository information",
         "properties": {
             "name": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Repository name (GitHub), project path (GitLab), or repository slug (Bitbucket)",
+                "x-nullable": True,
             },
             "full_name": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Full repository name with owner/namespace",
+                "x-nullable": True,
             },
             "description": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Repository/project description (empty string if none)",
+                "x-nullable": True,
             },
             "last_updated": {
-                "type": "integer",
+                "type": ["integer", "null"],
                 "description": "Last update timestamp (0 if no push date for GitHub; may be omitted for GitLab if invalid)",
+                "x-nullable": True,
             },
             "url": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Repository/project URL",
+                "x-nullable": True,
             },
             "has_admin_permissions": {
-                "type": "boolean",
+                "type": ["boolean", "null"],
                 "description": "Whether user has admin permissions (always true for GitHub; based on access level for GitLab; based on read_only flag for Bitbucket)",
+                "x-nullable": True,
             },
             "private": {
-                "type": "boolean",
+                "type": ["boolean", "null"],
                 "description": "Whether repository/project is private",
+                "x-nullable": True,
             },
         },
-        "required": ["name", "full_name", "description", "url", "has_admin_permissions", "private"],
     },
     "SourcesResponse": {
         "type": "object",
@@ -474,16 +481,19 @@ TRIGGER_RESPONSE_SCHEMAS = {
         "description": "Namespace information",
         "properties": {
             "id": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Namespace identifier (username/org for GitHub, numeric ID for GitLab, owner name for Bitbucket)",
+                "x-nullable": True,
             },
             "title": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Display name",
+                "x-nullable": True,
             },
             "personal": {
-                "type": "boolean",
+                "type": ["boolean", "null"],
                 "description": "True if this is a personal namespace",
+                "x-nullable": True,
             },
             "avatar_url": {
                 "type": ["string", "null"],
@@ -491,15 +501,16 @@ TRIGGER_RESPONSE_SCHEMAS = {
                 "x-nullable": True,
             },
             "url": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Profile URL (may be empty for GitHub organizations)",
+                "x-nullable": True,
             },
             "score": {
-                "type": "integer",
+                "type": ["integer", "null"],
                 "description": "Relevance score (repo count or similar metric)",
+                "x-nullable": True,
             },
         },
-        "required": ["id", "title", "personal", "avatar_url", "url", "score"],
     },
     "NamespacesResponse": {
         "type": "object",

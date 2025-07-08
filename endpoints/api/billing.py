@@ -1,6 +1,7 @@
 """
 Billing information, subscriptions, and plan information.
 """
+
 import datetime
 import json
 import time
@@ -152,7 +153,10 @@ SHARED_SCHEMAS = {
                 "description": "Whether the user/org is an existing Stripe customer",
                 "x-nullable": True,
             },
-            "plan": {"type": "string", "description": "The current plan name"},
+            "plan": {
+                "type": ["object", "string"],
+                "description": "Data or name about the associated plan",
+            },
             "usedPrivateRepos": {
                 "type": "integer",
                 "description": "Number of private repositories currently used",
@@ -1490,8 +1494,9 @@ class UserSkuList(ApiResource):
                     "description": "The quantity of the subscription",
                 },
                 "assigned_to_org": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "The organization name this subscription is assigned to, or null if unassigned",
+                    "x-nullable": True,
                 },
                 "metadata": {
                     "type": "object",

@@ -616,8 +616,9 @@ class User(ApiResource):
                     "description": "Whether the credentials were invalid",
                 },
                 "message": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "Error message if signin failed",
+                    "x-nullable": True,
                 },
             },
         },

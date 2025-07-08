@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 COMMON_SCHEMAS = {
     "Avatar": {
         "type": "object",
-        "description": "Avatar information for a user, team, or organization",
+        "description": "Avatar information for a user, team, organization, or application",
         "properties": {
             "name": {"type": "string", "description": "Name associated with the avatar"},
             "hash": {"type": "string", "description": "Avatar hash (gravatar or similar)"},
@@ -64,7 +64,7 @@ COMMON_SCHEMAS = {
             "kind": {
                 "type": "string",
                 "description": "Type of entity",
-                "enum": ["user", "robot", "team", "org"],
+                "enum": ["user", "robot", "team", "org", "app"],
             },
         },
         "required": ["name", "hash", "color", "kind"],
@@ -956,6 +956,7 @@ class ApplicationInformation(ApiResource):
             "required": ["name", "description", "uri", "avatar", "organization"],
         },
         **COMMON_SCHEMAS,
+        **Organization.schemas,
     }
 
     @nickname("getApplicationInformation")
