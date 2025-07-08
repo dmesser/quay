@@ -5,7 +5,7 @@ from email.utils import formatdate
 from functools import partial, wraps
 
 import pytz
-from flask import Blueprint, request, session
+from flask import Blueprint, Response, request, session
 from flask_restful import Api, Resource, abort, reqparse
 from flask_restful.utils import unpack
 from jsonschema import RefResolver, ValidationError, validate
@@ -654,6 +654,20 @@ def define_json_response(schema_name):
 
             if app.config["TESTING"]:
                 try:
+                    # If the response is a tuple (data, status_code) or (data, status_code, headers),
+                    # we need to unpack it to validate just the data part
+                    validation_target = resp
+                    if isinstance(resp, tuple):
+                        # Use unpack to handle tuple responses
+                        (data, code, headers) = unpack(resp)
+                        validation_target = data
+                    # Check if resp is a Flask Response object and extract its JSON data (created by jsonify)
+                    elif isinstance(resp, Response):
+                        validation_target = resp.get_json()
+                        if validation_target is None:
+                            # Handle empty responses
+                            validation_target = {}
+
                     # Create a complete JSON Schema document with all schemas in definitions
                     full_schema = {
                         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -665,7 +679,7 @@ def define_json_response(schema_name):
                     resolver = RefResolver(base_uri="", referrer=full_schema)
 
                     # Validate using the resolver
-                    validate(resp, schema, resolver=resolver)
+                    validate(validation_target, schema, resolver=resolver)
                 except ValidationError as ex:
                     raise InvalidResponse(str(ex))
 
