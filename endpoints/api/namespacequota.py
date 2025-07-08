@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Dict
 
 import bitmath
 from flask import request
@@ -69,7 +70,7 @@ def get_quota(namespace_name, quota_id):
 @show_if(features.SUPER_USERS)
 @show_if(features.QUOTA_MANAGEMENT and features.EDIT_QUOTA)
 class OrganizationQuotaList(ApiResource):
-    schemas = {
+    schemas: Dict[str, Any] = {
         "NewOrgQuota": {
             "type": "object",
             "description": "Description of a new organization quota",

@@ -3,6 +3,7 @@ Create, list and manage build triggers.
 """
 
 import logging
+from typing import Any, Dict
 from urllib.parse import urlunparse
 
 from flask import request, url_for
@@ -66,7 +67,7 @@ def get_trigger(trigger_uuid):
 
 
 # Response schemas for build trigger endpoints
-TRIGGER_RESPONSE_SCHEMAS = {
+TRIGGER_RESPONSE_SCHEMAS: Dict[str, Any] = {
     "TriggerView": {
         "type": "object",
         "description": "Information about a build trigger",

@@ -8,6 +8,7 @@ import socket
 import string
 from datetime import datetime
 from random import SystemRandom
+from typing import Any, Dict
 
 import bitmath
 from cryptography.hazmat.primitives import serialization
@@ -65,7 +66,7 @@ from util.validation import validate_service_key_name
 logger = logging.getLogger(__name__)
 
 # Response schemas for superuser endpoints
-SUPERUSER_RESPONSE_SCHEMAS = {
+SUPERUSER_RESPONSE_SCHEMAS: Dict[str, Any] = {
     "Avatar": {
         "type": "object",
         "description": "Avatar information for an entity",
