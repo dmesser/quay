@@ -137,24 +137,35 @@ SHARED_SCHEMAS = {
         ],
         "additionalProperties": True,
     },
-    "SubscriptionView": {
+    "SubscriptionResponse": {
         "type": "object",
-        "description": "Describes a subscription",
+        "description": "Response containing subscription information",
+        "required": ["plan", "usedPrivateRepos"],
         "properties": {
-            "id": {"type": "string", "description": "The Stripe subscription ID"},
-            "status": {"type": "string", "description": "The subscription status"},
-            "plan": {"type": "string", "description": "The plan ID"},
-            "currentPeriodStart": {
+            "hasSubscription": {
+                "type": ["boolean", "null"],
+                "description": "Whether the user/org has an active subscription",
+                "x-nullable": True,
+            },
+            "isExistingCustomer": {
+                "type": ["boolean", "null"],
+                "description": "Whether the user/org is an existing Stripe customer",
+                "x-nullable": True,
+            },
+            "plan": {"type": "string", "description": "The current plan name"},
+            "usedPrivateRepos": {
                 "type": "integer",
+                "description": "Number of private repositories currently used",
+            },
+            "currentPeriodStart": {
+                "type": ["integer", "null"],
                 "description": "Unix timestamp for the start of the current period",
+                "x-nullable": True,
             },
             "currentPeriodEnd": {
-                "type": "integer",
+                "type": ["integer", "null"],
                 "description": "Unix timestamp for the end of the current period",
-            },
-            "cancelAtPeriodEnd": {
-                "type": "boolean",
-                "description": "Whether the subscription will cancel at period end",
+                "x-nullable": True,
             },
             "trialStart": {
                 "type": ["integer", "null"],
@@ -165,32 +176,6 @@ SHARED_SCHEMAS = {
                 "type": ["integer", "null"],
                 "description": "Unix timestamp for the end of the trial period",
                 "x-nullable": True,
-            },
-        },
-    },
-    "SubscriptionResponse": {
-        "type": "object",
-        "description": "Response containing subscription information",
-        "required": ["hasSubscription", "isExistingCustomer", "plan", "usedPrivateRepos"],
-        "properties": {
-            "hasSubscription": {
-                "type": "boolean",
-                "description": "Whether the user/org has an active subscription",
-            },
-            "isExistingCustomer": {
-                "type": "boolean",
-                "description": "Whether the user/org is an existing Stripe customer",
-            },
-            "plan": {"type": "string", "description": "The current plan name"},
-            "usedPrivateRepos": {
-                "type": "integer",
-                "description": "Number of private repositories currently used",
-            },
-            "subscription": {
-                "allOf": [
-                    {"$ref": "#/definitions/SubscriptionView"},
-                    {"description": "The subscription details if hasSubscription is true"},
-                ]
             },
         },
     },
@@ -613,6 +598,7 @@ class UserCard(ApiResource):
     """
 
     schemas = {
+        "CardInfo": SHARED_SCHEMAS["CardInfo"],
         "CardResponse": SHARED_SCHEMAS["CardResponse"],
         "UserCard": SHARED_SCHEMAS["UserCard"],
         "CheckoutSession": SHARED_SCHEMAS["CheckoutSession"],
@@ -690,6 +676,7 @@ class OrganizationCard(ApiResource):
     """
 
     schemas = {
+        "CardInfo": SHARED_SCHEMAS["CardInfo"],
         "CardResponse": SHARED_SCHEMAS["CardResponse"],
         "OrgCard": SHARED_SCHEMAS["OrgCard"],
         "CheckoutSession": SHARED_SCHEMAS["CheckoutSession"],
@@ -775,7 +762,6 @@ class UserPlan(ApiResource):
         "UserSubscription": SHARED_SCHEMAS["SubscriptionRequest"],
         "SubscriptionResponse": SHARED_SCHEMAS["SubscriptionResponse"],
         "CheckoutSession": SHARED_SCHEMAS["CheckoutSession"],
-        "SubscriptionView": SHARED_SCHEMAS["SubscriptionView"],
     }
 
     @require_user_admin()
@@ -840,7 +826,7 @@ class UserPlan(ApiResource):
     @require_user_admin()
     @nickname("updateUserSubscription")
     @validate_json_request("UserSubscription")
-    @define_json_response("SubscriptionView")
+    @define_json_response("SubscriptionResponse")
     def put(self):
         """
         Update the user's existing subscription.
@@ -900,7 +886,6 @@ class OrganizationPlan(ApiResource):
         "OrgSubscription": SHARED_SCHEMAS["SubscriptionRequest"],
         "SubscriptionResponse": SHARED_SCHEMAS["SubscriptionResponse"],
         "CheckoutSession": SHARED_SCHEMAS["CheckoutSession"],
-        "SubscriptionView": SHARED_SCHEMAS["SubscriptionView"],
     }
 
     @require_scope(scopes.ORG_ADMIN)
@@ -970,7 +955,7 @@ class OrganizationPlan(ApiResource):
     @require_scope(scopes.ORG_ADMIN)
     @nickname("updateOrgSubscription")
     @validate_json_request("OrgSubscription")
-    @define_json_response("SubscriptionView")
+    @define_json_response("SubscriptionResponse")
     def put(self, orgname):
         """
         Update the org's subscription.

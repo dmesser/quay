@@ -187,6 +187,8 @@ class RepositoryNotification(RepositoryParamResource):
     Resource for dealing with specific notifications.
     """
 
+    schemas = RepositoryNotificationList.schemas
+
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("getRepoNotification")
     @disallow_for_app_repositories
@@ -266,6 +268,8 @@ class TestRepositoryNotification(RepositoryParamResource):
     """
     Resource for queuing a test of a notification.
     """
+
+    schemas = RepositoryNotificationList.schemas
 
     @require_repo_admin(allow_for_superuser=True)
     @nickname("testRepoNotification")

@@ -410,8 +410,9 @@ class RepositoryBuildList(RepositoryParamResource):
                     "x-nullable": True,
                 },
                 "pull_robot": {
-                    "allOf": [
+                    "oneOf": [
                         {"$ref": "#/definitions/UserView"},
+                        {"type": "null"},
                     ],
                     "description": "The robot account used for pulling images (only present for admins and not in build context)",
                     "x-nullable": True,
@@ -454,21 +455,6 @@ class RepositoryBuildList(RepositoryParamResource):
             "allOf": [
                 {"$ref": "#/definitions/BuildStatusView"},
             ],
-        },
-        "FileDropResponse": {
-            "type": "object",
-            "description": "Response containing file upload information",
-            "required": ["url", "file_id"],
-            "properties": {
-                "url": {
-                    "type": "string",
-                    "description": "The URL to which the file should be uploaded",
-                },
-                "file_id": {
-                    "type": "string",
-                    "description": "The unique identifier for the uploaded file",
-                },
-            },
         },
         "LogEntry": {
             "type": "object",
@@ -732,6 +718,8 @@ class RepositoryBuildResource(RepositoryParamResource):
     Resource for dealing with repository builds.
     """
 
+    schemas = RepositoryBuildList.schemas
+
     @require_repo_read(allow_for_superuser=True)
     @nickname("getRepoBuild")
     @disallow_for_app_repositories
@@ -789,6 +777,8 @@ class RepositoryBuildStatus(RepositoryParamResource):
     Resource for dealing with repository build status.
     """
 
+    schemas = RepositoryBuildList.schemas
+
     @require_repo_read(allow_for_superuser=True)
     @nickname("getRepoBuildStatus")
     @disallow_for_app_repositories
@@ -841,6 +831,8 @@ class RepositoryBuildLogs(RepositoryParamResource):
     Resource for loading repository build logs.
     """
 
+    schemas = RepositoryBuildList.schemas
+
     @require_repo_read(allow_for_superuser=True)
     @nickname("getRepoBuildLogs")
     @disallow_for_app_repositories
@@ -887,6 +879,21 @@ class FileDropResource(ApiResource):
                 "mimeType": {
                     "type": "string",
                     "description": "Type of the file which is about to be uploaded",
+                },
+            },
+        },
+        "FileDropResponse": {
+            "type": "object",
+            "description": "Response containing file upload information",
+            "required": ["url", "file_id"],
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "The URL to which the file should be uploaded",
+                },
+                "file_id": {
+                    "type": "string",
+                    "description": "The unique identifier for the uploaded file",
                 },
             },
         },

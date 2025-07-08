@@ -98,16 +98,6 @@ class GlobalUserMessages(ApiResource):
                 },
             },
         },
-        "CreateMessageResponse": {
-            "type": "string",
-            "description": "Empty response indicating successful message creation (returns empty string)",
-            "example": "",
-        },
-        "DeleteMessageResponse": {
-            "type": "string",
-            "description": "Empty response indicating successful message deletion (returns empty string)",
-            "example": "",
-        },
     }
 
     @nickname("getGlobalMessages")
@@ -125,7 +115,6 @@ class GlobalUserMessages(ApiResource):
     @nickname("createGlobalMessage")
     @validate_json_request("CreateMessage")
     @require_scope(scopes.SUPERUSER)
-    @define_json_response("CreateMessageResponse")
     def post(self):
         """
         Create a message.
@@ -152,11 +141,12 @@ class GlobalUserMessage(ApiResource):
     Resource for managing individual messages.
     """
 
+    schemas = GlobalUserMessages.schemas
+
     @require_fresh_login
     @verify_not_prod
     @nickname("deleteGlobalMessage")
     @require_scope(scopes.SUPERUSER)
-    @define_json_response("DeleteMessageResponse")
     def delete(self, uuid):
         """
         Delete a message.

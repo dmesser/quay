@@ -43,10 +43,9 @@ AUTO_PRUNE_SCHEMAS = {
             "method": {
                 "type": "string",
                 "description": "The method to use for pruning tags (number_of_tags, creation_date)",
-                "enum": ["number_of_tags", "creation_date"],
             },
             "value": {
-                "type": "string",
+                "type": ["string", "integer"],
                 "description": "The value to use for the pruning method (number of tags e.g. 10, time delta e.g. 7d (7 days))",
             },
             "tagPattern": {
@@ -70,7 +69,7 @@ AUTO_PRUNE_SCHEMAS = {
                 "enum": ["number_of_tags", "creation_date"],
             },
             "value": {
-                "type": "string",
+                "type": ["string", "integer"],
                 "description": "Prune value (number or time delta)",
             },
             "tagPattern": {

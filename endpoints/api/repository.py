@@ -242,7 +242,11 @@ class RepositoryList(ApiResource):
             "properties": {
                 "namespace": {"type": "string", "description": "Repository namespace"},
                 "name": {"type": "string", "description": "Repository name"},
-                "description": {"type": "string", "description": "Repository description"},
+                "description": {
+                    "type": ["string", "null"],
+                    "description": "Repository description",
+                    "x-nullable": True,
+                },
                 "is_public": {"type": "boolean", "description": "Whether repository is public"},
                 "is_organization": {
                     "type": "boolean",
@@ -316,7 +320,11 @@ class RepositoryList(ApiResource):
             "properties": {
                 "namespace": {"type": "string", "description": "Repository namespace"},
                 "name": {"type": "string", "description": "Repository name"},
-                "description": {"type": "string", "description": "Repository description"},
+                "description": {
+                    "type": ["string", "null"],
+                    "description": "Repository description",
+                    "x-nullable": True,
+                },
                 "is_public": {"type": "boolean", "description": "Whether repository is public"},
                 "is_starred": {
                     "type": "boolean",
@@ -330,8 +338,8 @@ class RepositoryList(ApiResource):
                     "x-nullable": True,
                 },
                 "last_modified": {
-                    "type": ["string", "null"],
-                    "description": "Last modified timestamp (only if last_modified=true)",
+                    "type": ["integer", "null"],
+                    "description": "Last modified Unix timestamp in seconds (only if last_modified=true)",
                     "x-nullable": True,
                 },
                 "popularity": {

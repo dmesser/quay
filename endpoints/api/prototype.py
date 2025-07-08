@@ -354,6 +354,8 @@ class PermissionPrototype(ApiResource):
     Resource for managinging individual permission prototypes.
     """
 
+    schemas = PermissionPrototypeList.schemas
+
     @require_scope(scopes.ORG_ADMIN)
     @nickname("deleteOrganizationPrototypePermission")
     def delete(self, orgname, prototypeid):

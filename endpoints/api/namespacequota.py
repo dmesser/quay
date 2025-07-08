@@ -72,18 +72,28 @@ class OrganizationQuotaList(ApiResource):
     schemas = {
         "NewOrgQuota": {
             "type": "object",
-            "description": "Description of a new organization quota. Must specify either limit_bytes or limit.",
-            "properties": {
-                "limit_bytes": {
-                    "type": "integer",
-                    "description": "Number of bytes the organization is allowed",
+            "description": "Description of a new organization quota",
+            "oneOf": [
+                {
+                    "required": ["limit_bytes"],
+                    "properties": {
+                        "limit_bytes": {
+                            "type": "integer",
+                            "description": "Number of bytes the organization is allowed",
+                        },
+                    },
                 },
-                "limit": {
-                    "type": "string",
-                    "description": "Human readable storage capacity of the organization",
-                    "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
+                {
+                    "required": ["limit"],
+                    "properties": {
+                        "limit": {
+                            "type": "string",
+                            "description": "Human readable storage capacity of the organization",
+                            "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
+                        },
+                    },
                 },
-            },
+            ],
         },
         "QuotaLimit": {
             "type": "object",
@@ -230,21 +240,40 @@ class OrganizationQuotaList(ApiResource):
 @show_if(features.QUOTA_MANAGEMENT and features.EDIT_QUOTA)
 class OrganizationQuota(ApiResource):
     schemas = {
+        **OrganizationQuotaList.schemas,
         "UpdateOrgQuota": {
             "type": "object",
-            "description": "Update organization quota. Can specify either limit_bytes or limit (but not both).",
-            "properties": {
-                "limit_bytes": {
-                    "type": "integer",
-                    "description": "Number of bytes the organization is allowed",
+            "description": "Description of a new organization quota",
+            "oneOf": [
+                {
+                    "properties": {
+                        "limit_bytes": {
+                            "type": "integer",
+                            "description": "Number of bytes the organization is allowed",
+                        },
+                    },
+                    "required": ["limit_bytes"],
+                    "additionalProperties": False,
                 },
-                "limit": {
-                    "type": "string",
-                    "description": "Human readable storage capacity of the organization",
-                    "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
+                {
+                    "properties": {
+                        "limit": {
+                            "type": "string",
+                            "description": "Human readable storage capacity of the organization",
+                            "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
+                        },
+                    },
+                    "required": ["limit"],
+                    "additionalProperties": False,
                 },
-            },
-            "additionalProperties": False,
+                {
+                    "properties": {
+                        "limit_bytes": {"not": {}},
+                        "limit": {"not": {}},
+                    },
+                    "additionalProperties": False,
+                },
+            ],
         },
     }
 
@@ -313,6 +342,7 @@ class OrganizationQuota(ApiResource):
 @show_if(features.QUOTA_MANAGEMENT and features.EDIT_QUOTA)
 class OrganizationQuotaLimitList(ApiResource):
     schemas = {
+        **OrganizationQuotaList.schemas,
         "NewOrgQuotaLimit": {
             "type": "object",
             "description": "Description of a new organization quota limit",
@@ -395,6 +425,7 @@ class OrganizationQuotaLimitList(ApiResource):
 @show_if(features.QUOTA_MANAGEMENT and features.EDIT_QUOTA)
 class OrganizationQuotaLimit(ApiResource):
     schemas = {
+        **OrganizationQuotaLimitList.schemas,
         "UpdateOrgQuotaLimit": {
             "type": "object",
             "description": "Description of changing organization quota limit",
@@ -476,6 +507,9 @@ class OrganizationQuotaLimit(ApiResource):
 @show_if(features.SUPER_USERS)
 @show_if(features.QUOTA_MANAGEMENT and features.EDIT_QUOTA)
 class UserQuotaList(ApiResource):
+
+    schemas = OrganizationQuotaList.schemas
+
     @require_user_admin()
     @nickname("listUserQuota")
     @define_json_response("QuotaList")
@@ -490,6 +524,8 @@ class UserQuotaList(ApiResource):
 @show_if(features.SUPER_USERS)
 @show_if(features.QUOTA_MANAGEMENT and features.EDIT_QUOTA)
 class UserQuota(ApiResource):
+    schemas = OrganizationQuotaList.schemas
+
     @require_user_admin()
     @nickname("getUserQuota")
     @define_json_response("QuotaView")
@@ -504,6 +540,9 @@ class UserQuota(ApiResource):
 @show_if(features.SUPER_USERS)
 @show_if(features.QUOTA_MANAGEMENT and features.EDIT_QUOTA)
 class UserQuotaLimitList(ApiResource):
+
+    schemas = OrganizationQuotaLimitList.schemas
+
     @require_user_admin()
     @nickname("listUserQuotaLimit")
     @define_json_response("QuotaLimitList")
@@ -521,6 +560,8 @@ class UserQuotaLimitList(ApiResource):
 @show_if(features.SUPER_USERS)
 @show_if(features.QUOTA_MANAGEMENT and features.EDIT_QUOTA)
 class UserQuotaLimit(ApiResource):
+    schemas = OrganizationQuotaList.schemas
+
     @require_user_admin()
     @nickname("getUserQuotaLimit")
     @define_json_response("QuotaLimit")

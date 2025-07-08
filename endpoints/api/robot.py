@@ -55,7 +55,7 @@ CREATE_ROBOT_SCHEMA = {
             "maxLength": 255,
         },
         "unstructured_metadata": {
-            "type": "object",
+            "type": ["object"],
             "description": "Optional unstructured metadata for the robot",
         },
     },
@@ -109,8 +109,9 @@ ROBOT_RESPONSE_SCHEMAS = {
                 "description": "The robot's authentication token (only included when explicitly requested)",
             },
             "unstructured_metadata": {
-                "type": "object",
+                "type": ["object", "null"],
                 "description": "Unstructured metadata for the robot (only included when explicitly requested)",
+                "x-nullable": True,
             },
         },
         "required": ["name", "description"],
@@ -135,28 +136,29 @@ ROBOT_RESPONSE_SCHEMAS = {
             },
             "teams": {
                 "type": "array",
+                "items": {"$ref": "#/definitions/Team"},
                 "description": "Teams the robot belongs to",
-                "items": {
-                    "$ref": "#/definitions/Team",
-                },
             },
             "repositories": {
                 "type": "array",
+                "items": {"type": "string"},
                 "description": "Repository names the robot has access to",
-                "items": {
-                    "type": "string",
-                },
             },
             "description": {
                 "type": "string",
                 "description": "The robot's description",
+            },
+            "unstructured_metadata": {
+                "type": ["object", "null"],
+                "description": "Unstructured metadata for the robot",
+                "x-nullable": True,
             },
             "token": {
                 "type": "string",
                 "description": "The robot's authentication token (only included when explicitly requested)",
             },
         },
-        "required": ["name", "teams", "repositories", "description"],
+        "required": ["name", "description"],
     },
     "Team": {
         "type": "object",

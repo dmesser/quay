@@ -137,8 +137,9 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "description": "Log metadata",
             },
             "ip": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "IP address",
+                "x-nullable": True,
             },
             "datetime": {
                 "type": "string",
@@ -414,6 +415,10 @@ SUPERUSER_RESPONSE_SCHEMAS = {
     "Quota": {
         "type": "object",
         "description": "A quota definition",
+        "anyOf": [
+            {"required": ["id", "limit_bytes", "limits"]},
+            {"required": ["id", "limit", "limits"]},
+        ],
         "properties": {
             "id": {
                 "type": ["integer", "null"],
@@ -458,14 +463,6 @@ SUPERUSER_RESPONSE_SCHEMAS = {
                 "description": "Whether a default system quota configuration exists",
             },
         },
-        "required": [
-            "id",
-            "limit_bytes",
-            "limit",
-            "default_config",
-            "limits",
-            "default_config_exists",
-        ],
     },
     "QuotasResponse": {
         "type": "array",
@@ -488,8 +485,9 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "approved_date": {
                 "type": "string",
-                "description": "Approval date (RFC 2822 format)",
-                "example": "Mon, 01 Jan 2024 00:00:00 GMT",
+                "description": "Approval date (ISO 8601 format)",
+                "format": "date-time",
+                "example": "2024-01-07T15:30:45.123456",
             },
             "notes": {
                 "type": "string",
@@ -524,14 +522,21 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             },
             "created_date": {
                 "type": "string",
-                "description": "Creation date (RFC 2822 format)",
-                "example": "Mon, 01 Jan 2024 00:00:00 GMT",
+                "description": "Creation date (ISO 8601 format)",
+                "format": "date-time",
+                "example": "2024-01-07T15:30:45.123456",
             },
             "expiration_date": {
                 "type": ["string", "null"],
+                "description": "Expiration date (ISO 8601 format)",
+                "format": "date-time",
+                "example": "2024-12-31T23:59:59.000000",
                 "x-nullable": True,
-                "description": "Expiration date (RFC 2822 format)",
-                "example": "Mon, 01 Jan 2024 00:00:00 GMT",
+            },
+            "rotation_duration": {
+                "type": ["integer", "null"],
+                "description": "Rotation duration in seconds",
+                "x-nullable": True,
             },
             "approval": {
                 "oneOf": [{"$ref": "#/definitions/ServiceKeyApproval"}, {"type": "null"}],
@@ -546,6 +551,7 @@ SUPERUSER_RESPONSE_SCHEMAS = {
             "metadata",
             "created_date",
             "expiration_date",
+            "rotation_duration",
         ],
     },
     "ServiceKeysResponse": {
@@ -1066,18 +1072,28 @@ class SuperUserUserQuotaList(ApiResource):
     schemas = {
         "NewNamespaceQuota": {
             "type": "object",
-            "description": "Description of a new organization quota. Provide either limit_bytes OR limit (not both)",
-            "properties": {
-                "limit_bytes": {
-                    "type": "integer",
-                    "description": "Number of bytes the organization is allowed",
+            "description": "Description of a new organization quota",
+            "oneOf": [
+                {
+                    "required": ["limit_bytes"],
+                    "properties": {
+                        "limit_bytes": {
+                            "type": "integer",
+                            "description": "Number of bytes the organization is allowed",
+                        },
+                    },
                 },
-                "limit": {
-                    "type": "string",
-                    "description": "Human readable storage capacity of the organization",
-                    "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
+                {
+                    "required": ["limit"],
+                    "properties": {
+                        "limit": {
+                            "type": "string",
+                            "description": "Human readable storage capacity of the organization",
+                            "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
+                        },
+                    },
                 },
-            },
+            ],
         },
         **SUPERUSER_RESPONSE_SCHEMAS,
     }

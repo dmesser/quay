@@ -367,7 +367,7 @@ class User(ApiResource):
                     "description": "The organization's username",
                 },
                 "avatar": {
-                    "$ref": "#/components/schemas/AvatarView",
+                    "$ref": "#/definitions/AvatarView",
                 },
                 "can_create_repo": {
                     "type": "boolean",
@@ -442,7 +442,7 @@ class User(ApiResource):
                     "type": "array",
                     "description": "List of quota limits",
                     "items": {
-                        "$ref": "#/components/schemas/QuotaLimitView",
+                        "$ref": "#/definitions/QuotaLimitView",
                     },
                 },
             },
@@ -461,7 +461,7 @@ class User(ApiResource):
                     "description": "The user's username",
                 },
                 "avatar": {
-                    "$ref": "#/components/schemas/AvatarView",
+                    "$ref": "#/definitions/AvatarView",
                 },
                 "verified": {
                     "type": "boolean",
@@ -475,14 +475,14 @@ class User(ApiResource):
                     "type": "array",
                     "description": "Information about the organizations in which the user is a member",
                     "items": {
-                        "$ref": "#/components/schemas/OrganizationView",
+                        "$ref": "#/definitions/OrganizationView",
                     },
                 },
                 "logins": {
                     "type": "array",
                     "description": "The list of external login providers against which the user has authenticated",
                     "items": {
-                        "$ref": "#/components/schemas/LoginView",
+                        "$ref": "#/definitions/LoginView",
                     },
                 },
                 "can_create_repo": {
@@ -550,7 +550,7 @@ class User(ApiResource):
                     "type": "array",
                     "description": "List of namespace quotas",
                     "items": {
-                        "$ref": "#/components/schemas/QuotaView",
+                        "$ref": "#/definitions/QuotaView",
                     },
                 },
                 "quota_report": {
@@ -562,23 +562,23 @@ class User(ApiResource):
                             "description": "Current quota usage in bytes",
                         },
                         "configured_quota": {
-                            "type": "integer",
+                            "type": ["integer", "null"],
                             "description": "Configured quota limit in bytes",
+                            "x-nullable": True,
                         },
                         "running_backfill": {
                             "type": "string",
                             "description": "Backfill status (deprecated, use backfill_status)",
-                            "enum": ["waiting", "running", "complete"],
+                            "enum": ["waiting", "running", "complete", ""],
                         },
                         "backfill_status": {
                             "type": "string",
                             "description": "Current backfill status",
-                            "enum": ["waiting", "running", "complete"],
+                            "enum": ["waiting", "running", "complete", ""],
                         },
                     },
                     "required": [
                         "quota_bytes",
-                        "configured_quota",
                         "running_backfill",
                         "backfill_status",
                     ],
@@ -1066,6 +1066,7 @@ class ConvertToOrganization(ApiResource):
                 },
             },
         },
+        **User.schemas,
     }
 
     @require_user_admin()
@@ -1134,6 +1135,7 @@ class Signin(ApiResource):
                 "invite_code": {"type": "string", "description": "The optional invite code"},
             },
         },
+        **User.schemas,
     }
 
     @nickname("signinUser")
@@ -1521,7 +1523,7 @@ class UserNotificationList(ApiResource):
                     "type": "array",
                     "description": "List of user notifications",
                     "items": {
-                        "$ref": "#/components/schemas/NotificationView",
+                        "$ref": "#/definitions/NotificationView",
                     },
                 },
                 "additional": {
@@ -1574,6 +1576,7 @@ class UserNotification(ApiResource):
                 },
             },
         },
+        **UserNotificationList.schemas,
     }
 
     @require_user_admin()
@@ -1650,6 +1653,7 @@ class UserAuthorizationList(ApiResource):
     """
 
     schemas = {
+        **User.schemas,
         "ScopeView": {
             "type": "object",
             "description": "Information about an OAuth scope",
@@ -1700,7 +1704,7 @@ class UserAuthorizationList(ApiResource):
                             "description": "The application URL",
                         },
                         "avatar": {
-                            "$ref": "#/components/schemas/AvatarView",
+                            "$ref": "#/definitions/AvatarView",
                         },
                         "organization": {
                             "type": "object",
@@ -1712,7 +1716,7 @@ class UserAuthorizationList(ApiResource):
                                     "description": "The organization name",
                                 },
                                 "avatar": {
-                                    "$ref": "#/components/schemas/AvatarView",
+                                    "$ref": "#/definitions/AvatarView",
                                 },
                             },
                         },
@@ -1722,7 +1726,7 @@ class UserAuthorizationList(ApiResource):
                     "type": "array",
                     "description": "List of OAuth scopes granted to this authorization",
                     "items": {
-                        "$ref": "#/components/schemas/ScopeView",
+                        "$ref": "#/definitions/ScopeView",
                     },
                 },
                 "uuid": {
@@ -1740,7 +1744,7 @@ class UserAuthorizationList(ApiResource):
                     "type": "array",
                     "description": "List of OAuth authorizations",
                     "items": {
-                        "$ref": "#/components/schemas/AuthorizationView",
+                        "$ref": "#/definitions/AuthorizationView",
                     },
                 },
             },
@@ -1760,6 +1764,9 @@ class UserAuthorizationList(ApiResource):
 @path_param("access_token_uuid", "The uuid of the access token")
 @internal_only
 class UserAuthorization(ApiResource):
+
+    schemas = UserAuthorizationList.schemas
+
     @require_user_admin()
     @nickname("getUserAuthorization")
     @define_json_response("AuthorizationView")
@@ -1794,6 +1801,8 @@ class UserAssignedAuthorizations(ApiResource):
     """
 
     schemas = {
+        **User.schemas,
+        **UserAuthorizationList.schemas,
         "AssignedAuthorizationView": {
             "type": "object",
             "description": "Information about an assigned OAuth authorization",
@@ -1828,7 +1837,7 @@ class UserAssignedAuthorizations(ApiResource):
                             "description": "The application URL",
                         },
                         "avatar": {
-                            "$ref": "#/components/schemas/AvatarView",
+                            "$ref": "#/definitions/AvatarView",
                         },
                         "organization": {
                             "type": "object",
@@ -1840,7 +1849,7 @@ class UserAssignedAuthorizations(ApiResource):
                                     "description": "The organization name",
                                 },
                                 "avatar": {
-                                    "$ref": "#/components/schemas/AvatarView",
+                                    "$ref": "#/definitions/AvatarView",
                                 },
                             },
                         },
@@ -1858,7 +1867,7 @@ class UserAssignedAuthorizations(ApiResource):
                     "type": "array",
                     "description": "List of OAuth scopes assigned to this authorization",
                     "items": {
-                        "$ref": "#/components/schemas/ScopeView",
+                        "$ref": "#/definitions/ScopeView",
                     },
                 },
                 "responseType": {
@@ -1876,7 +1885,7 @@ class UserAssignedAuthorizations(ApiResource):
                     "type": "array",
                     "description": "List of assigned OAuth authorizations",
                     "items": {
-                        "$ref": "#/components/schemas/AssignedAuthorizationView",
+                        "$ref": "#/definitions/AssignedAuthorizationView",
                     },
                 },
             },
@@ -1973,7 +1982,7 @@ class StarredRepositoryList(ApiResource):
                     "type": "array",
                     "description": "List of starred repositories",
                     "items": {
-                        "$ref": "#/components/schemas/StarredRepositoryView",
+                        "$ref": "#/definitions/StarredRepositoryView",
                     },
                 },
             },
@@ -2073,6 +2082,8 @@ class Users(ApiResource):
     """
     Operations related to retrieving information about other users.
     """
+
+    schemas = User.schemas
 
     @nickname("getUserInformation")
     @define_json_response("UserView")

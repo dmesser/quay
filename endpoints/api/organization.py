@@ -105,6 +105,15 @@ COMMON_SCHEMAS = {
             "is_synced",
         ],
     },
+    "TeamRef": {
+        "type": "object",
+        "description": "Reference to a team",
+        "properties": {
+            "name": {"type": "string", "description": "Team name"},
+            "avatar": {"$ref": "#/definitions/Avatar"},
+        },
+        "required": ["name", "avatar"],
+    },
     "QuotaLimit": {
         "type": "object",
         "description": "Quota limit threshold configuration",
@@ -734,15 +743,6 @@ class OrganizationCollaboratorList(ApiResource):
 @path_param("orgname", "The name of the organization")
 class OrganizationMemberList(ApiResource):
     schemas = {
-        "TeamRef": {
-            "type": "object",
-            "description": "Reference to a team",
-            "properties": {
-                "name": {"type": "string", "description": "Team name"},
-                "avatar": {"$ref": "#/definitions/Avatar"},
-            },
-            "required": ["name", "avatar"],
-        },
         "Member": {
             "type": "object",
             "description": "A member of the organization",
@@ -1358,9 +1358,9 @@ class OrganizationProxyCacheConfig(ApiResource):
                     "create_proxy_cache_config",
                     orgname,
                     {
-                        "upstream_registry": data["upstream_registry"]
-                        if data["upstream_registry"]
-                        else None
+                        "upstream_registry": (
+                            data["upstream_registry"] if data["upstream_registry"] else None
+                        )
                     },
                 )
                 return "Created", 201

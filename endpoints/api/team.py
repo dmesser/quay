@@ -267,9 +267,10 @@ TEAM_RESPONSE_SCHEMAS = {
                 "description": "The service name for syncing",
             },
             "last_updated": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Last sync update time (only present for superusers or when NONSUPERUSER_TEAM_SYNCING_SETUP is enabled)",
                 "format": "date-time",
+                "x-nullable": True,
             },
             "config": {
                 "type": "object",

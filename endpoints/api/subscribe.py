@@ -39,23 +39,15 @@ def connection_response(exc):
 
 
 def subscription_view(stripe_subscription, used_repos):
-    subscription_data = {
-        "id": stripe_subscription.id,
-        "status": stripe_subscription.status,
-        "plan": stripe_subscription.plan.id,
-        "currentPeriodStart": stripe_subscription.current_period_start,
-        "currentPeriodEnd": stripe_subscription.current_period_end,
-        "cancelAtPeriodEnd": stripe_subscription.cancel_at_period_end,
-        "trialStart": stripe_subscription.trial_start,
-        "trialEnd": stripe_subscription.trial_end,
-    }
-
     view = {
         "hasSubscription": True,
         "isExistingCustomer": True,
+        "currentPeriodStart": stripe_subscription.current_period_start,
+        "currentPeriodEnd": stripe_subscription.current_period_end,
         "plan": stripe_subscription.plan.id,
         "usedPrivateRepos": used_repos,
-        "subscription": subscription_data,
+        "trialStart": stripe_subscription.trial_start,
+        "trialEnd": stripe_subscription.trial_end,
     }
 
     return view

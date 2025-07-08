@@ -334,7 +334,7 @@ class RepositoryTeamPermission(RepositoryParamResource):
 
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("getTeamPermissions")
-    @define_json_response("TeamPermission")
+    @define_json_response("PermissionRole")
     def get(self, namespace_name, repository_name, teamname):
         """
         Fetch the permission for the specified team.

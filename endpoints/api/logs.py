@@ -172,9 +172,9 @@ LOG_ENTRY_SCHEMA = {
                     "description": "Always 'user' (even for robots - this is a known issue)",
                 },
                 "is_robot": {
-                    "type": ["string", "null"],
+                    "type": ["boolean", "null"],
                     "x-nullable": True,
-                    "description": "Whether the performer is a robot account (can be null for non-robots or a string for robots)",
+                    "description": "Whether the performer is a robot account (can be null for non-robots or a boolean for robots)",
                 },
                 "avatar": {"$ref": "#/definitions/Avatar"},
             },

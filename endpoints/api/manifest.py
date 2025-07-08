@@ -468,6 +468,8 @@ class ManageRepositoryManifestLabel(RepositoryParamResource):
     Resource for managing the labels on a specific repository manifest.
     """
 
+    schemas = RepositoryManifestLabels.schemas
+
     @require_repo_read(allow_for_superuser=True)
     @nickname("getManifestLabel")
     @disallow_for_app_repositories
