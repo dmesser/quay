@@ -14,6 +14,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from httmock import HTTMock, all_requests, urlmatch
 from mock import patch
+from openapi_spec_validator import OpenAPIV30SpecValidator, validate
 from playhouse.test_utils import _QueryLogHandler, assert_query_count
 
 from app import (
@@ -52,7 +53,7 @@ from endpoints.api.build import (
     RepositoryBuildResource,
     RepositoryBuildStatus,
 )
-from endpoints.api.discovery import DiscoveryResource
+from endpoints.api.discovery import DiscoveryResource, OpenAPIResource
 from endpoints.api.error import Error
 from endpoints.api.globalmessages import GlobalUserMessage, GlobalUserMessages
 from endpoints.api.logs import (
@@ -431,6 +432,12 @@ class TestDiscovery(ApiTestCase):
     def test_discovery(self):
         json = self.getJsonResponse(DiscoveryResource)
         assert "paths" in json
+
+
+class TestOpenApi(ApiTestCase):
+    def test_openapi(self):
+        json = self.getJsonResponse(OpenAPIResource, params=dict(internal="true"))
+        assert validate(json, cls=OpenAPIV30SpecValidator) is None
 
 
 class TestErrorDescription(ApiTestCase):
