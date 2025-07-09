@@ -6,6 +6,7 @@ import datetime
 import json
 import time
 import uuid
+from typing import Any
 
 import stripe
 from flask import request
@@ -46,11 +47,10 @@ from util.request import get_request_ip
 MILLISECONDS_IN_SECONDS = 1000
 
 # --- Consolidated Shared Schemas ---
-SHARED_SCHEMAS = {
+SHARED_SCHEMAS: dict[str, Any] = {
     "CardInfo": {
         "type": "object",
         "description": "Describes a credit card",
-        "required": [],
         "properties": {
             "is_valid": {"type": "boolean", "description": "Whether the card information is valid"},
             "owner": {"type": "string", "description": "The name of the card owner"},
@@ -1021,6 +1021,7 @@ class UserInvoiceList(ApiResource):
     """
 
     schemas = {
+        "InvoiceView": SHARED_SCHEMAS["InvoiceView"],
         "InvoiceListResponse": SHARED_SCHEMAS["InvoiceListResponse"],
     }
 
