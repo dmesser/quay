@@ -428,15 +428,24 @@ def openapi_route_data(include_internal=False, compact=False):
         if isinstance(schema_obj, dict):
             new_dict = {}
             for key, value in schema_obj.items():
-                if key == "type" and isinstance(value, list) and "null" in value:
-                    # Convert type: ["string", "null"] to type: "string" with nullable: true
+                if key == "type" and isinstance(value, list):
+                    # Handle type arrays
+                    has_null = "null" in value
                     non_null_types = [t for t in value if t != "null"]
-                    if len(non_null_types) == 1:
+
+                    if len(non_null_types) == 0:
+                        # Only null type - this is unusual but handle it
+                        new_dict["type"] = "null"
+                    elif len(non_null_types) == 1:
+                        # Single type with possible null
                         new_dict["type"] = non_null_types[0]
-                        new_dict["nullable"] = True
+                        if has_null:
+                            new_dict["nullable"] = True
                     else:
-                        # If there are multiple non-null types, keep as is
-                        new_dict[key] = value
+                        # Multiple non-null types - convert to oneOf
+                        new_dict["oneOf"] = [{"type": t} for t in non_null_types]
+                        if has_null:
+                            new_dict["nullable"] = True
                 elif key == "oneOf" and isinstance(value, list):
                     # Handle oneOf with null type
                     non_null_items = [
