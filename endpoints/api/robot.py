@@ -55,7 +55,7 @@ CREATE_ROBOT_SCHEMA = {
             "maxLength": 255,
         },
         "unstructured_metadata": {
-            "type": ["object"],
+            "type": "object",
             "description": "Optional unstructured metadata for the robot",
         },
     },
@@ -626,7 +626,6 @@ class RegenerateOrgRobot(ApiResource):
 @path_param(
     "robot_shortname", "The short name for the robot, without any user or organization prefix"
 )
-@related_user_resource(UserRobot)
 class OrgRobotFederation(ApiResource):
 
     schemas = {

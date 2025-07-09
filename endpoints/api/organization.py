@@ -4,6 +4,7 @@ Manage organizations, members and OAuth applications.
 
 import logging
 import time
+from typing import Any, Dict
 
 import recaptcha2
 from flask import request
@@ -53,7 +54,7 @@ from util.request import get_request_ip
 logger = logging.getLogger(__name__)
 
 # Common reusable schema definitions
-COMMON_SCHEMAS = {
+COMMON_SCHEMAS: Dict[str, Any] = {
     "Avatar": {
         "type": "object",
         "description": "Avatar information for a user, team, organization, or application",

@@ -28,7 +28,6 @@ class GlobalUserMessages(ApiResource):
 
     schemas = {
         "CreateMessage": {
-            "id": "CreateMessage",
             "type": "object",
             "description": "Create a new message",
             "properties": {

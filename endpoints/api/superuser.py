@@ -1237,7 +1237,6 @@ class SuperUserList(ApiResource):
 
     schemas = {
         "CreateInstallUser": {
-            "id": "CreateInstallUser",
             "description": "Data for creating a user",
             "required": ["username"],
             "properties": {
@@ -1391,7 +1390,6 @@ class SuperUserManagement(ApiResource):
 
     schemas = {
         "UpdateUser": {
-            "id": "UpdateUser",
             "type": "object",
             "description": "Description of updates for a user",
             "properties": {
@@ -1602,7 +1600,6 @@ class SuperUserOrganizationManagement(ApiResource):
 
     schemas = {
         "UpdateOrg": {
-            "id": "UpdateOrg",
             "type": "object",
             "description": "Description of updates for an organization",
             "properties": {
@@ -1689,7 +1686,6 @@ class SuperUserServiceKeyManagement(ApiResource):
 
     schemas = {
         "CreateServiceKey": {
-            "id": "CreateServiceKey",
             "type": "object",
             "description": "Description of creation of a service key",
             "required": ["service", "expiration"],
@@ -1827,7 +1823,6 @@ class SuperUserServiceKey(ApiResource):
 
     schemas = {
         "PutServiceKey": {
-            "id": "PutServiceKey",
             "type": "object",
             "description": "Description of updates for a service key",
             "properties": {
@@ -1953,7 +1948,6 @@ class SuperUserServiceKeyApproval(ApiResource):
 
     schemas = {
         "ApproveServiceKey": {
-            "id": "ApproveServiceKey",
             "type": "object",
             "description": "Information for approving service keys",
             "properties": {

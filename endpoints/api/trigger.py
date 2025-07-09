@@ -417,8 +417,11 @@ TRIGGER_RESPONSE_SCHEMAS: Dict[str, Any] = {
                 "type": "array",
                 "description": "List of field values. Items can be either strings (for branch_name/tag_name fields) or objects with 'kind' and 'name' properties (for refs field).",
                 "items": {
-                    "type": ["string", "object", "integer"],
-                    "additionalProperties": True,
+                    "oneOf": [
+                        {"type": "string"},
+                        {"type": "object", "additionalProperties": True},
+                        {"type": "integer"},
+                    ]
                 },
             },
         },
