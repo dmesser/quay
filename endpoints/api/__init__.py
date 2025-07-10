@@ -598,7 +598,18 @@ def validate_json_request(schema_name, optional=False):
                     if not optional:
                         raise InvalidRequest("Missing JSON body")
                 else:
-                    validate(json_data, schema)
+                    # Create a complete JSON Schema document with all schemas in definitions
+                    full_schema = {
+                        "$schema": "http://json-schema.org/draft-07/schema#",
+                        "definitions": self.schemas,
+                        **schema,  # This spreads the top-level schema properties
+                    }
+
+                    # Create a RefResolver that can resolve references to definitions
+                    resolver = RefResolver(base_uri="", referrer=full_schema)
+
+                    # Validate using the resolver
+                    validate(json_data, schema, resolver=resolver)
                 return func(self, *args, **kwargs)
             except ValidationError as ex:
                 raise InvalidRequest(str(ex))
