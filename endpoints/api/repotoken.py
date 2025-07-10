@@ -44,7 +44,7 @@ class RepositoryTokenList(RepositoryParamResource):
     """
 
     schemas = {
-        "NewToken": {
+        "NewRepoToken": {
             "type": "object",
             "description": "Description of a new token.",
             "required": [
@@ -73,7 +73,7 @@ class RepositoryTokenList(RepositoryParamResource):
 
     @require_repo_admin(allow_for_superuser=True)
     @nickname("createToken")
-    @validate_json_request("NewToken")
+    @validate_json_request("NewRepoToken")
     @define_json_response("DeprecationResponse")
     def post(self, namespace_name, repo_name):
         """

@@ -409,6 +409,19 @@ TRIGGER_RESPONSE_SCHEMAS: Dict[str, Any] = {
         },
         "required": ["name"],
     },
+    "FieldValueString": {
+        "type": "string",
+        "description": "Field value as a string (for branch_name/tag_name fields)",
+    },
+    "FieldValueObject": {
+        "type": "object",
+        "description": "Field value as an object with kind and name properties (for refs field)",
+        "additionalProperties": True,
+    },
+    "FieldValueInteger": {
+        "type": "integer",
+        "description": "Field value as an integer",
+    },
     "FieldValuesResponse": {
         "type": "object",
         "description": "Response containing field values. The format depends on the field_name and handler type: for branch_name/tag_name fields, values are strings; for refs field, values are objects with kind and name properties.",
@@ -418,9 +431,9 @@ TRIGGER_RESPONSE_SCHEMAS: Dict[str, Any] = {
                 "description": "List of field values. Items can be either strings (for branch_name/tag_name fields) or objects with 'kind' and 'name' properties (for refs field).",
                 "items": {
                     "oneOf": [
-                        {"type": "string"},
-                        {"type": "object", "additionalProperties": True},
-                        {"type": "integer"},
+                        {"$ref": "#/definitions/FieldValueString"},
+                        {"$ref": "#/definitions/FieldValueObject"},
+                        {"$ref": "#/definitions/FieldValueInteger"},
                     ]
                 },
             },

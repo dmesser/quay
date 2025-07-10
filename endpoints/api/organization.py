@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 # Common reusable schema definitions
 COMMON_SCHEMAS: Dict[str, Any] = {
-    "Avatar": {
+    "OrganizationEntityAvatar": {
         "type": "object",
         "description": "Avatar information for a user, team, organization, or application",
         "properties": {
@@ -80,7 +80,7 @@ COMMON_SCHEMAS: Dict[str, Any] = {
                 "type": "string",
                 "description": "Team role (e.g., 'admin', 'member', 'creator')",
             },
-            "avatar": {"$ref": "#/definitions/Avatar"},
+            "avatar": {"$ref": "#/definitions/OrganizationEntityAvatar"},
             "can_view": {
                 "type": "boolean",
                 "description": "Whether the current user can view this team",
@@ -111,11 +111,11 @@ COMMON_SCHEMAS: Dict[str, Any] = {
         "description": "Reference to a team",
         "properties": {
             "name": {"type": "string", "description": "Team name"},
-            "avatar": {"$ref": "#/definitions/Avatar"},
+            "avatar": {"$ref": "#/definitions/OrganizationEntityAvatar"},
         },
         "required": ["name", "avatar"],
     },
-    "QuotaLimit": {
+    "OrgQuotaLimit": {
         "type": "object",
         "description": "Quota limit threshold configuration",
         "properties": {
@@ -131,7 +131,7 @@ COMMON_SCHEMAS: Dict[str, Any] = {
         },
         "required": ["id", "type", "limit_percent"],
     },
-    "QuotaView": {
+    "OrgQuotaView": {
         "type": "object",
         "description": "Namespace quota configuration",
         "properties": {
@@ -139,13 +139,13 @@ COMMON_SCHEMAS: Dict[str, Any] = {
             "limit_bytes": {"type": "integer", "description": "Quota limit in bytes"},
             "limits": {
                 "type": "array",
-                "items": {"$ref": "#/definitions/QuotaLimit"},
+                "items": {"$ref": "#/definitions/OrgQuotaLimit"},
                 "description": "List of quota limit thresholds",
             },
         },
         "required": ["id", "limit_bytes", "limits"],
     },
-    "QuotaReport": {
+    "OrgQuotaReport": {
         "type": "object",
         "description": "Current quota usage report",
         "properties": {
@@ -417,7 +417,7 @@ class Organization(ApiResource):
                     "type": "string",
                     "description": "Organization email (empty string if not admin)",
                 },
-                "avatar": {"$ref": "#/definitions/Avatar"},
+                "avatar": {"$ref": "#/definitions/OrganizationEntityAvatar"},
                 "is_admin": {"type": "boolean", "description": "Is the user an admin of the org"},
                 "is_member": {"type": "boolean", "description": "Is the user a member of the org"},
                 "teams": {
@@ -449,11 +449,11 @@ class Organization(ApiResource):
                 },
                 "quotas": {
                     "type": "array",
-                    "items": {"$ref": "#/definitions/QuotaView"},
+                    "items": {"$ref": "#/definitions/OrgQuotaView"},
                     "description": "List of quotas for the org (only present if user is admin/member and quota features enabled)",
                 },
                 "quota_report": {
-                    "allOf": [{"$ref": "#/definitions/QuotaReport"}],
+                    "allOf": [{"$ref": "#/definitions/OrgQuotaReport"}],
                     "description": "Quota usage report (only present if user is admin/member and quota features enabled)",
                     "x-nullable": True,
                 },
@@ -671,7 +671,7 @@ class OrganizationCollaboratorList(ApiResource):
                     "enum": ["user"],
                 },
                 "name": {"type": "string", "description": "Username"},
-                "avatar": {"$ref": "#/definitions/Avatar"},
+                "avatar": {"$ref": "#/definitions/OrganizationEntityAvatar"},
                 "repositories": {
                     "type": "array",
                     "items": {"type": "string"},
@@ -744,13 +744,13 @@ class OrganizationCollaboratorList(ApiResource):
 @path_param("orgname", "The name of the organization")
 class OrganizationMemberList(ApiResource):
     schemas = {
-        "Member": {
+        "OrgMember": {
             "type": "object",
             "description": "A member of the organization",
             "properties": {
                 "name": {"type": "string", "description": "Username"},
                 "kind": {"type": "string", "description": "Type (user)", "enum": ["user"]},
-                "avatar": {"$ref": "#/definitions/Avatar"},
+                "avatar": {"$ref": "#/definitions/OrganizationEntityAvatar"},
                 "teams": {
                     "type": "array",
                     "items": {"$ref": "#/definitions/TeamRef"},
@@ -770,7 +770,7 @@ class OrganizationMemberList(ApiResource):
             "properties": {
                 "members": {
                     "type": "array",
-                    "items": {"$ref": "#/definitions/Member"},
+                    "items": {"$ref": "#/definitions/OrgMember"},
                 },
             },
             "required": ["members"],
@@ -847,7 +847,7 @@ class OrganizationMember(ApiResource):
                     "description": "Type (user or robot)",
                     "enum": ["user", "robot"],
                 },
-                "avatar": {"$ref": "#/definitions/Avatar"},
+                "avatar": {"$ref": "#/definitions/OrganizationEntityAvatar"},
                 "teams": {
                     "type": "array",
                     "items": {"$ref": "#/definitions/TeamRef"},
@@ -951,7 +951,7 @@ class ApplicationInformation(ApiResource):
                 "name": {"type": "string", "description": "Application name"},
                 "description": {"type": "string", "description": "Application description"},
                 "uri": {"type": "string", "description": "Application URI"},
-                "avatar": {"$ref": "#/definitions/Avatar"},
+                "avatar": {"$ref": "#/definitions/OrganizationEntityAvatar"},
                 "organization": {"$ref": "#/definitions/OrganizationView"},
             },
             "required": ["name", "description", "uri", "avatar", "organization"],

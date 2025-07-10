@@ -136,7 +136,7 @@ ROBOT_RESPONSE_SCHEMAS = {
             },
             "teams": {
                 "type": "array",
-                "items": {"$ref": "#/definitions/Team"},
+                "items": {"$ref": "#/definitions/RobotTeam"},
                 "description": "Teams the robot belongs to",
             },
             "repositories": {
@@ -160,7 +160,7 @@ ROBOT_RESPONSE_SCHEMAS = {
         },
         "required": ["name", "description"],
     },
-    "Team": {
+    "RobotTeam": {
         "type": "object",
         "description": "A team that a robot belongs to",
         "properties": {
@@ -189,7 +189,7 @@ ROBOT_RESPONSE_SCHEMAS = {
         },
         "required": ["robots"],
     },
-    "Permission": {
+    "RobotPermission": {
         "type": "object",
         "description": "A robot's permission on a repository",
         "properties": {
@@ -216,7 +216,7 @@ ROBOT_RESPONSE_SCHEMAS = {
         },
         "required": ["repository", "role"],
     },
-    "PermissionList": {
+    "RobotPermissionList": {
         "type": "object",
         "description": "List of robot permissions",
         "properties": {
@@ -224,7 +224,7 @@ ROBOT_RESPONSE_SCHEMAS = {
                 "type": "array",
                 "description": "List of permission objects",
                 "items": {
-                    "$ref": "#/definitions/Permission",
+                    "$ref": "#/definitions/RobotPermission",
                 },
             },
         },
@@ -526,7 +526,7 @@ class UserRobotPermissions(ApiResource):
 
     @require_user_admin()
     @nickname("getUserRobotPermissions")
-    @define_json_response("PermissionList")
+    @define_json_response("RobotPermissionList")
     def get(self, robot_shortname):
         """
         Returns the list of repository permissions for the user's robot.
@@ -553,7 +553,7 @@ class OrgRobotPermissions(ApiResource):
 
     @require_user_admin()
     @nickname("getOrgRobotPermissions")
-    @define_json_response("PermissionList")
+    @define_json_response("RobotPermissionList")
     def get(self, orgname, robot_shortname):
         """
         Returns the list of repository permissions for the org's robot.

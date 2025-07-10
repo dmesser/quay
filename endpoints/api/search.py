@@ -41,7 +41,7 @@ from util.parsing import truthy_bool
 
 # Response schemas for search endpoints
 SEARCH_RESPONSE_SCHEMAS = {
-    "Avatar": {
+    "EntityAvatar": {
         "type": "object",
         "description": "Avatar information for an entity",
         "properties": {
@@ -87,7 +87,7 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "description": "Whether the user is a member of the organization (only present when searching within an org context)",
             },
             "avatar": {
-                "$ref": "#/definitions/Avatar",
+                "$ref": "#/definitions/EntityAvatar",
             },
         },
         "required": ["name", "kind", "is_robot", "avatar"],
@@ -110,7 +110,7 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "description": "Always true for teams",
             },
             "avatar": {
-                "$ref": "#/definitions/Avatar",
+                "$ref": "#/definitions/EntityAvatar",
             },
         },
         "required": ["name", "kind", "is_org_member", "avatar"],
@@ -133,7 +133,7 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "description": "Always true when the org appears in results",
             },
             "avatar": {
-                "$ref": "#/definitions/Avatar",
+                "$ref": "#/definitions/EntityAvatar",
             },
         },
         "required": ["name", "kind", "is_org_member", "avatar"],
@@ -156,7 +156,7 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "description": "The external user's email or title",
             },
             "avatar": {
-                "$ref": "#/definitions/Avatar",
+                "$ref": "#/definitions/EntityAvatar",
             },
         },
         "required": ["name", "kind", "title", "avatar"],
@@ -176,7 +176,7 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "enum": ["user", "team", "org", "external"],
             },
             "avatar": {
-                "$ref": "#/definitions/Avatar",
+                "$ref": "#/definitions/EntityAvatar",
             },
             "is_robot": {
                 "type": "boolean",
@@ -221,7 +221,7 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "enum": ["user", "organization", "robot", "team"],
             },
             "avatar": {
-                "oneOf": [{"$ref": "#/definitions/Avatar"}, {"type": "null"}],
+                "oneOf": [{"$ref": "#/definitions/EntityAvatar"}, {"type": "null"}],
                 "x-nullable": True,
                 "description": "Avatar data (null for robots)",
             },
@@ -261,7 +261,7 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "$ref": "#/definitions/SearchEntity",
             },
             "avatar": {
-                "$ref": "#/definitions/Avatar",
+                "$ref": "#/definitions/EntityAvatar",
             },
             "score": {
                 "type": "number",
@@ -362,7 +362,7 @@ SEARCH_RESPONSE_SCHEMAS = {
                 "description": "The result title",
             },
             "avatar": {
-                "$ref": "#/definitions/Avatar",
+                "$ref": "#/definitions/EntityAvatar",
             },
             "short_name": {
                 "type": "string",
@@ -463,7 +463,7 @@ SEARCH_RESPONSE_SCHEMAS = {
                         "description": "Whether the entity is a robot",
                     },
                     "avatar": {
-                        "$ref": "#/definitions/Avatar",
+                        "$ref": "#/definitions/EntityAvatar",
                     },
                 },
                 "required": ["name", "kind", "is_robot", "avatar"],

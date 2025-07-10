@@ -190,7 +190,7 @@ class RepositoryList(ApiResource):
             },
             "required": ["namespace", "name", "kind"],
         },
-        "Tag": {
+        "RepositoryTag": {
             "type": "object",
             "description": "Repository tag information",
             "properties": {
@@ -220,7 +220,7 @@ class RepositoryList(ApiResource):
             },
             "required": ["date", "count"],
         },
-        "QuotaReport": {
+        "RepositoryQuotaReport": {
             "type": "object",
             "description": "Repository quota information",
             "properties": {
@@ -290,10 +290,10 @@ class RepositoryList(ApiResource):
                 "tags": {
                     "type": "object",
                     "description": "Map of tag names to tag information (only if includeTags=true)",
-                    "additionalProperties": {"$ref": "#/definitions/Tag"},
+                    "additionalProperties": {"$ref": "#/definitions/RepositoryTag"},
                 },
                 "quota_report": {
-                    "allOf": [{"$ref": "#/definitions/QuotaReport"}],
+                    "allOf": [{"$ref": "#/definitions/RepositoryQuotaReport"}],
                     "description": "Quota information (only if QUOTA_MANAGEMENT feature is enabled)",
                 },
             },
@@ -347,7 +347,7 @@ class RepositoryList(ApiResource):
                     "description": "Repository popularity score (only if popularity=true)",
                 },
                 "quota_report": {
-                    "allOf": [{"$ref": "#/definitions/QuotaReport"}],
+                    "allOf": [{"$ref": "#/definitions/RepositoryQuotaReport"}],
                     "description": "Quota information (only if QUOTA_MANAGEMENT feature is enabled)",
                 },
             },

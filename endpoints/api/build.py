@@ -237,7 +237,7 @@ class RepositoryBuildList(RepositoryParamResource):
                 },
             },
         },
-        "UserView": {
+        "BuildUserView": {
             "type": "object",
             "description": "Describes a user or robot account in build context",
             "required": ["name", "kind", "is_robot"],
@@ -257,7 +257,7 @@ class RepositoryBuildList(RepositoryParamResource):
                 },
             },
         },
-        "TriggerView": {
+        "BuildTriggerView": {
             "type": "object",
             "description": "Describes a build trigger",
             "required": ["id", "service", "is_active", "config", "can_invoke", "enabled"],
@@ -303,7 +303,7 @@ class RepositoryBuildList(RepositoryParamResource):
                 },
                 "pull_robot": {
                     "allOf": [
-                        {"$ref": "#/definitions/UserView"},
+                        {"$ref": "#/definitions/BuildUserView"},
                     ],
                     "description": "The robot account used for pulling images (only present for admins and not in build context)",
                 },
@@ -392,7 +392,7 @@ class RepositoryBuildList(RepositoryParamResource):
                 },
                 "trigger": {
                     "oneOf": [
-                        {"$ref": "#/definitions/TriggerView"},
+                        {"$ref": "#/definitions/BuildTriggerView"},
                         {"type": "null"},
                     ],
                     "description": "The build trigger that started this build",
@@ -411,7 +411,7 @@ class RepositoryBuildList(RepositoryParamResource):
                 },
                 "pull_robot": {
                     "oneOf": [
-                        {"$ref": "#/definitions/UserView"},
+                        {"$ref": "#/definitions/BuildUserView"},
                         {"type": "null"},
                     ],
                     "description": "The robot account used for pulling images (only present for admins and not in build context)",

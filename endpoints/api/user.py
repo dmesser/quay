@@ -357,7 +357,7 @@ class User(ApiResource):
                 },
             },
         },
-        "OrganizationView": {
+        "MemberOrganizationView": {
             "type": "object",
             "description": "Information about an organization",
             "required": ["name", "avatar", "can_create_repo", "public"],
@@ -425,7 +425,7 @@ class User(ApiResource):
                 },
             },
         },
-        "QuotaView": {
+        "UserQuotaView": {
             "type": "object",
             "description": "Information about a namespace quota",
             "required": ["id", "limit_bytes", "limits"],
@@ -475,7 +475,7 @@ class User(ApiResource):
                     "type": "array",
                     "description": "Information about the organizations in which the user is a member",
                     "items": {
-                        "$ref": "#/definitions/OrganizationView",
+                        "$ref": "#/definitions/MemberOrganizationView",
                     },
                 },
                 "logins": {
@@ -550,7 +550,7 @@ class User(ApiResource):
                     "type": "array",
                     "description": "List of namespace quotas",
                     "items": {
-                        "$ref": "#/definitions/QuotaView",
+                        "$ref": "#/definitions/UserQuotaView",
                     },
                 },
                 "quota_report": {
@@ -1481,7 +1481,7 @@ class UserNotificationList(ApiResource):
     """
 
     schemas = {
-        "NotificationView": {
+        "UserNotificationView": {
             "type": "object",
             "description": "Information about a user notification",
             "required": ["id", "kind", "created", "metadata", "dismissed"],
@@ -1523,7 +1523,7 @@ class UserNotificationList(ApiResource):
                     "type": "array",
                     "description": "List of user notifications",
                     "items": {
-                        "$ref": "#/definitions/NotificationView",
+                        "$ref": "#/definitions/UserNotificationView",
                     },
                 },
                 "additional": {
@@ -1581,7 +1581,7 @@ class UserNotification(ApiResource):
 
     @require_user_admin()
     @nickname("getUserNotification")
-    @define_json_response("NotificationView")
+    @define_json_response("UserNotificationView")
     def get(self, uuid):
         note = model.notification.lookup_notification(get_authenticated_user(), uuid)
         if not note:
@@ -1592,7 +1592,7 @@ class UserNotification(ApiResource):
     @require_user_admin()
     @nickname("updateUserNotification")
     @validate_json_request("UpdateNotification")
-    @define_json_response("NotificationView")
+    @define_json_response("UserNotificationView")
     def put(self, uuid):
         note = model.notification.lookup_notification(get_authenticated_user(), uuid)
         if not note:

@@ -67,7 +67,7 @@ logger = logging.getLogger(__name__)
 
 # Response schemas for superuser endpoints
 SUPERUSER_RESPONSE_SCHEMAS: Dict[str, Any] = {
-    "Avatar": {
+    "SuperuserEntityAvatar": {
         "type": "object",
         "description": "Avatar information for an entity",
         "properties": {
@@ -125,7 +125,7 @@ SUPERUSER_RESPONSE_SCHEMAS: Dict[str, Any] = {
         },
         "required": ["aggregated"],
     },
-    "LogEntry": {
+    "SuperuserLogEntry": {
         "type": "object",
         "description": "A log entry",
         "properties": {
@@ -165,7 +165,7 @@ SUPERUSER_RESPONSE_SCHEMAS: Dict[str, Any] = {
                         "description": "Whether the user is a robot",
                     },
                     "avatar": {
-                        "$ref": "#/definitions/Avatar",
+                        "$ref": "#/definitions/SuperuserEntityAvatar",
                     },
                 },
             },
@@ -184,14 +184,14 @@ SUPERUSER_RESPONSE_SCHEMAS: Dict[str, Any] = {
                         "description": "Namespace name",
                     },
                     "avatar": {
-                        "$ref": "#/definitions/Avatar",
+                        "$ref": "#/definitions/SuperuserEntityAvatar",
                     },
                 },
             },
         },
         "required": ["kind", "metadata", "ip", "datetime"],
     },
-    "LogsResponse": {
+    "SuperuserLogsResponse": {
         "type": "object",
         "description": "Response containing logs with pagination",
         "properties": {
@@ -209,7 +209,7 @@ SUPERUSER_RESPONSE_SCHEMAS: Dict[str, Any] = {
                 "type": "array",
                 "description": "List of log entries",
                 "items": {
-                    "$ref": "#/definitions/LogEntry",
+                    "$ref": "#/definitions/SuperuserLogEntry",
                 },
             },
             "next_page": {
@@ -257,7 +257,7 @@ SUPERUSER_RESPONSE_SCHEMAS: Dict[str, Any] = {
                 "description": "Whether the email is verified",
             },
             "avatar": {
-                "$ref": "#/definitions/Avatar",
+                "$ref": "#/definitions/SuperuserEntityAvatar",
             },
             "super_user": {
                 "type": "boolean",
@@ -352,7 +352,7 @@ SUPERUSER_RESPONSE_SCHEMAS: Dict[str, Any] = {
                 "description": "The email address",
             },
             "avatar": {
-                "$ref": "#/definitions/Avatar",
+                "$ref": "#/definitions/SuperuserEntityAvatar",
             },
             "quotas": {
                 "type": ["array", "null"],
@@ -416,10 +416,6 @@ SUPERUSER_RESPONSE_SCHEMAS: Dict[str, Any] = {
     "Quota": {
         "type": "object",
         "description": "A quota definition",
-        "anyOf": [
-            {"required": ["id", "limit_bytes", "limits"]},
-            {"required": ["id", "limit", "limits"]},
-        ],
         "properties": {
             "id": {
                 "type": ["integer", "null"],
@@ -885,7 +881,7 @@ class SuperUserLogs(ApiResource):
     @query_param("page", "The page number for the logs", type=int, default=1)
     @page_support()
     @require_scope(scopes.SUPERUSER)
-    @define_json_response("LogsResponse")
+    @define_json_response("SuperuserLogsResponse")
     def get(self, parsed_args, page_token):
         """
         List the usage logs for the current system.
@@ -1071,29 +1067,35 @@ class SuperUserRegistrySize(ApiResource):
 class SuperUserUserQuotaList(ApiResource):
 
     schemas = {
+        "NewNamespaceQuotaInBytes": {
+            "type": "object",
+            "description": "Namespace quota with byte limit",
+            "required": ["limit_bytes"],
+            "properties": {
+                "limit_bytes": {
+                    "type": "integer",
+                    "description": "Number of bytes the organization is allowed",
+                },
+            },
+        },
+        "NewNamespaceQuotaHumanReadable": {
+            "type": "object",
+            "description": "Namespace quota with human readable limit",
+            "required": ["limit"],
+            "properties": {
+                "limit": {
+                    "type": "string",
+                    "description": "Human readable storage capacity of the organization",
+                    "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
+                },
+            },
+        },
         "NewNamespaceQuota": {
             "type": "object",
             "description": "Description of a new organization quota",
             "oneOf": [
-                {
-                    "required": ["limit_bytes"],
-                    "properties": {
-                        "limit_bytes": {
-                            "type": "integer",
-                            "description": "Number of bytes the organization is allowed",
-                        },
-                    },
-                },
-                {
-                    "required": ["limit"],
-                    "properties": {
-                        "limit": {
-                            "type": "string",
-                            "description": "Human readable storage capacity of the organization",
-                            "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
-                        },
-                    },
-                },
+                {"$ref": "#/definitions/NewNamespaceQuotaInBytes"},
+                {"$ref": "#/definitions/NewNamespaceQuotaHumanReadable"},
             ],
         },
         **SUPERUSER_RESPONSE_SCHEMAS,
@@ -1389,7 +1391,7 @@ class SuperUserManagement(ApiResource):
     """
 
     schemas = {
-        "UpdateUser": {
+        "UpdateUserBySupseruser": {
             "type": "object",
             "description": "Description of updates for a user",
             "properties": {
@@ -1451,7 +1453,7 @@ class SuperUserManagement(ApiResource):
     @require_fresh_login
     @verify_not_prod
     @nickname("changeInstallUser")
-    @validate_json_request("UpdateUser")
+    @validate_json_request("UpdateUserBySupseruser")
     @require_scope(scopes.SUPERUSER)
     @define_json_response("User")
     def put(self, username):
@@ -1599,7 +1601,7 @@ class SuperUserOrganizationManagement(ApiResource):
     """
 
     schemas = {
-        "UpdateOrg": {
+        "UpdateOrgBySuperuser": {
             "type": "object",
             "description": "Description of updates for an organization",
             "properties": {
@@ -1629,7 +1631,7 @@ class SuperUserOrganizationManagement(ApiResource):
     @require_fresh_login
     @verify_not_prod
     @nickname("changeOrganization")
-    @validate_json_request("UpdateOrg")
+    @validate_json_request("UpdateOrgBySuperuser")
     @require_scope(scopes.SUPERUSER)
     @define_json_response("Organization")
     def put(self, name):
@@ -2022,7 +2024,6 @@ class SuperUserRepositoryBuildLogs(ApiResource):
 
 
 @resource("/v1/superuser/<build_uuid>/status")
-@path_param("repository", "The full path of the repository. e.g. namespace/name")
 @path_param("build_uuid", "The UUID of the build")
 @show_if(features.SUPER_USERS)
 class SuperUserRepositoryBuildStatus(ApiResource):
@@ -2052,7 +2053,6 @@ class SuperUserRepositoryBuildStatus(ApiResource):
 
 
 @resource("/v1/superuser/<build_uuid>/build")
-@path_param("repository", "The full path of the repository. e.g. namespace/name")
 @path_param("build_uuid", "The UUID of the build")
 @show_if(features.SUPER_USERS)
 class SuperUserRepositoryBuildResource(ApiResource):

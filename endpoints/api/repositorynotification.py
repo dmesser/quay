@@ -71,7 +71,7 @@ class RepositoryNotificationList(RepositoryParamResource):
                 },
             },
         },
-        "NotificationView": {
+        "RepositoryNotificationView": {
             "type": "object",
             "description": "Repository notification information",
             "properties": {
@@ -117,7 +117,7 @@ class RepositoryNotificationList(RepositoryParamResource):
             "properties": {
                 "notifications": {
                     "type": "array",
-                    "items": {"$ref": "#/definitions/NotificationView"},
+                    "items": {"$ref": "#/definitions/RepositoryNotificationView"},
                 },
             },
             "required": ["notifications"],
@@ -133,7 +133,7 @@ class RepositoryNotificationList(RepositoryParamResource):
     @nickname("createRepoNotification")
     @disallow_for_app_repositories
     @validate_json_request("NotificationCreateRequest")
-    @define_json_response("NotificationView")
+    @define_json_response("RepositoryNotificationView")
     def post(self, namespace_name, repository_name):
         parsed = request.get_json()
 
@@ -192,7 +192,7 @@ class RepositoryNotification(RepositoryParamResource):
     @require_repo_admin(allow_for_global_readonly_superuser=True, allow_for_superuser=True)
     @nickname("getRepoNotification")
     @disallow_for_app_repositories
-    @define_json_response("NotificationView")
+    @define_json_response("RepositoryNotificationView")
     def get(self, namespace_name, repository_name, uuid):
         """
         Get information for the specified notification.

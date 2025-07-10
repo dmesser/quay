@@ -65,7 +65,7 @@ class AppTokens(ApiResource):
     """
 
     schemas = {
-        "NewToken": {
+        "NewAppToken": {
             "type": "object",
             "required": [
                 "title",
@@ -77,7 +77,7 @@ class AppTokens(ApiResource):
                 },
             },
         },
-        "TokenView": {
+        "AppTokenView": {
             "type": "object",
             "description": "Describes an app-specific token",
             "required": ["uuid", "title", "created"],
@@ -107,7 +107,7 @@ class AppTokens(ApiResource):
                 },
             },
         },
-        "TokenViewWithCode": {
+        "AppTokenViewWithCode": {
             "type": "object",
             "description": "Describes an app-specific token including the full token code",
             "required": ["uuid", "title", "created", "token_code"],
@@ -141,7 +141,7 @@ class AppTokens(ApiResource):
                 },
             },
         },
-        "TokenListResponse": {
+        "AppTokenListResponse": {
             "type": "object",
             "description": "Response containing a list of app-specific tokens",
             "required": ["tokens", "only_expiring"],
@@ -150,7 +150,7 @@ class AppTokens(ApiResource):
                     "type": "array",
                     "description": "List of app-specific tokens",
                     "items": {
-                        "$ref": "#/definitions/TokenView",
+                        "$ref": "#/definitions/AppTokenView",
                     },
                 },
                 "only_expiring": {
@@ -160,13 +160,13 @@ class AppTokens(ApiResource):
                 },
             },
         },
-        "TokenResponse": {
+        "AppTokenResponse": {
             "type": "object",
             "description": "Response containing a single app-specific token with its full token code",
             "required": ["token"],
             "properties": {
                 "token": {
-                    "allOf": [{"$ref": "#/definitions/TokenViewWithCode"}],
+                    "allOf": [{"$ref": "#/definitions/AppTokenViewWithCode"}],
                     "description": "The app-specific token with its full token code",
                 },
             },
@@ -177,7 +177,7 @@ class AppTokens(ApiResource):
     @nickname("listAppTokens")
     @parse_args()
     @query_param("expiring", "If true, only returns those tokens expiring soon", type=truthy_bool)
-    @define_json_response("TokenListResponse")
+    @define_json_response("AppTokenListResponse")
     def get(self, parsed_args):
         """
         Lists the app specific tokens for the user.
@@ -200,8 +200,8 @@ class AppTokens(ApiResource):
     @require_user_admin()
     @require_fresh_login
     @nickname("createAppToken")
-    @validate_json_request("NewToken")
-    @define_json_response("TokenResponse")
+    @validate_json_request("NewAppToken")
+    @define_json_response("AppTokenResponse")
     def post(self):
         """
         Create a new app specific token for user.
@@ -233,7 +233,7 @@ class AppToken(ApiResource):
     @require_user_admin()
     @require_fresh_login
     @nickname("getAppToken")
-    @define_json_response("TokenResponse")
+    @define_json_response("AppTokenResponse")
     def get(self, token_uuid):
         """
         Returns a specific app token for the user.

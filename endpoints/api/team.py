@@ -172,7 +172,7 @@ disallow_all_for_synced_team = disallow_for_synced_team(except_robots=False)
 
 # Response schemas for team endpoints
 TEAM_RESPONSE_SCHEMAS = {
-    "Avatar": {
+    "TeamEntityAvatar": {
         "type": "object",
         "description": "Avatar information for an entity",
         "properties": {
@@ -218,7 +218,7 @@ TEAM_RESPONSE_SCHEMAS = {
                 "enum": ["member", "creator", "admin"],
             },
             "avatar": {
-                "$ref": "#/definitions/Avatar",
+                "$ref": "#/definitions/TeamEntityAvatar",
             },
             "new_team": {
                 "type": "boolean",
@@ -227,7 +227,7 @@ TEAM_RESPONSE_SCHEMAS = {
         },
         "required": ["name", "description", "can_view", "role", "avatar"],
     },
-    "Member": {
+    "TeamMember": {
         "type": "object",
         "description": "Information about a team member",
         "properties": {
@@ -245,7 +245,7 @@ TEAM_RESPONSE_SCHEMAS = {
                 "description": "Whether the member is a robot account (only present for kind='user')",
             },
             "avatar": {
-                "$ref": "#/definitions/Avatar",
+                "$ref": "#/definitions/TeamEntityAvatar",
             },
             "invited": {
                 "type": "boolean",
@@ -291,7 +291,7 @@ TEAM_RESPONSE_SCHEMAS = {
                 "type": "array",
                 "description": "List of team members",
                 "items": {
-                    "$ref": "#/definitions/Member",
+                    "$ref": "#/definitions/TeamMember",
                 },
             },
             "can_edit": {
@@ -323,7 +323,7 @@ TEAM_RESPONSE_SCHEMAS = {
         },
         "required": ["name", "members", "can_edit"],
     },
-    "Permission": {
+    "TeamRepositoryPermission": {
         "type": "object",
         "description": "Repository permission for a team",
         "properties": {
@@ -357,7 +357,7 @@ TEAM_RESPONSE_SCHEMAS = {
                 "type": "array",
                 "description": "List of repository permissions",
                 "items": {
-                    "$ref": "#/definitions/Permission",
+                    "$ref": "#/definitions/TeamRepositoryPermission",
                 },
             },
         },
@@ -639,7 +639,7 @@ class TeamMember(ApiResource):
     @require_scope(scopes.ORG_ADMIN)
     @nickname("updateOrganizationTeamMember")
     @disallow_nonrobots_for_synced_team
-    @define_json_response("Member")
+    @define_json_response("TeamMember")
     def put(self, orgname, teamname, membername):
         """
         Adds or invites a member to an existing team.
@@ -734,7 +734,7 @@ class InviteTeamMember(ApiResource):
     @require_scope(scopes.ORG_ADMIN)
     @nickname("inviteTeamMemberEmail")
     @disallow_all_for_synced_team
-    @define_json_response("Member")
+    @define_json_response("TeamMember")
     def put(self, orgname, teamname, email):
         """
         Invites an email address to an existing team.

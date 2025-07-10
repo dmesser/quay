@@ -71,29 +71,35 @@ def get_quota(namespace_name, quota_id):
 @show_if(features.QUOTA_MANAGEMENT and features.EDIT_QUOTA)
 class OrganizationQuotaList(ApiResource):
     schemas: Dict[str, Any] = {
+        "NewOrgQuotaInBytes": {
+            "type": "object",
+            "description": "Organization quota with byte limit",
+            "required": ["limit_bytes"],
+            "properties": {
+                "limit_bytes": {
+                    "type": "integer",
+                    "description": "Number of bytes the organization is allowed",
+                },
+            },
+        },
+        "NewOrgQuotaHumanReadable": {
+            "type": "object",
+            "description": "Organization quota with human readable limit",
+            "required": ["limit"],
+            "properties": {
+                "limit": {
+                    "type": "string",
+                    "description": "Human readable storage capacity of the organization",
+                    "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
+                },
+            },
+        },
         "NewOrgQuota": {
             "type": "object",
             "description": "Description of a new organization quota",
             "oneOf": [
-                {
-                    "required": ["limit_bytes"],
-                    "properties": {
-                        "limit_bytes": {
-                            "type": "integer",
-                            "description": "Number of bytes the organization is allowed",
-                        },
-                    },
-                },
-                {
-                    "required": ["limit"],
-                    "properties": {
-                        "limit": {
-                            "type": "string",
-                            "description": "Human readable storage capacity of the organization",
-                            "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
-                        },
-                    },
-                },
+                {"$ref": "#/definitions/NewOrgQuotaInBytes"},
+                {"$ref": "#/definitions/NewOrgQuotaHumanReadable"},
             ],
         },
         "QuotaLimit": {
@@ -242,38 +248,37 @@ class OrganizationQuotaList(ApiResource):
 class OrganizationQuota(ApiResource):
     schemas = {
         **OrganizationQuotaList.schemas,
+        "UpdateOrgQuotaInBytes": {
+            "type": "object",
+            "description": "Update organization quota with byte limit",
+            "required": ["limit_bytes"],
+            "properties": {
+                "limit_bytes": {
+                    "type": "integer",
+                    "description": "Number of bytes the organization is allowed",
+                },
+            },
+            "additionalProperties": False,
+        },
+        "UpdateOrgQuotaHumanReadable": {
+            "type": "object",
+            "description": "Update organization quota with human readable limit",
+            "required": ["limit"],
+            "properties": {
+                "limit": {
+                    "type": "string",
+                    "description": "Human readable storage capacity of the organization",
+                    "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
+                },
+            },
+            "additionalProperties": False,
+        },
         "UpdateOrgQuota": {
             "type": "object",
-            "description": "Description of a new organization quota",
+            "description": "Description of updating an organization quota",
             "oneOf": [
-                {
-                    "properties": {
-                        "limit_bytes": {
-                            "type": "integer",
-                            "description": "Number of bytes the organization is allowed",
-                        },
-                    },
-                    "required": ["limit_bytes"],
-                    "additionalProperties": False,
-                },
-                {
-                    "properties": {
-                        "limit": {
-                            "type": "string",
-                            "description": "Human readable storage capacity of the organization",
-                            "pattern": r"^(\d+\s?(B|KiB|MiB|GiB|TiB|PiB|EiB|ZiB|YiB|Ki|Mi|Gi|Ti|Pi|Ei|Zi|Yi|KB|MB|GB|TB|PB|EB|ZB|YB|K|M|G|T|P|E|Z|Y)?)$",
-                        },
-                    },
-                    "required": ["limit"],
-                    "additionalProperties": False,
-                },
-                {
-                    "properties": {
-                        "limit_bytes": {"not": {}},
-                        "limit": {"not": {}},
-                    },
-                    "additionalProperties": False,
-                },
+                {"$ref": "#/definitions/UpdateOrgQuotaInBytes"},
+                {"$ref": "#/definitions/UpdateOrgQuotaHumanReadable"},
             ],
         },
     }

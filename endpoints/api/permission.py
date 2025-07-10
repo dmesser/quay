@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 # Consolidated schema definitions to avoid duplication
 PERMISSION_SCHEMAS = {
-    "Avatar": {
+    "PermissionSubjectAvatar": {
         "type": "object",
         "description": "Avatar information for a user or team.",
         "properties": {
@@ -62,7 +62,7 @@ PERMISSION_SCHEMAS = {
                 "description": "Name of the team",
             },
             "avatar": {
-                "allOf": [{"$ref": "#/definitions/Avatar"}],
+                "allOf": [{"$ref": "#/definitions/PermissionSubjectAvatar"}],
                 "description": "Avatar information for the team",
             },
         },
@@ -86,7 +86,7 @@ PERMISSION_SCHEMAS = {
                 "description": "Whether the user is a robot account",
             },
             "avatar": {
-                "allOf": [{"$ref": "#/definitions/Avatar"}],
+                "allOf": [{"$ref": "#/definitions/PermissionSubjectAvatar"}],
                 "description": "Avatar information for the user",
             },
             "is_org_member": {
