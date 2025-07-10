@@ -279,6 +279,12 @@ class OrganizationQuota(ApiResource):
             "oneOf": [
                 {"$ref": "#/definitions/UpdateOrgQuotaInBytes"},
                 {"$ref": "#/definitions/UpdateOrgQuotaHumanReadable"},
+                {
+                    "type": "object",
+                    "description": "Empty update - no changes to quota size",
+                    "properties": {},
+                    "additionalProperties": False,
+                },
             ],
         },
     }
