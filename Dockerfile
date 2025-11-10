@@ -1,9 +1,73 @@
-FROM registry.access.redhat.com/ubi9/python-312-minimal:latest AS base
+FROM registry.access.redhat.com/ubi9/ubi-micro:latest AS micro
+
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest AS base-installer
 # Only set variables or install packages that need to end up in the
 # final container here.
 USER root
 
-ENV PATH=/app/bin/:$PATH \
+COPY --from=micro / /mnt/rootfs/
+
+RUN set -ex \
+	; microdnf --installroot=/mnt/rootfs \
+	--config=/etc/dnf/dnf.conf \
+	--noplugins \
+	--setopt=reposdir=/etc/yum.repos.d \
+	--setopt=cachedir=/var/cache/dnf \
+	--setopt=varsdir=/etc/dnf/vars \
+	--setopt=tsflags=nodocs \
+	-y module enable nginx:1.24 \
+	; microdnf --installroot=/mnt/rootfs \
+	--config=/etc/dnf/dnf.conf \
+	--noplugins \
+	--setopt=reposdir=/etc/yum.repos.d \
+	--setopt=cachedir=/var/cache/dnf \
+	--setopt=varsdir=/etc/dnf/vars \
+	--setopt=tsflags=nodocs \
+	-y update \
+	; microdnf --installroot=/mnt/rootfs \
+	--config=/etc/dnf/dnf.conf \
+	--noplugins \
+	--setopt=reposdir=/etc/yum.repos.d \
+	--setopt=cachedir=/var/cache/dnf \
+	--setopt=varsdir=/etc/dnf/vars \
+	--setopt=tsflags=nodocs \
+	--setopt=install_weak_deps=0 \
+	-y install \
+	dnsmasq \
+	file \
+	libpq \
+	memcached \
+	nginx \
+	libjpeg-turbo \
+	openldap \
+	openssl \
+	python3.12 \
+	skopeo \
+	glibc-langpack-en \
+	glibc-minimal-langpack \
+	; microdnf --installroot=/mnt/rootfs \
+	--config=/etc/dnf/dnf.conf \
+	--noplugins \
+	--setopt=reposdir=/etc/yum.repos.d \
+	--setopt=cachedir=/var/cache/dnf \
+	--setopt=varsdir=/etc/dnf/vars \
+	--setopt=tsflags=nodocs \
+	-y reinstall tzdata \
+	; microdnf --installroot=/mnt/rootfs \
+	--config=/etc/dnf/dnf.conf \
+	--noplugins \
+	--setopt=reposdir=/etc/yum.repos.d \
+	--setopt=cachedir=/var/cache/dnf \
+	--setopt=varsdir=/etc/dnf/vars \
+	--setopt=tsflags=nodocs \
+	-y clean all && rm -rf /var/cache/yum
+
+
+FROM registry.access.redhat.com/ubi9/ubi-micro:latest AS base
+
+USER root
+
+ENV PATH=/opt/app-root/bin/:$PATH \
 	PYTHON_VERSION=3.12 \
 	PATH=$HOME/.local/bin/:$PATH \
 	PYTHONUNBUFFERED=1 \
@@ -15,25 +79,11 @@ ENV PATH=/app/bin/:$PATH \
 	CNB_GROUP_ID=0 \
 	PIP_NO_CACHE_DIR=off
 
-ENV PYTHONUSERBASE /app
 ENV TZ UTC
-RUN set -ex\
-	; microdnf -y module enable nginx:1.24 \
-	; microdnf update -y \
-	; microdnf -y --setopt=tsflags=nodocs install \
-	dnsmasq \
-	memcached \
-	nginx \
-	libpq-devel \
-	libjpeg-turbo \
-	openldap \
-	openssl \
-	python3-gpg \
-	python3-six \
-	skopeo \
-	findutils \
-	; microdnf -y reinstall tzdata \
-	; microdnf -y clean all && rm -rf /var/cache/yum
+
+COPY --from=base-installer /mnt/rootfs/ /
+COPY --from=base-installer /usr/share/buildinfo /
+
 
 # Config-editor builds the javascript for the configtool.
 FROM registry.access.redhat.com/ubi9/nodejs-22-minimal AS config-editor
@@ -46,28 +96,40 @@ RUN set -ex\
 	;
 
 # Build-python installs the requirements for the python code.
-FROM base AS build-python
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest AS build-python
+
+USER root
 ENV PYTHONDONTWRITEBYTECODE 1
 RUN set -ex\
 	; microdnf -y --setopt=tsflags=nodocs install \
 	gcc-c++ \
 	git \
 	openldap-devel \
+	python3.12 \
 	python3.12-devel \
 	libffi-devel \
 	openssl-devel \
 	diffutils \
-	file \
+	findutils \
 	make \
 	libjpeg-turbo \
 	libjpeg-turbo-devel \
+	libpq-devel \
 	wget \
 	rust-toolset \
 	libxml2-devel \
 	libxslt-devel \
 	freetype-devel \
 	; microdnf -y clean all
+
 WORKDIR /build
+RUN mkdir -p /opt/app-root
+RUN chown 1001:0 /opt/app-root
+USER 1001
+
+RUN python3.12 -m venv /opt/app-root
+ENV PATH=/opt/app-root/bin/:$PATH
+
 RUN python3 -m ensurepip --upgrade
 COPY requirements.txt .
 # Note that it installs into PYTHONUSERBASE because of the '--user'
@@ -82,8 +144,6 @@ ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 # Added below line for GRPC support for IBMZ i.e. s390x
 ENV GRPC_PYTHON_BUILD_SYSTEM_OPENSSL 1
 
-USER 1001
-
 # Added GRPC support for IBM Power
 # In Future if wget is to be removed , then uncomment below lines for grpc installation on IBM Power i.e. ppc64le
 RUN ARCH=$(uname -m) ; echo $ARCH; \
@@ -95,8 +155,12 @@ RUN ARCH=$(uname -m) ; echo $ARCH; \
 
 RUN set -ex\
 	; python3 -m pip install --no-cache-dir --progress-bar off $(grep -e '^pip=' -e '^wheel=' -e '^setuptools=' ./requirements.txt) \
-	; python3 -m pip install --no-cache-dir --progress-bar off --requirement requirements.txt \
-	;
+	; python3 -m pip install --no-cache-dir --progress-bar off --requirement requirements.txt
+
+RUN set -ex \
+	; rm -f /opt/app-root/bin/pip* \
+	; rm -rf /opt/app-root/lib/python3.12/site-packages/pip*
+
 RUN set -ex\
 	# Doing this is explicitly against the purpose and use of certifi.
 	; for dir in\
@@ -168,6 +232,7 @@ RUN set -ex\
 FROM base AS final
 LABEL maintainer "quay-devel@redhat.com"
 
+ENV PATH=/opt/app-root/bin/:$PATH
 ENV QUAYDIR /quay-registry
 ENV QUAYCONF /quay-registry/conf
 ENV QUAYRUN /quay-registry/conf
@@ -207,13 +272,10 @@ RUN set -ex\
 	; chmod ug+wx -R /etc/ssl/
 
 
-RUN python3 -m pip install --no-cache-dir --progress-bar off dumb-init
-
 WORKDIR $QUAYDIR
 # Ordered from least changing to most changing.
 COPY --from=pushgateway /usr/local/bin/pushgateway /usr/local/bin/pushgateway
-COPY --from=build-python /opt/app-root/lib/python3.12/site-packages /opt/app-root/lib/python3.12/site-packages
-COPY --from=build-python /opt/app-root/bin /opt/app-root/bin
+COPY --from=build-python --chown=1001:0 /opt/app-root/ /opt/app-root/
 COPY --from=config-tool /opt/app-root/src/go/bin/config-tool /bin
 COPY --from=build-quaydir /quaydir $QUAYDIR
 
