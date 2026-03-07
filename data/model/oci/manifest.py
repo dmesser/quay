@@ -21,6 +21,10 @@ from data.database import (
 )
 from data.model import BlobDoesNotExist, config
 from data.model.blob import get_or_create_shared_blob, get_shared_blob
+from data.model.oci.build_date import (
+    get_child_manifest_max_build_date,
+    set_manifest_build_date,
+)
 from data.model.oci.label import create_manifest_label
 from data.model.oci.retriever import RepositoryContentRetriever
 from data.model.oci.tag import (
@@ -450,6 +454,11 @@ def _create_manifest(
 
             labels_to_apply = dict(labels_to_apply)
 
+        if features.MANIFEST_BUILD_DATE:
+            _store_build_date(
+                manifest, manifest_interface_instance, retriever, repository_id, child_manifest_rows
+            )
+
         return CreatedManifest(
             manifest=manifest, newly_created=True, labels_to_apply=labels_to_apply
         )
@@ -472,6 +481,30 @@ def _create_manifest(
             return None
 
         return CreatedManifest(manifest=manifest, newly_created=False, labels_to_apply=None)
+
+
+def _store_build_date(
+    manifest, manifest_interface_instance, retriever, repository_id, child_manifest_rows
+):
+    """
+    Extract the build date from the manifest config and store it in ManifestBuildDate.
+
+    Priority: OCI annotations (org.opencontainers.image.created) on the manifest/index
+    are preferred over config blob data. For manifest lists/indexes without an annotation,
+    the build date is the MAX of child manifest build dates.
+    """
+    try:
+        build_date_ms = None
+
+        created_dt = manifest_interface_instance.get_image_created_datetime(retriever)
+        if created_dt is not None:
+            build_date_ms = int(created_dt.timestamp() * 1000)
+        elif child_manifest_rows:
+            build_date_ms = get_child_manifest_max_build_date(manifest.id, repository_id)
+
+        set_manifest_build_date(manifest.id, repository_id, build_date_ms)
+    except Exception:
+        logger.exception("Failed to extract/store build date for manifest %s", manifest.digest)
 
 
 def _build_blob_map(

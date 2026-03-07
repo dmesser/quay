@@ -2108,6 +2108,19 @@ class ManifestSecurityStatus(BaseModel):
     metadata_json = JSONField(default={})
 
 
+class ManifestBuildDate(BaseModel):
+    """
+    Stores the image build/creation date extracted from the container image config blob.
+
+    Separate table to avoid ALTER TABLE on the massive manifest table, following the
+    ManifestSecurityStatus precedent.
+    """
+
+    manifest = ForeignKeyField(Manifest, unique=True)
+    repository = ForeignKeyField(Repository)
+    build_date = BigIntegerField(null=True)
+
+
 class ProxyCacheConfig(BaseModel):
     """
     Represents the configuration for an organization of type proxy cache
@@ -2222,7 +2235,9 @@ LEGACY_INDEX_MAP = {
 }
 
 
-v22_classes = set([Manifest, ManifestLabel, ManifestBlob, TagKind, ManifestChild, Tag])
+v22_classes = set(
+    [Manifest, ManifestLabel, ManifestBlob, TagKind, ManifestChild, Tag, ManifestBuildDate]
+)
 
 is_model = lambda x: inspect.isclass(x) and issubclass(x, BaseModel) and x is not BaseModel
 all_models = [model[1] for model in inspect.getmembers(sys.modules[__name__], is_model)]

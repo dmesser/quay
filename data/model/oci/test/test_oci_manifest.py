@@ -712,3 +712,79 @@ def test_is_manifest_present_with_none_bytes(initialized_db):
 
     mock_manifest = MockManifest()
     assert is_manifest_present(mock_manifest) is False
+
+
+def test_build_date_captured_on_push(initialized_db):
+    """When FEATURE_MANIFEST_BUILD_DATE is True, pushing a manifest
+    with a config containing 'created' populates ManifestBuildDate."""
+    from data.database import ManifestBuildDate
+
+    repository = create_repository("devtable", "newrepo_bd", None)
+
+    config_json = json.dumps(
+        {
+            "created": "2024-01-15T10:30:00Z",
+            "config": {"Labels": {}},
+            "rootfs": {"type": "layers", "diff_ids": []},
+            "history": [
+                {
+                    "created": "2024-01-15T10:30:00Z",
+                    "created_by": "/bin/sh -c test",
+                },
+            ],
+        }
+    )
+
+    _, config_digest = _populate_blob(config_json)
+
+    random_data = "build_date_test_layer"
+    _, random_digest = _populate_blob(random_data)
+
+    builder = DockerSchema2ManifestBuilder()
+    builder.set_config_digest(config_digest, len(config_json.encode("utf-8")))
+    builder.add_layer(random_digest, len(random_data.encode("utf-8")))
+    manifest_instance = builder.build()
+
+    created_manifest = get_or_create_manifest(repository, manifest_instance, storage)
+    assert created_manifest.newly_created
+
+    try:
+        mbd = ManifestBuildDate.get(ManifestBuildDate.manifest == created_manifest.manifest.id)
+        assert mbd.build_date is not None
+        assert mbd.build_date > 0
+    except ManifestBuildDate.DoesNotExist:
+        pytest.fail("ManifestBuildDate row was not created on push")
+
+
+def test_build_date_no_created_in_config(initialized_db):
+    """Config without 'created' field results in build_date=NULL."""
+    from data.database import ManifestBuildDate
+
+    repository = create_repository("devtable", "newrepo_nobd", None)
+
+    config_json = json.dumps(
+        {
+            "config": {"Labels": {}},
+            "rootfs": {"type": "layers", "diff_ids": []},
+            "history": [],
+        }
+    )
+
+    _, config_digest = _populate_blob(config_json)
+
+    random_data = "no_build_date_layer"
+    _, random_digest = _populate_blob(random_data)
+
+    builder = DockerSchema2ManifestBuilder()
+    builder.set_config_digest(config_digest, len(config_json.encode("utf-8")))
+    builder.add_layer(random_digest, len(random_data.encode("utf-8")))
+    manifest_instance = builder.build()
+
+    created_manifest = get_or_create_manifest(repository, manifest_instance, storage)
+    assert created_manifest.newly_created
+
+    try:
+        mbd = ManifestBuildDate.get(ManifestBuildDate.manifest == created_manifest.manifest.id)
+        assert mbd.build_date is None
+    except ManifestBuildDate.DoesNotExist:
+        pytest.fail("ManifestBuildDate row was not created for config without created field")

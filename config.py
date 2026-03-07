@@ -833,6 +833,10 @@ class DefaultConfig(ImmutableConfig):
     FEATURE_MANIFEST_SIZE_BACKFILL = True
     FEATURE_MANIFEST_SUBJECT_BACKFILL = True
 
+    # Image build date: extract and store creation timestamps from image configs.
+    FEATURE_MANIFEST_BUILD_DATE = True
+    FEATURE_MANIFEST_BUILD_DATE_BACKFILL = True
+
     # Repos created by push default to private visibility
     CREATE_PRIVATE_REPO_ON_PUSH = True
 

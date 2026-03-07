@@ -445,6 +445,9 @@ class DockerSchema1Manifest(ManifestInterface):
     def get_manifest_labels(self, content_retriever):
         return self.layers[-1].v1_metadata.labels
 
+    def get_image_created_datetime(self, content_retriever):
+        return self.created_datetime
+
     def get_requires_empty_layer_blob(self, content_retriever):
         return False
 

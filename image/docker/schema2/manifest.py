@@ -396,6 +396,13 @@ class DockerSchema2Manifest(ManifestInterface):
         self._populate_schema1_builder(v1_builder, content_retriever)
         return v1_builder.build()
 
+    def get_image_created_datetime(self, content_retriever):
+        try:
+            config = self._get_built_config(content_retriever)
+            return config.created_datetime
+        except ManifestException:
+            return None
+
     def unsigned(self):
         return self
 

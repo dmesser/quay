@@ -176,13 +176,13 @@ function TagsTableRow(props: RowProps) {
   const isDigestCopied = props.copiedKey === `digest-${tag.name}`;
 
   // Calculate colspan dynamically based on whether actions column and pull stats columns are shown
-  // Columns: expand(1) + select(1) + tag(1) + security(0-1) + size(1) + lastModified(1) + expires(1) + manifest(1) + pull(1) + pullStats(0-2) + actions(0-1)
+  // Columns: expand(1) + select(1) + tag(1) + security(0-1) + size(1) + lastModified(1) + buildDate(1) + expires(1) + manifest(1) + pull(1) + pullStats(0-2) + actions(0-1)
   // Expanded row content spans all except first two (expand + select)
   const hasActions = !inReadOnlyMode && props.repoDetails?.can_write;
   const hasPullStats = config?.features?.IMAGE_PULL_STATS;
   const hasSecurity = config?.features?.SECURITY_SCANNER;
   const expandedColspan =
-    7 + (hasPullStats ? 2 : 0) + (hasActions ? 1 : 0) - (hasSecurity ? 0 : 1);
+    8 + (hasPullStats ? 2 : 0) + (hasActions ? 1 : 0) - (hasSecurity ? 0 : 1);
 
   // Fetch pull statistics for this specific tag
   const {
@@ -323,6 +323,9 @@ function TagsTableRow(props: RowProps) {
         </Td>
         <Td dataLabel={ColumnNames.lastModified}>
           {formatDate(tag.last_modified)}
+        </Td>
+        <Td dataLabel={ColumnNames.buildDate} data-testid="build-date">
+          {tag.build_date ? formatDate(tag.build_date) : 'N/A'}
         </Td>
         <Td dataLabel={ColumnNames.expires}>
           <TagExpiration
@@ -605,9 +608,12 @@ export default function TagsTable(props: TableProps) {
               Last Modified
             </Th>
             <Th modifier="wrap" sort={props.getSortableSort?.(6)}>
-              Expires
+              Build Date
             </Th>
             <Th modifier="wrap" sort={props.getSortableSort?.(7)}>
+              Expires
+            </Th>
+            <Th modifier="wrap" sort={props.getSortableSort?.(8)}>
               Manifest
             </Th>
             {trackCount > 0 && (
@@ -617,10 +623,10 @@ export default function TagsTable(props: TableProps) {
               />
             )}
             <Conditional if={config?.features?.IMAGE_PULL_STATS}>
-              <Th modifier="wrap" sort={props.getSortableSort?.(8)}>
+              <Th modifier="wrap" sort={props.getSortableSort?.(9)}>
                 Last Pulled
               </Th>
-              <Th modifier="wrap" sort={props.getSortableSort?.(9)}>
+              <Th modifier="wrap" sort={props.getSortableSort?.(10)}>
                 Pull Count
               </Th>
             </Conditional>

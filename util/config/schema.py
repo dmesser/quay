@@ -1559,6 +1559,16 @@ CONFIG_SCHEMA = {
             "description": "Enable the backfill worker to index existing manifest subjects",
             "x-example": True,
         },
+        "FEATURE_MANIFEST_BUILD_DATE": {
+            "type": "boolean",
+            "description": "Enable extraction and storage of image build dates from config blobs during push and mirror operations",
+            "x-example": True,
+        },
+        "FEATURE_MANIFEST_BUILD_DATE_BACKFILL": {
+            "type": "boolean",
+            "description": "Enable the backfill worker to populate build dates for existing manifests",
+            "x-example": True,
+        },
         "UI_V2_FEEDBACK_FORM": {
             "type": "string",
             "description": "User feedback form for UI-V2",

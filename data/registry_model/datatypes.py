@@ -215,6 +215,7 @@ class Tag(
             "lifetime_start_ms",
             "lifetime_end_ms",
             "immutable",
+            "build_date",
         ],
     )
 ):
@@ -227,6 +228,12 @@ class Tag(
         if tag is None:
             return None
 
+        build_date_value = None
+        try:
+            build_date_value = tag.manifestbuilddate.build_date
+        except Exception:
+            pass
+
         return Tag(
             db_id=tag.id,
             name=tag.name,
@@ -237,6 +244,7 @@ class Tag(
             lifetime_end_ts=tag.lifetime_end_ms // 1000 if tag.lifetime_end_ms else None,
             manifest_digest=manifest_row.digest if manifest_row else tag.manifest.digest,
             immutable=tag.immutable,
+            build_date=build_date_value,
             inputs=dict(
                 legacy_id_handler=legacy_id_handler,
                 manifest_row=manifest_row or tag.manifest,

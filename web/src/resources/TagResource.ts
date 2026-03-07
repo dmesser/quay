@@ -30,6 +30,7 @@ export interface Tag {
   pull_count?: number;
   last_pulled?: string;
   immutable?: boolean;
+  build_date?: number;
   // Sparse manifest info (only present for manifest lists)
   is_sparse?: boolean;
   child_manifest_count?: number;

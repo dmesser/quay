@@ -4,7 +4,7 @@ import json
 import pytest
 
 from image.docker.schema1 import DOCKER_SCHEMA1_MANIFEST_CONTENT_TYPE
-from image.oci import register_artifact_type
+from image.oci import parse_annotation_created_datetime, register_artifact_type
 from image.oci.manifest import MalformedOCIManifest, OCIManifest
 from image.shared.schemautil import ContentRetrieverForTesting
 from util.bytes import Bytes
@@ -424,3 +424,134 @@ def test_manifest_layer_annotations():
                 "com.example.layerkey1": "value1",
                 "com.example.layerkey2": "value2",
             }
+
+
+def _build_oci_manifest_with_annotation(annotation_key, annotation_value, config_created=None):
+    """Helper: builds an OCI manifest JSON with a given annotation and optional config created."""
+    config_obj = {
+        "config": {"Labels": {}},
+        "rootfs": {"type": "layers", "diff_ids": ["sha256:abc"]},
+        "history": [],
+    }
+    if config_created:
+        config_obj["created"] = config_created
+
+    config_bytes = json.dumps(config_obj).encode("utf-8")
+    config_digest = "sha256:" + hashlib.sha256(config_bytes).hexdigest()
+
+    manifest_dict = {
+        "schemaVersion": 2,
+        "mediaType": "application/vnd.oci.image.config.v1+json",
+        "config": {
+            "mediaType": "application/vnd.oci.image.config.v1+json",
+            "size": len(config_bytes),
+            "digest": config_digest,
+        },
+        "layers": [
+            {
+                "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+                "size": 100,
+                "digest": "sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
+            }
+        ],
+        "annotations": {annotation_key: annotation_value},
+    }
+    manifest_bytes = json.dumps(manifest_dict).encode("utf-8")
+    retriever = ContentRetrieverForTesting({config_digest: config_bytes.decode("utf-8")})
+    manifest = OCIManifest(Bytes.for_string_or_unicode(manifest_bytes))
+    return manifest, retriever
+
+
+def test_get_image_created_datetime_from_oci_annotation():
+    """org.opencontainers.image.created annotation is preferred over config created."""
+    manifest, retriever = _build_oci_manifest_with_annotation(
+        "org.opencontainers.image.created",
+        "2025-06-15T12:00:00Z",
+        config_created="2024-01-01T00:00:00Z",
+    )
+    result = manifest.get_image_created_datetime(retriever)
+    assert result is not None
+    assert result.year == 2025
+    assert result.month == 6
+    assert result.day == 15
+
+
+def test_get_image_created_datetime_label_schema_fallback():
+    """org.label-schema.build-date annotation is used as fallback."""
+    manifest, retriever = _build_oci_manifest_with_annotation(
+        "org.label-schema.build-date",
+        "2023-11-20T08:30:00Z",
+    )
+    result = manifest.get_image_created_datetime(retriever)
+    assert result is not None
+    assert result.year == 2023
+    assert result.month == 11
+
+
+def test_get_image_created_datetime_falls_back_to_config():
+    """Without annotation, falls back to config blob created field."""
+    manifest, retriever = _build_oci_manifest_with_annotation(
+        "com.example.unrelated",
+        "some-value",
+        config_created="2024-03-10T15:00:00Z",
+    )
+    result = manifest.get_image_created_datetime(retriever)
+    assert result is not None
+    assert result.year == 2024
+    assert result.month == 3
+
+
+def test_get_image_created_datetime_invalid_annotation_falls_back():
+    """Invalid annotation date falls back to config."""
+    manifest, retriever = _build_oci_manifest_with_annotation(
+        "org.opencontainers.image.created",
+        "not-a-date",
+        config_created="2024-05-01T10:00:00Z",
+    )
+    result = manifest.get_image_created_datetime(retriever)
+    assert result is not None
+    assert result.year == 2024
+    assert result.month == 5
+
+
+class TestParseAnnotationCreatedDatetime:
+    def test_oci_created_annotation(self):
+        result = parse_annotation_created_datetime(
+            {"org.opencontainers.image.created": "2025-01-15T10:30:00Z"}
+        )
+        assert result is not None
+        assert result.year == 2025
+
+    def test_label_schema_build_date(self):
+        result = parse_annotation_created_datetime(
+            {"org.label-schema.build-date": "2023-06-01T00:00:00Z"}
+        )
+        assert result is not None
+        assert result.year == 2023
+
+    def test_oci_preferred_over_label_schema(self):
+        result = parse_annotation_created_datetime(
+            {
+                "org.opencontainers.image.created": "2025-01-01T00:00:00Z",
+                "org.label-schema.build-date": "2020-01-01T00:00:00Z",
+            }
+        )
+        assert result is not None
+        assert result.year == 2025
+
+    def test_empty_annotations(self):
+        assert parse_annotation_created_datetime({}) is None
+
+    def test_no_matching_keys(self):
+        assert parse_annotation_created_datetime({"com.example.key": "value"}) is None
+
+    def test_invalid_date_string(self):
+        assert (
+            parse_annotation_created_datetime(
+                {"org.opencontainers.image.created": "not-a-valid-date"}
+            )
+            is None
+        )
+
+    def test_empty_value_ignored(self):
+        assert parse_annotation_created_datetime({"org.opencontainers.image.created": ""}) is None

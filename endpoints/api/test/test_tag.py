@@ -595,3 +595,44 @@ def test_set_tag_immutable_allowed_when_config_permits():
         # Clean up
         set_tag_immutable(repo_ref.id, "latest", False)
         change_tag_expiration(tag_ref.id, None)
+
+
+def test_tag_list_includes_build_date(app):
+    """Tag list API includes build_date when ManifestBuildDate row exists."""
+    from data.database import ManifestBuildDate, Tag
+
+    params = {"repository": "devtable/simple"}
+    with client_with_identity("devtable", app) as cl:
+        tags_json = conduct_api_call(cl, ListRepositoryTags, "get", params).json["tags"]
+        assert len(tags_json) > 0
+
+        tag = (
+            Tag.select()
+            .join(Manifest)
+            .where(Tag.repository == registry_model.lookup_repository("devtable", "simple").id)
+            .first()
+        )
+        if tag is not None:
+            ManifestBuildDate.get_or_create(
+                manifest=tag.manifest_id,
+                defaults={
+                    "repository": tag.repository_id,
+                    "build_date": 1705315800000,
+                },
+            )
+
+            tags_json = conduct_api_call(cl, ListRepositoryTags, "get", params).json["tags"]
+            matching = [t for t in tags_json if t["manifest_digest"] == tag.manifest.digest]
+            if matching:
+                assert "build_date" in matching[0]
+                assert matching[0]["build_date"] == 1705315800
+
+
+def test_tag_list_no_build_date_when_not_backfilled(app):
+    """Tag list API omits build_date when no ManifestBuildDate row exists."""
+    params = {"repository": "devtable/simple"}
+    with client_with_identity("devtable", app) as cl:
+        tags_json = conduct_api_call(cl, ListRepositoryTags, "get", params).json["tags"]
+        assert len(tags_json) > 0
+        for tag in tags_json:
+            assert "build_date" not in tag or tag.get("build_date") is None

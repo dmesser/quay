@@ -220,6 +220,13 @@ class ManifestInterface(object):
         If not possible, or an error occurs, returns None.
         """
 
+    @abstractmethod
+    def get_image_created_datetime(self, content_retriever):
+        """
+        Returns the image creation datetime from the config blob, or None if not applicable
+        (e.g. manifest lists, artifacts without a creation date).
+        """
+
 
 @add_metaclass(ABCMeta)
 class ManifestListInterface(ManifestInterface):

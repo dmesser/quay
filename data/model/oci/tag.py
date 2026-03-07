@@ -3,11 +3,12 @@ import logging
 import uuid
 from calendar import timegm
 
-from peewee import fn
+from peewee import JOIN, fn
 
 import features
 from data.database import (
     Manifest,
+    ManifestBuildDate,
     ManifestChild,
     MediaType,
     Namespace,
@@ -197,9 +198,16 @@ def list_repository_tag_history(
             Manifest.media_type,
             Manifest.layers_compressed_size,
             Manifest.config_media_type,
+            ManifestBuildDate.build_date,
             can_use_read_replica=True,
         )
         .join(Manifest)
+        .switch(Tag)
+        .join(
+            ManifestBuildDate,
+            JOIN.LEFT_OUTER,
+            on=(Tag.manifest == ManifestBuildDate.manifest),
+        )
         .where(Tag.repository == repository_id)
         .order_by(Tag.lifetime_start_ms.desc(), Tag.name)
         .limit(page_size + 1)

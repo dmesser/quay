@@ -95,6 +95,9 @@ def _tag_dict(tag):
     tag_info["is_manifest_list"] = tag.manifest.is_manifest_list
     tag_info["size"] = tag.manifest_layers_size
 
+    if tag.build_date is not None:
+        tag_info["build_date"] = tag.build_date // 1000
+
     if tag.lifetime_start_ts and tag.lifetime_start_ts > 0:
         last_modified = format_date(datetime.utcfromtimestamp(tag.lifetime_start_ts))
         tag_info["last_modified"] = last_modified

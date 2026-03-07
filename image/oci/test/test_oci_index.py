@@ -10,6 +10,7 @@ from image.oci.test.testdata import (
     OCI_IMAGE_WITH_ARTIFACT_TYPES_AND_ANNOTATIONS,
 )
 from image.shared.schemas import parse_manifest_from_bytes
+from image.shared.schemautil import ContentRetrieverForTesting
 from util.bytes import Bytes
 
 
@@ -94,3 +95,70 @@ def test_index_builder_with_artifact_type_and_annotations():
     for manifest in manifests:
         assert manifest.get("artifactType") is not None
         assert manifest.get("annotations") is not None
+
+
+def _build_index_with_annotations(annotations):
+    """Helper: builds a minimal OCI index with the given annotations dict."""
+    index_dict = {
+        "schemaVersion": 2,
+        "manifests": [
+            {
+                "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                "size": 1000,
+                "digest": "sha256:aaaa",
+                "platform": {"architecture": "amd64", "os": "linux"},
+            }
+        ],
+        "annotations": annotations,
+    }
+    return OCIIndex(Bytes.for_string_or_unicode(json.dumps(index_dict)))
+
+
+def test_index_get_image_created_datetime_from_annotation():
+    """OCI index with org.opencontainers.image.created returns the annotation date."""
+    index = _build_index_with_annotations(
+        {"org.opencontainers.image.created": "2025-03-01T09:00:00Z"}
+    )
+    retriever = ContentRetrieverForTesting()
+    result = index.get_image_created_datetime(retriever)
+    assert result is not None
+    assert result.year == 2025
+    assert result.month == 3
+    assert result.day == 1
+
+
+def test_index_get_image_created_datetime_label_schema():
+    """OCI index with org.label-schema.build-date returns that date."""
+    index = _build_index_with_annotations({"org.label-schema.build-date": "2022-12-25T18:30:00Z"})
+    retriever = ContentRetrieverForTesting()
+    result = index.get_image_created_datetime(retriever)
+    assert result is not None
+    assert result.year == 2022
+    assert result.month == 12
+
+
+def test_index_get_image_created_datetime_no_annotation():
+    """OCI index without created annotation returns None."""
+    index = _build_index_with_annotations({"com.example.key": "value"})
+    retriever = ContentRetrieverForTesting()
+    result = index.get_image_created_datetime(retriever)
+    assert result is None
+
+
+def test_index_get_image_created_datetime_empty_annotations():
+    """OCI index with empty annotations returns None."""
+    index_dict = {
+        "schemaVersion": 2,
+        "manifests": [
+            {
+                "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                "size": 1000,
+                "digest": "sha256:aaaa",
+                "platform": {"architecture": "amd64", "os": "linux"},
+            }
+        ],
+    }
+    index = OCIIndex(Bytes.for_string_or_unicode(json.dumps(index_dict)))
+    retriever = ContentRetrieverForTesting()
+    result = index.get_image_created_datetime(retriever)
+    assert result is None

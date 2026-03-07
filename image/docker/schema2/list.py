@@ -393,6 +393,9 @@ class DockerSchema2ManifestList(ManifestListInterface):
 
         return None
 
+    def get_image_created_datetime(self, content_retriever):
+        return None
+
     def unsigned(self):
         return self
 

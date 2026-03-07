@@ -241,6 +241,26 @@ class DockerSchema2Config(object):
         return False
 
     @property
+    def created_datetime(self):
+        """
+        Returns the image creation datetime from the top-level 'created' field,
+        falling back to the last history entry's timestamp if not present.
+        Returns None if no creation date can be determined.
+        """
+        top_level = self._parsed.get(DOCKER_SCHEMA2_CONFIG_CREATED_KEY)
+        if top_level:
+            try:
+                return parse_date(top_level)
+            except (ValueError, OverflowError):
+                pass
+
+        history_entries = list(self.history)
+        if history_entries:
+            return history_entries[-1].created_datetime
+
+        return None
+
+    @property
     def history(self):
         """
         Returns the history of the image, started at the base layer.

@@ -45,7 +45,7 @@ const createTagResponse = (): TagsResponse => {
     tags: [],
   };
 };
-const createTag = (name = 'latest'): Tag => {
+const createTag = (name = 'latest', buildDate?: number): Tag => {
   return {
     name: name,
     is_manifest_list: false,
@@ -55,6 +55,7 @@ const createTag = (name = 'latest'): Tag => {
     reversion: false,
     start_ts: 1654197152,
     manifest_list: null,
+    build_date: buildDate,
   };
 };
 const createPullStatistics = (
@@ -598,5 +599,50 @@ describe('Sparse Manifest Display', () => {
     renderWithProviders(<Tags organization={testOrg} repository={testRepo} />);
     expect(await screen.findByText('latest')).toBeTruthy();
     expect(screen.queryByTestId('sparse-manifest-label')).toBeNull();
+  });
+});
+
+// Build Date Tests
+describe('Build Date Column', () => {
+  test('renders build date when present', async () => {
+    const mockResponse = createTagResponse();
+    mockResponse.tags.push(createTag('latest', 1705315800));
+    (getTags as jest.Mock).mockResolvedValue(mockResponse);
+    (getSecurityDetails as jest.Mock).mockResolvedValue(
+      createSecurityDetailsResponse(),
+    );
+
+    renderWithProviders(<Tags organization={testOrg} repository={testRepo} />);
+    expect(await screen.findByText('latest')).toBeTruthy();
+    const buildDateCells = screen.getAllByTestId('build-date');
+    expect(buildDateCells.length).toBeGreaterThan(0);
+    expect(buildDateCells[0].textContent).not.toBe('N/A');
+  });
+
+  test('renders N/A for build date when absent', async () => {
+    const mockResponse = createTagResponse();
+    mockResponse.tags.push(createTag('latest'));
+    (getTags as jest.Mock).mockResolvedValue(mockResponse);
+    (getSecurityDetails as jest.Mock).mockResolvedValue(
+      createSecurityDetailsResponse(),
+    );
+
+    renderWithProviders(<Tags organization={testOrg} repository={testRepo} />);
+    expect(await screen.findByText('latest')).toBeTruthy();
+    const buildDateCells = screen.getAllByTestId('build-date');
+    expect(buildDateCells.length).toBeGreaterThan(0);
+    expect(buildDateCells[0].textContent).toBe('N/A');
+  });
+
+  test('Build Date column header is present', async () => {
+    const mockResponse = createTagResponse();
+    mockResponse.tags.push(createTag('latest', 1705315800));
+    (getTags as jest.Mock).mockResolvedValue(mockResponse);
+    (getSecurityDetails as jest.Mock).mockResolvedValue(
+      createSecurityDetailsResponse(),
+    );
+
+    renderWithProviders(<Tags organization={testOrg} repository={testRepo} />);
+    expect(await screen.findByText('Build Date')).toBeTruthy();
   });
 });

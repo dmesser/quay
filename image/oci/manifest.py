@@ -57,6 +57,7 @@ from image.oci import (
     OCI_IMAGE_NON_DISTRIBUTABLE_LAYER_CONTENT_TYPES,
     OCI_IMAGE_TAR_GZIP_LAYER_CONTENT_TYPE,
     OCI_IMAGE_TAR_GZIP_NON_DISTRIBUTABLE_LAYER_CONTENT_TYPE,
+    parse_annotation_created_datetime,
 )
 from image.oci.config import OCIConfig
 from image.oci.descriptor import get_descriptor_schema
@@ -456,6 +457,19 @@ class OCIManifest(ManifestInterface):
         v1_builder = DockerSchema1ManifestBuilder(namespace_name, repo_name, tag_name)
         self._populate_schema1_builder(v1_builder, content_retriever)
         return v1_builder.build()
+
+    def get_image_created_datetime(self, content_retriever):
+        annotation_dt = parse_annotation_created_datetime(self.annotations)
+        if annotation_dt is not None:
+            return annotation_dt
+
+        if not self.is_image_manifest:
+            return None
+        try:
+            config = self._get_built_config(content_retriever)
+            return config.created_datetime
+        except ManifestException:
+            return None
 
     def unsigned(self):
         return self

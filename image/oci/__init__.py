@@ -30,6 +30,28 @@ OCI_IMAGE_LAYER_CONTENT_TYPES = (
 
 OCI_CONTENT_TYPES = {OCI_IMAGE_MANIFEST_CONTENT_TYPE, OCI_IMAGE_INDEX_CONTENT_TYPE}
 
+OCI_IMAGE_CREATED_ANNOTATION = "org.opencontainers.image.created"
+OCI_LABEL_SCHEMA_BUILD_DATE = "org.label-schema.build-date"
+
+
+def parse_annotation_created_datetime(annotations):
+    """
+    Extracts the creation datetime from OCI annotations, checking
+    org.opencontainers.image.created first with org.label-schema.build-date as fallback.
+    Returns a datetime or None.
+    """
+    from dateutil.parser import parse as parse_date
+
+    for key in (OCI_IMAGE_CREATED_ANNOTATION, OCI_LABEL_SCHEMA_BUILD_DATE):
+        value = annotations.get(key)
+        if value:
+            try:
+                return parse_date(value)
+            except (ValueError, OverflowError):
+                pass
+    return None
+
+
 ALLOWED_ARTIFACT_TYPES = [OCI_IMAGE_CONFIG_CONTENT_TYPE]
 ADDITIONAL_LAYER_CONTENT_TYPES = []
 

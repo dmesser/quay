@@ -334,6 +334,18 @@ autostart = {{ config['manifestsubjectbackfillworker']['autostart'] }}
 stdout_events_enabled = true
 stderr_events_enabled = true
 
+[program:manifestbuilddatebackfillworker]
+environment=
+  PYTHONPATH=%(ENV_PYTHONPATH)s
+command={% if hotreload -%}
+  gunicorn --timeout=600 -b 'unix:/tmp/manifestbuilddatebackfillworker.sock' -c %(ENV_QUAYCONF)s/gunicorn_worker.py 'workers.manifestbuilddatebackfillworker:create_gunicorn_worker()'
+{% else -%}
+  python -m workers.manifestbuilddatebackfillworker
+{% endif -%}
+autostart = {{ config['manifestbuilddatebackfillworker']['autostart'] }}
+stdout_events_enabled = true
+stderr_events_enabled = true
+
 [program:securityscanningnotificationworker]
 environment=
   PYTHONPATH=%(ENV_PYTHONPATH)s

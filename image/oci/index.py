@@ -45,7 +45,11 @@ from image.docker.schema2 import (
     DOCKER_SCHEMA2_MANIFEST_CONTENT_TYPE,
     DOCKER_SCHEMA2_MANIFESTLIST_CONTENT_TYPE,
 )
-from image.oci import OCI_IMAGE_INDEX_CONTENT_TYPE, OCI_IMAGE_MANIFEST_CONTENT_TYPE
+from image.oci import (
+    OCI_IMAGE_INDEX_CONTENT_TYPE,
+    OCI_IMAGE_MANIFEST_CONTENT_TYPE,
+    parse_annotation_created_datetime,
+)
 from image.oci.descriptor import get_descriptor_schema
 from image.oci.manifest import OCIManifest, OCIManifestDescriptor
 from image.shared import ManifestException
@@ -400,6 +404,9 @@ class OCIIndex(ManifestListInterface):
                 return None
 
         return None
+
+    def get_image_created_datetime(self, content_retriever):
+        return parse_annotation_created_datetime(self.annotations)
 
     def unsigned(self):
         return self

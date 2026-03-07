@@ -57,10 +57,11 @@ export default function TagsList(props: TagsProps) {
       2: (item: Tag) => item.name, // Tag Name
       4: (item: Tag) => item.size || 0, // Size
       5: (item: Tag) => item.last_modified, // Last Modified
-      6: (item: Tag) => item.expiration || '', // Expires
-      7: (item: Tag) => item.manifest_digest, // Manifest
-      8: (item: Tag) => item.last_pulled || '', // Last Pulled
-      9: (item: Tag) => item.pull_count || 0, // Pull Count
+      6: (item: Tag) => item.build_date || 0, // Build Date
+      7: (item: Tag) => item.expiration || '', // Expires
+      8: (item: Tag) => item.manifest_digest, // Manifest
+      9: (item: Tag) => item.last_pulled || '', // Last Pulled
+      10: (item: Tag) => item.pull_count || 0, // Pull Count
     },
     filter: searchFilter,
     initialPerPage: 20,
