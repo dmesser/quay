@@ -13,6 +13,7 @@ from auth.auth_context import get_authenticated_user
 from auth.permissions import AdministerRepositoryPermission
 from data.database import Manifest as ManifestTable
 from data.model import ImmutableTagException
+from data.model.oci.helmchart import is_helm_chart
 from data.model.oci.manifest import is_manifest_present
 from data.model.oci.tag import RetargetTagException
 from data.model.pull_statistics import (
@@ -126,6 +127,9 @@ def _tag_dict(tag):
     tag_info["manifest_digest"] = tag.manifest_digest
     tag_info["is_manifest_list"] = tag.manifest.is_manifest_list
     tag_info["size"] = tag.manifest_layers_size
+
+    if is_helm_chart(tag.manifest.config_media_type):
+        tag_info["is_helm_chart"] = True
 
     if tag.lifetime_start_ts and tag.lifetime_start_ts > 0:
         last_modified = format_date(datetime.utcfromtimestamp(tag.lifetime_start_ts))

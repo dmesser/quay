@@ -18,6 +18,8 @@ from endpoints.api.build import *
 from endpoints.api.capabilities import *
 from endpoints.api.discovery import *
 from endpoints.api.globalmessages import *  # type: ignore[no-redef]
+from endpoints.api.helmchart import *
+from endpoints.api.helmrepoindex import *
 from endpoints.api.immutability_policy import *
 from endpoints.api.logs import *  # type: ignore[no-redef]
 from endpoints.api.manifest import *
@@ -102,6 +104,38 @@ SECURITY_TESTS: List[
     (RepositoryManifest, "GET", MANIFEST_PARAMS, {}, "freshuser", 403),
     (RepositoryManifest, "GET", MANIFEST_PARAMS, {}, "reader", 403),
     (RepositoryManifest, "GET", MANIFEST_PARAMS, {}, "devtable", 404),
+    (RepositoryManifestHelmChart, "GET", MANIFEST_PARAMS, {}, None, 401),
+    (RepositoryManifestHelmChart, "GET", MANIFEST_PARAMS, {}, "freshuser", 403),
+    (RepositoryManifestHelmChart, "GET", MANIFEST_PARAMS, {}, "reader", 403),
+    (RepositoryManifestHelmChart, "GET", MANIFEST_PARAMS, {}, "devtable", 404),
+    (RepositoryManifestHelmChartReadme, "GET", MANIFEST_PARAMS, {}, None, 401),
+    (RepositoryManifestHelmChartReadme, "GET", MANIFEST_PARAMS, {}, "freshuser", 403),
+    (RepositoryManifestHelmChartReadme, "GET", MANIFEST_PARAMS, {}, "reader", 403),
+    (RepositoryManifestHelmChartReadme, "GET", MANIFEST_PARAMS, {}, "devtable", 404),
+    (RepositoryManifestHelmChartValues, "GET", MANIFEST_PARAMS, {}, None, 401),
+    (RepositoryManifestHelmChartValues, "GET", MANIFEST_PARAMS, {}, "freshuser", 403),
+    (RepositoryManifestHelmChartValues, "GET", MANIFEST_PARAMS, {}, "reader", 403),
+    (RepositoryManifestHelmChartValues, "GET", MANIFEST_PARAMS, {}, "devtable", 404),
+    (RepositoryManifestHelmChartSchema, "GET", MANIFEST_PARAMS, {}, None, 401),
+    (RepositoryManifestHelmChartSchema, "GET", MANIFEST_PARAMS, {}, "freshuser", 403),
+    (RepositoryManifestHelmChartSchema, "GET", MANIFEST_PARAMS, {}, "reader", 403),
+    (RepositoryManifestHelmChartSchema, "GET", MANIFEST_PARAMS, {}, "devtable", 404),
+    (RepositoryManifestHelmChartIcon, "GET", MANIFEST_PARAMS, {}, None, 401),
+    (RepositoryManifestHelmChartIcon, "GET", MANIFEST_PARAMS, {}, "freshuser", 403),
+    (RepositoryManifestHelmChartIcon, "GET", MANIFEST_PARAMS, {}, "reader", 403),
+    (RepositoryManifestHelmChartIcon, "GET", MANIFEST_PARAMS, {}, "devtable", 404),
+    (RepositoryManifestHelmChartProvenance, "GET", MANIFEST_PARAMS, {}, None, 401),
+    (RepositoryManifestHelmChartProvenance, "GET", MANIFEST_PARAMS, {}, "freshuser", 403),
+    (RepositoryManifestHelmChartProvenance, "GET", MANIFEST_PARAMS, {}, "reader", 403),
+    (RepositoryManifestHelmChartProvenance, "GET", MANIFEST_PARAMS, {}, "devtable", 404),
+    (RepositoryHelmRepoConfig, "GET", REPO_PARAMS, {}, None, 401),
+    (RepositoryHelmRepoConfig, "GET", REPO_PARAMS, {}, "freshuser", 403),
+    (RepositoryHelmRepoConfig, "GET", REPO_PARAMS, {}, "reader", 403),
+    (RepositoryHelmRepoConfig, "GET", REPO_PARAMS, {}, "devtable", 404),
+    (RepositoryHelmRepoConfig, "PUT", REPO_PARAMS, {"enabled": True}, None, 401),
+    (RepositoryHelmRepoConfig, "PUT", REPO_PARAMS, {"enabled": True}, "freshuser", 403),
+    (RepositoryHelmRepoConfig, "PUT", REPO_PARAMS, {"enabled": True}, "reader", 403),
+    (RepositoryHelmRepoConfig, "PUT", REPO_PARAMS, {"enabled": True}, "devtable", 404),
     (OrganizationCollaboratorList, "GET", ORG_PARAMS, None, None, 401),
     (OrganizationCollaboratorList, "GET", ORG_PARAMS, None, "freshuser", 403),
     (OrganizationCollaboratorList, "GET", ORG_PARAMS, None, "reader", 403),

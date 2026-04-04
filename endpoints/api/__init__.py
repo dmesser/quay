@@ -840,6 +840,8 @@ import endpoints.api.capabilities
 import endpoints.api.discovery
 import endpoints.api.error
 import endpoints.api.globalmessages
+import endpoints.api.helmchart
+import endpoints.api.helmrepoindex
 import endpoints.api.immutability_policy
 import endpoints.api.logs
 import endpoints.api.manifest

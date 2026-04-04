@@ -979,6 +979,69 @@ def attach_custom_build_trigger(namespace_name, repo_name):
     abort(403)
 
 
+@web.route("/<path:repository>/index.yaml")
+@no_cache
+@process_auth_or_cookie
+@anon_allowed
+def helm_repo_index(repository):
+    """
+    Serves the Helm repository index.yaml for a repository at
+    /<namespace>/<repo>/index.yaml so that ``helm repo add`` works
+    with the repository URL directly.
+    """
+    import yaml
+
+    from app import model_cache
+    from data.cache import cache_key
+    from data.model.oci.helmrepoindex import generate_helm_repo_index
+    from endpoints.api.helmrepoindex import get_helm_repo_config
+
+    if not features.HELM_REPO_INDEX:
+        return make_response("", 404)
+
+    parts = repository.split("/", 1)
+    if len(parts) != 2:
+        return make_response("", 404)
+
+    namespace_name, repo_name = parts
+
+    repo = model.repository.get_repository(namespace_name, repo_name)
+    if repo is None:
+        return make_response("", 404)
+
+    is_public = model.repository.repository_is_public(namespace_name, repo_name)
+    permission = ReadRepositoryPermission(namespace_name, repo_name)
+    if not (permission.can() or is_public):
+        if not get_authenticated_user():
+            resp = make_response("", 401)
+            resp.headers["WWW-Authenticate"] = 'Basic realm="Quay"'
+            return resp
+        return make_response("", 403)
+
+    config = get_helm_repo_config(repo.id)
+    if not config or not config.enabled:
+        return make_response("", 404)
+
+    server_hostname = app.config.get("SERVER_HOSTNAME", "")
+
+    def _load_index():
+        return generate_helm_repo_index(
+            repo.id,
+            server_hostname,
+            namespace_name,
+            repo_name,
+            tag_pattern=config.tag_pattern,
+        )
+
+    index_cache_key = cache_key.for_helm_repo_index(repo.id, model_cache.cache_config)
+    index_data = model_cache.retrieve(index_cache_key, _load_index)
+
+    yaml_content = yaml.safe_dump(index_data, default_flow_style=False, sort_keys=False)
+    response = make_response(yaml_content)
+    response.headers["Content-Type"] = "application/x-yaml"
+    return response
+
+
 @web.route("/<repopathredirect:repository>")
 @web.route("/<repopathredirect:repository>/")
 @no_cache

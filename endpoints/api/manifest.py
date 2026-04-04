@@ -11,6 +11,7 @@ from flask import request
 import features
 from app import app, label_validator, storage
 from data.model import InvalidLabelKeyException, InvalidMediaTypeException
+from data.model.oci.helmchart import is_helm_chart
 from data.model.oci.retriever import RepositoryContentRetriever
 from data.model.pull_statistics import get_manifest_pull_statistics
 from data.registry_model import registry_model
@@ -86,7 +87,7 @@ def _manifest_dict(manifest):
             logger.debug("Missing layers for manifest `%s`", manifest.digest)
             abort(404)
 
-    return {
+    result = {
         "digest": manifest.digest,
         "is_manifest_list": manifest.is_manifest_list,
         "manifest_data": manifest.internal_manifest_bytes.as_unicode(),
@@ -98,6 +99,11 @@ def _manifest_dict(manifest):
             [_layer_dict(lyr.layer_info, idx) for idx, lyr in enumerate(layers)] if layers else None
         ),
     }
+
+    if is_helm_chart(manifest.config_media_type):
+        result["is_helm_chart"] = True
+
+    return result
 
 
 def _find_modelcard_layer(parsed):

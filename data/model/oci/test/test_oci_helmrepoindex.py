@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+import regex
 
 from data.database import (
     HelmChartMetadata,
@@ -78,6 +79,75 @@ class TestGenerateHelmRepoIndex:
         assert entry["appVersion"] == "2.0.0"
         assert entry["apiVersion"] == "v2"
         assert entry["urls"] == ["oci://quay.example.com/testorg/helm-single-chart-test:1.0.0"]
+
+    def test_url_includes_version_tag(self, initialized_db):
+        """Each entry URL contains the normalized chart version as tag."""
+        repo = create_repository("devtable", "helm-url-tag-test", None)
+        media_type = Manifest.media_type.rel_model.get(
+            Manifest.media_type.rel_model.name == "application/vnd.oci.image.manifest.v1+json"
+        )
+        tag_kind = TagKind.get(TagKind.name == "tag")
+
+        manifest = Manifest.create(
+            repository=repo,
+            digest="sha256:urltag001",
+            media_type=media_type,
+            manifest_bytes="{}",
+            config_media_type="application/vnd.cncf.helm.config.v1+json",
+            layers_compressed_size=0,
+        )
+        self._create_chart_metadata(repo, manifest, "refchart", "3.2.1")
+        Tag.create(
+            name="3.2.1",
+            repository=repo,
+            manifest=manifest,
+            tag_kind=tag_kind,
+            reversion=False,
+        )
+
+        result = generate_helm_repo_index(
+            repo.id, "quay.example.com", "myorg", "helm-url-tag-test"
+        )
+
+        assert "refchart" in result["entries"]
+        entry = result["entries"]["refchart"][0]
+        assert entry["urls"] == ["oci://quay.example.com/myorg/helm-url-tag-test:3.2.1"]
+
+    def test_build_metadata_normalized_in_url(self, initialized_db):
+        """SemVer build metadata '+' is normalized to '_' in the OCI tag."""
+        repo = create_repository("devtable", "helm-buildmeta-test", None)
+        media_type = Manifest.media_type.rel_model.get(
+            Manifest.media_type.rel_model.name == "application/vnd.oci.image.manifest.v1+json"
+        )
+        tag_kind = TagKind.get(TagKind.name == "tag")
+
+        manifest = Manifest.create(
+            repository=repo,
+            digest="sha256:buildmeta001",
+            media_type=media_type,
+            manifest_bytes="{}",
+            config_media_type="application/vnd.cncf.helm.config.v1+json",
+            layers_compressed_size=0,
+        )
+        self._create_chart_metadata(repo, manifest, "metachart", "1.0.0+build.42")
+        Tag.create(
+            name="1.0.0_build.42",
+            repository=repo,
+            manifest=manifest,
+            tag_kind=tag_kind,
+            reversion=False,
+        )
+
+        result = generate_helm_repo_index(
+            repo.id, "quay.example.com", "testorg", "helm-buildmeta-test"
+        )
+
+        assert "metachart" in result["entries"]
+        entry = result["entries"]["metachart"][0]
+        assert entry["version"] == "1.0.0+build.42"
+        assert entry["urls"] == [
+            "oci://quay.example.com/testorg/helm-buildmeta-test:1.0.0_build.42"
+        ]
 
     def test_excludes_failed_extractions(self, initialized_db):
         """Failed extractions are not included in the index even when a tag exists."""
@@ -426,6 +496,70 @@ class TestGenerateHelmRepoIndex:
         assert "my-helm-chart" in result["entries"]
         assert len(result["entries"]) == 1
         assert len(result["entries"]["my-helm-chart"]) == 1
+
+    def test_metadata_without_active_tags_is_skipped(self, initialized_db):
+        """A HelmChartMetadata whose manifest has no active tags produces no entry."""
+        repo = create_repository("devtable", "helm-orphan-meta-test", None)
+        media_type = Manifest.media_type.rel_model.get(
+            Manifest.media_type.rel_model.name == "application/vnd.oci.image.manifest.v1+json"
+        )
+
+        manifest = Manifest.create(
+            repository=repo,
+            digest="sha256:orphanmeta001",
+            media_type=media_type,
+            manifest_bytes="{}",
+            config_media_type="application/vnd.cncf.helm.config.v1+json",
+            layers_compressed_size=0,
+        )
+        self._create_chart_metadata(repo, manifest, "orphanchart", "1.0.0")
+
+        result = generate_helm_repo_index(
+            repo.id, "quay.example.com", "testorg", "helm-orphan-meta-test"
+        )
+
+        assert result["entries"] == {}
+
+    def test_tag_pattern_timeout_skips_tag(self, initialized_db):
+        """A regex that times out during fullmatch causes the tag to be skipped."""
+        repo = create_repository("devtable", "helm-timeout-test", None)
+        media_type = Manifest.media_type.rel_model.get(
+            Manifest.media_type.rel_model.name == "application/vnd.oci.image.manifest.v1+json"
+        )
+        tag_kind = TagKind.get(TagKind.name == "tag")
+
+        manifest = Manifest.create(
+            repository=repo,
+            digest="sha256:timeout001",
+            media_type=media_type,
+            manifest_bytes="{}",
+            config_media_type="application/vnd.cncf.helm.config.v1+json",
+            layers_compressed_size=0,
+        )
+        self._create_chart_metadata(repo, manifest, "timeoutchart", "1.0.0")
+        Tag.create(
+            name="v1.0.0",
+            repository=repo,
+            manifest=manifest,
+            tag_kind=tag_kind,
+            reversion=False,
+        )
+
+        mock_pattern = MagicMock()
+        mock_pattern.fullmatch.side_effect = TimeoutError("regex timed out")
+
+        with patch("data.model.oci.helmrepoindex.regex") as mock_regex:
+            mock_regex.compile.return_value = mock_pattern
+            mock_regex.error = regex.error
+            result = generate_helm_repo_index(
+                repo.id,
+                "quay.example.com",
+                "testorg",
+                "helm-timeout-test",
+                tag_pattern=".*",
+            )
+
+        assert result["entries"] == {}
 
 
 class TestInvalidateHelmRepoIndexCache:

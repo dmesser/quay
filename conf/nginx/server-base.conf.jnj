@@ -67,6 +67,11 @@ location ~* ^(/config|/csrf_token|/oauth/authorize|/oauth/authorizeapp|/oauth/au
     proxy_pass   http://web_app_server;
 }
 
+# Helm repository index served by Flask (endpoints/web.py)
+location ~ ^/[^/]+/[^/]+/index\.yaml$ {
+    proxy_pass   http://web_app_server;
+}
+
 # Capture old UI paths that aren't present in new UI
 location ~* ^(/search) {
     proxy_pass   http://web_app_server;
