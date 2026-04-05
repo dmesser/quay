@@ -20,6 +20,7 @@ import {useEffect, useState} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {useQuayConfig} from 'src/hooks/UseQuayConfig';
 import {useQuayState} from 'src/hooks/UseQuayState';
+import {useHelmRepoIndexConfig} from 'src/hooks/UseHelmRepoIndex';
 import {RepositoryDetails} from 'src/resources/RepositoryResource';
 import axios from 'src/libs/axios';
 import {AlertVariant, useUI} from 'src/contexts/UIContext';
@@ -150,6 +151,17 @@ export default function Information(props: InformationProps) {
   const podmanPullCommand = `podman pull ${serverHostname}/${organization}/${repository}`;
   const dockerPullCommand = `docker pull ${serverHostname}/${organization}/${repository}`;
 
+  const helmRepoIndexFeature = config?.features?.HELM_REPO_INDEX === true;
+  const {config: helmRepoConfig} = useHelmRepoIndexConfig(
+    organization,
+    repository,
+    helmRepoIndexFeature,
+  );
+  const showHelmRepoAdd =
+    helmRepoIndexFeature && helmRepoConfig?.enabled === true;
+  const helmRepoUrl = `${window.location.protocol}//${serverHostname}/${organization}/${repository}`;
+  const helmRepoAddCommand = `helm repo add ${repository} ${helmRepoUrl}`;
+
   return (
     <PageSection hasBodyWrapper={false}>
       <Grid hasGutter>
@@ -215,6 +227,26 @@ export default function Information(props: InformationProps) {
               </Grid>
             </CardBody>
           </Card>
+
+          {showHelmRepoAdd && (
+            <Card style={{marginTop: '1rem'}}>
+              <CardTitle>Helm Repository</CardTitle>
+              <CardBody>
+                <Grid hasGutter>
+                  <GridItem span={12}>
+                    <Content>
+                      <Content component={ContentVariants.small}>
+                        Add this repository as a Helm chart repository:
+                      </Content>
+                    </Content>
+                    <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
+                      {helmRepoAddCommand}
+                    </ClipboardCopy>
+                  </GridItem>
+                </Grid>
+              </CardBody>
+            </Card>
+          )}
         </GridItem>
 
         {/* Repository Description */}

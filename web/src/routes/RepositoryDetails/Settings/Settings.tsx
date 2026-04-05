@@ -17,6 +17,7 @@ import {RepositoryDetails} from 'src/resources/RepositoryResource';
 import {useQuayConfig} from 'src/hooks/UseQuayConfig';
 import RepositoryAutoPruning from 'src/routes/RepositoryDetails/Settings/RepositoryAutoPruning';
 import RepositoryImmutabilityPolicies from 'src/routes/RepositoryDetails/Settings/RepositoryImmutabilityPolicies';
+import HelmRepoIndex from 'src/routes/RepositoryDetails/Settings/HelmRepoIndex';
 import {useOrganization} from 'src/hooks/UseOrganization';
 
 export default function Settings(props: SettingsProps) {
@@ -66,6 +67,17 @@ export default function Settings(props: SettingsProps) {
                 repoName={props.repo}
               />
             ),
+          },
+        ]
+      : []),
+    ...(config?.features?.HELM_REPO_INDEX &&
+    props.repoDetails?.can_admin &&
+    props.repoDetails?.state !== 'ORG_MIRROR'
+      ? [
+          {
+            name: 'Helm Repository Index',
+            id: 'helmrepoindex',
+            content: <HelmRepoIndex org={props.org} repo={props.repo} />,
           },
         ]
       : []),

@@ -1,16 +1,16 @@
 import {Tabs, Tab, TabTitleText} from '@patternfly/react-core';
 import {useSearchParams, useNavigate, useLocation} from 'react-router-dom';
-import {useState} from 'react';
+import {useState, useEffect} from 'react';
 import Details from './Details/Details';
 import SecurityReport from './SecurityReport/SecurityReport';
 import {ModelCard} from './ModelCard/ModelCard';
+import HelmChartView from './HelmChart/HelmChartView';
 import {Tag, ManifestByDigestResponse} from 'src/resources/TagResource';
 import {TabIndex} from './Types';
 import {Packages} from './Packages/Packages';
 import {Layers} from './Layers/Layers';
 import {useQuayConfig} from 'src/hooks/UseQuayConfig';
 
-// Return the tab as an enum or null if it does not exist
 function getTabIndex(tab: string) {
   if (Object.values(TabIndex).includes(tab as TabIndex)) {
     return tab as TabIndex;
@@ -19,14 +19,27 @@ function getTabIndex(tab: string) {
 
 export default function TagTabs(props: TagTabsProps) {
   const quayConfig = useQuayConfig();
+  const isHelmChart = props.manifestData?.is_helm_chart === true;
 
-  const [activeTabKey, setActiveTabKey] = useState<TabIndex>(TabIndex.Details);
+  const [searchParams] = useSearchParams();
+  const requestedTabIndex = getTabIndex(searchParams.get('tab'));
+  const defaultTab = isHelmChart ? TabIndex.HelmChart : TabIndex.Details;
+  const [activeTabKey, setActiveTabKey] = useState<TabIndex>(
+    requestedTabIndex || defaultTab,
+  );
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Navigate to the correct tab
-  const [searchParams] = useSearchParams();
-  const requestedTabIndex = getTabIndex(searchParams.get('tab'));
+  useEffect(() => {
+    if (
+      isHelmChart &&
+      !requestedTabIndex &&
+      activeTabKey === TabIndex.Details
+    ) {
+      setActiveTabKey(TabIndex.HelmChart);
+    }
+  }, [isHelmChart]);
+
   if (requestedTabIndex && requestedTabIndex !== activeTabKey) {
     setActiveTabKey(requestedTabIndex);
   }
@@ -39,6 +52,18 @@ export default function TagTabs(props: TagTabsProps) {
       }}
       usePageInsets={true}
     >
+      <Tab
+        eventKey={TabIndex.HelmChart}
+        title={<TabTitleText>Helm Chart</TabTitleText>}
+        isHidden={!isHelmChart}
+      >
+        <HelmChartView
+          org={props.org}
+          repo={props.repo}
+          digest={props.digest}
+          size={props.tag.size}
+        />
+      </Tab>
       <Tab
         eventKey={TabIndex.Details}
         title={<TabTitleText>Details</TabTitleText>}
@@ -53,13 +78,14 @@ export default function TagTabs(props: TagTabsProps) {
       <Tab
         eventKey={TabIndex.Layers}
         title={<TabTitleText>Layers</TabTitleText>}
+        isHidden={isHelmChart}
       >
         <Layers org={props.org} repo={props.repo} digest={props.digest} />
       </Tab>
       <Tab
         eventKey={TabIndex.SecurityReport}
         title={<TabTitleText>Security Report</TabTitleText>}
-        isHidden={!quayConfig?.features?.SECURITY_SCANNER}
+        isHidden={!quayConfig?.features?.SECURITY_SCANNER || isHelmChart}
       >
         <SecurityReport
           org={props.org}
@@ -70,7 +96,7 @@ export default function TagTabs(props: TagTabsProps) {
       <Tab
         eventKey={TabIndex.Packages}
         title={<TabTitleText>Packages</TabTitleText>}
-        isHidden={!quayConfig?.features?.SECURITY_SCANNER}
+        isHidden={!quayConfig?.features?.SECURITY_SCANNER || isHelmChart}
       >
         <Packages
           org={props.org}

@@ -1,0 +1,52 @@
+{
+  "extraction_status": "completed",
+  "chart_name": "nginx",
+  "chart_version": "22.6.10",
+  "app_version": "1.27.5",
+  "api_version": "v2",
+  "description": "NGINX Open Source is a web server that can be also used as a reverse proxy, load balancer, and HTTP cache.",
+  "kube_version": ">=1.23.0-0",
+  "chart_type": "application",
+  "home": "https://github.com/bitnami/charts/tree/main/bitnami/nginx",
+  "deprecated": false,
+  "sources": ["https://github.com/bitnami/containers/tree/main/bitnami/nginx"],
+  "maintainers": [
+    {
+      "name": "Broadcom",
+      "url": "https://github.com/bitnami/charts"
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "common",
+      "version": "2.x.x",
+      "repository": "oci://registry-1.docker.io/bitnamicharts"
+    }
+  ],
+  "keywords": ["nginx", "http", "web", "www", "reverse proxy"],
+  "annotations": {},
+  "has_readme": true,
+  "has_values": true,
+  "has_schema": false,
+  "has_provenance": false,
+  "has_icon": false,
+  "icon_media_type": null,
+  "file_tree": [
+    {"path": "Chart.yaml", "size": 1200},
+    {"path": "Chart.lock", "size": 300},
+    {"path": "values.yaml", "size": 45000},
+    {"path": "README.md", "size": 85000},
+    {"path": "templates/deployment.yaml", "size": 3200},
+    {"path": "templates/service.yaml", "size": 1500},
+    {"path": "templates/ingress.yaml", "size": 2100},
+    {"path": "templates/hpa.yaml", "size": 800},
+    {"path": "templates/configmap.yaml", "size": 600},
+    {"path": "templates/_helpers.tpl", "size": 4500}
+  ],
+  "image_references": [
+    {
+      "image": "docker.io/bitnami/nginx:1.27.5-debian-12-r1",
+      "location": "values.yaml"
+    }
+  ]
+}

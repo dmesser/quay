@@ -21,6 +21,22 @@ export default function TablePopover(props: TablePopoverProps) {
       headerContent={<div>Fetch Tag</div>}
       bodyContent={
         <div>
+          {props.isHelmChart && (
+            <>
+              <Content component="p" style={{fontWeight: 'bold'}}>
+                Helm Pull
+              </Content>
+              <ClipboardCopy
+                data-testid="copy-helm-pull"
+                isReadOnly
+                hoverTip="Copy"
+                clickTip="Copied"
+              >
+                {`helm pull oci://${domain}/${props.org}/${props.repo} --version ${props.tag}`}
+              </ClipboardCopy>
+              <br />
+            </>
+          )}
           <Content component="p" style={{fontWeight: 'bold'}}>
             Podman Pull (By Tag)
           </Content>
@@ -87,5 +103,6 @@ type TablePopoverProps = {
   repo: string;
   tag: string;
   digest: string;
+  isHelmChart?: boolean;
   children: React.ReactNode;
 };

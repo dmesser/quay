@@ -30,6 +30,7 @@ import {
   CopyIcon,
 } from '@patternfly/react-icons';
 import {ChildManifestSize} from 'src/components/Table/ImageSize';
+import HelmIcon from 'src/components/HelmIcon';
 import Labels from 'src/components/labels/Labels';
 import TagActions from './TagsActions';
 import {RepositoryDetails} from 'src/resources/RepositoryResource';
@@ -242,6 +243,19 @@ function TagsTableRow(props: RowProps) {
           >
             {tag.name}
           </Link>
+          {tag.is_helm_chart && (
+            <Tooltip content="This tag points to a Helm chart">
+              <HelmIcon
+                style={{
+                  marginLeft: '8px',
+                  verticalAlign: 'middle',
+                  fontSize: '1.6em',
+                }}
+                aria-label="Helm chart"
+                data-testid="helm-chart-label"
+              />
+            </Tooltip>
+          )}
           {tag.cosign_signature_tag && (
             <Tooltip content="This tag has been signed via cosign.">
               <ShieldAltIcon
@@ -418,6 +432,7 @@ function TagsTableRow(props: RowProps) {
             repo={props.repo}
             tag={tag.name}
             digest={tag.manifest_digest}
+            isHelmChart={tag.is_helm_chart}
           >
             <DownloadIcon />
           </TablePopover>

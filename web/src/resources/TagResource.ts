@@ -36,6 +36,7 @@ export interface Tag {
   present_child_count?: number;
   // Map of child manifest digest to presence status
   child_manifests_presence?: Record<string, boolean>;
+  is_helm_chart?: boolean;
 }
 
 export interface ManifestList {
@@ -94,6 +95,7 @@ export interface ManifestByDigestResponse {
   layers?: Layer[];
   layers_compressed_size?: number;
   modelcard?: string;
+  is_helm_chart?: boolean;
 }
 
 export interface SecurityDetailsResponse {
@@ -498,4 +500,115 @@ export async function getTagPullStatistics(
       error,
     );
   }
+}
+
+export interface HelmChartMetadata {
+  extraction_status: 'pending' | 'completed' | 'failed';
+  chart_name?: string;
+  chart_version?: string;
+  app_version?: string;
+  api_version?: string;
+  description?: string;
+  kube_version?: string;
+  chart_type?: string;
+  home?: string;
+  deprecated?: boolean;
+  sources?: string[];
+  maintainers?: {name: string; email?: string; url?: string}[];
+  dependencies?: {name: string; version: string; repository?: string}[];
+  keywords?: string[];
+  annotations?: Record<string, string>;
+  has_readme?: boolean;
+  has_values?: boolean;
+  has_schema?: boolean;
+  has_provenance?: boolean;
+  has_icon?: boolean;
+  icon_media_type?: string;
+  file_tree?: {path: string; size: number}[];
+  image_references?: {image: string; location: string}[];
+  extraction_error?: string;
+  provenance_key_id?: string;
+  provenance_hash_algorithm?: string;
+  provenance_signature_date?: string;
+}
+
+export interface HelmChartContentResponse {
+  content: string;
+}
+
+export interface HelmChartIconResponse {
+  icon_data: string;
+  media_type: string;
+}
+
+export async function getHelmChartMetadata(
+  org: string,
+  repo: string,
+  digest: string,
+): Promise<HelmChartMetadata> {
+  const response = await axios.get<HelmChartMetadata>(
+    `/api/v1/repository/${org}/${repo}/manifest/${digest}/helm`,
+  );
+  assertHttpCode(response.status, 200);
+  return response.data;
+}
+
+export async function getHelmReadme(
+  org: string,
+  repo: string,
+  digest: string,
+): Promise<string> {
+  const response = await axios.get<HelmChartContentResponse>(
+    `/api/v1/repository/${org}/${repo}/manifest/${digest}/helm/readme`,
+  );
+  assertHttpCode(response.status, 200);
+  return response.data.content;
+}
+
+export async function getHelmValues(
+  org: string,
+  repo: string,
+  digest: string,
+): Promise<string> {
+  const response = await axios.get<HelmChartContentResponse>(
+    `/api/v1/repository/${org}/${repo}/manifest/${digest}/helm/values`,
+  );
+  assertHttpCode(response.status, 200);
+  return response.data.content;
+}
+
+export async function getHelmSchema(
+  org: string,
+  repo: string,
+  digest: string,
+): Promise<string> {
+  const response = await axios.get<HelmChartContentResponse>(
+    `/api/v1/repository/${org}/${repo}/manifest/${digest}/helm/schema`,
+  );
+  assertHttpCode(response.status, 200);
+  return response.data.content;
+}
+
+export async function getHelmIcon(
+  org: string,
+  repo: string,
+  digest: string,
+): Promise<HelmChartIconResponse> {
+  const response = await axios.get<HelmChartIconResponse>(
+    `/api/v1/repository/${org}/${repo}/manifest/${digest}/helm/icon`,
+  );
+  assertHttpCode(response.status, 200);
+  return response.data;
+}
+
+export async function getHelmProvenance(
+  org: string,
+  repo: string,
+  digest: string,
+): Promise<string> {
+  const response = await axios.get<HelmChartContentResponse>(
+    `/api/v1/repository/${org}/${repo}/manifest/${digest}/helm/provenance`,
+  );
+  assertHttpCode(response.status, 200);
+  return response.data.content;
 }
